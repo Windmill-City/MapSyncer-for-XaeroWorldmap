@@ -11,18 +11,16 @@ import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.config.ModConfig.Type;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
@@ -38,7 +36,6 @@ public class MapSyncer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MapSyncer.class);
 
     public MapSyncer() {
-        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
@@ -47,8 +44,6 @@ public class MapSyncer {
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
         ModLoadingContext.get().registerConfig(Type.CLIENT, ModConfig.CLIENT_SPEC);
-        modBus.addListener((net.minecraftforge.fml.event.config.ModConfigEvent.Loading event) ->
-                ModConfig.bindServerConfig(event.getConfig()));
 
         ForgeNetworkHandler networkHandler = new ForgeNetworkHandler();
         ForgeNetworkHandler.setInstance(networkHandler);
@@ -58,13 +53,19 @@ public class MapSyncer {
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             MapPacketHandler.registerHandlers();
-            MinecraftForge.EVENT_BUS.register(ClientEventHandler.class);
             LOGGER.info("MapSyncer initialized (client mode, Forge 1.20.1)");
         }
 
         ServerSyncHandlerLogic.registerHandlers();
-        MinecraftForge.EVENT_BUS.register(this);
         LOGGER.info("MapSyncer server handlers registered (integrated server support)");
+    }
+
+    @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
+    public static class ModEvents {
+        @SubscribeEvent
+        public static void onConfigLoading(ModConfigEvent.Loading event) {
+            ModConfig.bindServerConfig(event.getConfig());
+        }
     }
 
     @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
@@ -82,29 +83,31 @@ public class MapSyncer {
         }
     }
 
-    @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
+    @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE)
+    public static class ForgeEvents {
+        @SubscribeEvent
+        public static void onServerStarting(ServerStartingEvent event) {
 
-        ConversionOrchestrator.tryInitIntegratedServerCache(event.getServer(), FMLPaths.GAMEDIR.get());
+            ConversionOrchestrator.tryInitIntegratedServerCache(event.getServer(), FMLPaths.GAMEDIR.get());
 
-        DimensionRegistry.registerAllDimensions(event.getServer());
+            DimensionRegistry.registerAllDimensions(event.getServer());
 
-        com.mapsyncer.util.ModLogConfig.applyDebugLogging();
+            com.mapsyncer.util.ModLogConfig.applyDebugLogging();
 
-        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode != UpdateMode.DISABLED) {
-            IncrementalUpdateHandlerLogic.getInstance().start(event.getServer());
+            UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
+            if (mode != UpdateMode.DISABLED) {
+                IncrementalUpdateHandlerLogic.getInstance().start(event.getServer());
+            }
         }
-    }
 
-    @SubscribeEvent
-    public void onServerStopping(ServerStoppingEvent event) {
-        MinecraftForge.EVENT_BUS.unregister(this);
-        IncrementalUpdateHandlerLogic.getInstance().stop();
-    }
+        @SubscribeEvent
+        public static void onServerStopping(ServerStoppingEvent event) {
+            IncrementalUpdateHandlerLogic.getInstance().stop();
+        }
 
-    @SubscribeEvent
-    public void onRegisterCommands(RegisterCommandsEvent event) {
-        CacheCommandHandler.register(event.getDispatcher(), "mapsyncer");
+        @SubscribeEvent
+        public static void onRegisterCommands(RegisterCommandsEvent event) {
+            CacheCommandHandler.register(event.getDispatcher(), "mapsyncer");
+        }
     }
 }
