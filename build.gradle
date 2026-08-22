@@ -45,8 +45,6 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
     implementation 'org.lz4:lz4-java:1.8.0'
-
-    implementation('net.sf.jopt-simple:jopt-simple:5.0.4') { version { strictly '5.0.4' } }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -68,16 +66,10 @@ apply from: rootProject.file('gradle/lz4-relocate.gradle')
 configurations {
 
     bundle
-
-    packagerLogging {
-        canBeConsumed = false
-        canBeResolved = true
-    }
 }
 
 dependencies {
     bundle 'org.lz4:lz4-java:1.8.0'
-    packagerLogging 'org.slf4j:slf4j-simple:2.0.9'
 }
 
 shadowJar {
@@ -96,49 +88,6 @@ tasks.named('jarJar') {
     enabled = false
 }
 
-def packagerMainClass = 'com.mapsyncer.tool.MapPackager'
-
-tasks.register('mapPackagerJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    archiveClassifier = ''
-    archiveBaseName = 'mapsyncer-packager'
-    archiveVersion = mod_version
-    destinationDirectory = layout.buildDirectory.dir('dist')
-
-    manifest {
-        attributes 'Main-Class': packagerMainClass
-    }
-
-    from(sourceSets.main.output) {
-        include 'com/mapsyncer/tool/MapPackager*.class'
-        include 'com/mapsyncer/util/HashUtils*.class'
-        include 'com/mapsyncer/util/PropertiesCacheIO*.class'
-    }
-    configurations = [project.configurations.packagerLogging]
-
-    exclude 'META-INF/*.SF'
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
-    exclude 'META-INF/versions/9/module-info.class'
-
-    zip64 = true
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-}
-
-tasks.register('mapPackagerDist', Zip) {
-    dependsOn mapPackagerJar
-
-    archiveFileName = "mapsyncer-packager-${mod_version}.zip"
-    destinationDirectory = layout.buildDirectory.dir('dist')
-
-    from(mapPackagerJar.archiveFile) {
-        into '.'
-    }
-
-    doLast {
-        logger.lifecycle("MapPackager 发布包: ${archiveFile.get().asFile.absolutePath}")
-    }
-}
-
 tasks.register('collectJars', Copy) {
     description = '将所有构建产物 JAR 收集到 output 目录'
     group = 'distribution'
@@ -153,21 +102,6 @@ tasks.register('collectJars', Copy) {
 tasks.register('buildAll') {
     dependsOn 'build'
     finalizedBy 'collectJars'
-}
-
-tasks.register('buildPackager') {
-    description = '构建 MapPackager 打包工具并输出到 output 目录'
-    group = 'distribution'
-    dependsOn 'mapPackagerDist'
-    doLast {
-        copy {
-            from(layout.buildDirectory.dir('dist')) {
-                include 'mapsyncer-packager-*.zip'
-            }
-            into layout.projectDirectory.dir('output')
-        }
-        logger.lifecycle('MapPackager 产物已输出到 output/ 目录')
-    }
 }
 
 publishing {
