@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.ClientMeta;
-import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
 import org.slf4j.Logger;
@@ -52,7 +52,7 @@ public class ClientHashManager {
 
     private static int getConfiguredThreads() {
         try {
-            return PlatformManager.getPlatform().getClientHashThreads();
+            return ModConfig.CLIENT.getHashThreads();
         } catch (Exception e) {
 
             LOGGER.debug("ClientConfig not initialized, using default threads: {}", DEFAULT_THREADS);

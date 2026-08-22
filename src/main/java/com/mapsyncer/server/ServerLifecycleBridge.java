@@ -3,7 +3,6 @@ package com.mapsyncer.server;
 import com.mapsyncer.client.ClientHashManager;
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.client.XaeroMapDataHandler;
-import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.BlockColorMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +26,6 @@ public final class ServerLifecycleBridge {
         XaeroMapDataHandler.clearRegionTracking();
         BlockColorMapper.clearCache();
         BlockPropertyResolver.clearCache();
-        PlatformManager.getPlatform().clearBlockPropertiesCache();
         ClientHashManager.shutdown();
 
         ServerSyncHandlerLogic.cleanup();

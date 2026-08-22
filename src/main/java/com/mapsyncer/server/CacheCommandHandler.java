@@ -6,8 +6,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mapsyncer.config.DimensionConfigParser;
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.UpdateMode;
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
 import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
 import com.mapsyncer.util.ChatUtils;
@@ -243,7 +243,7 @@ public class CacheCommandHandler {
     }
 
     public static String serverCommandPrefix() {
-        return PlatformManager.getPlatform().getServerCommandPrefix();
+        return "mapsyncer";
     }
 
     public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender) {
@@ -281,12 +281,11 @@ public class CacheCommandHandler {
     }
 
     public static MutableComponent incrementalStatusMessage() {
-        var platform = PlatformManager.getPlatform();
-        UpdateMode mode = platform.getIncrementalUpdateMode();
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         IncrementalUpdateHandlerLogic handler = IncrementalUpdateHandlerLogic.getInstance();
 
         if (mode == UpdateMode.TICK) {
-            int interval = platform.getIncrementalUpdateIntervalTicks();
+            int interval = ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
             int remainingTicks = handler.isRunning()
                     ? Math.max(0, interval - handler.getTickCounter())
                     : interval;
@@ -298,8 +297,8 @@ public class CacheCommandHandler {
                     interval, interval / 20.0f, minutes, seconds);
         }
         if (mode == UpdateMode.SCHEDULED) {
-            int hour = platform.getScheduledUpdateHour();
-            int minute = platform.getScheduledUpdateMinute();
+            int hour = ModConfig.SERVER.scheduledUpdateHour.get();
+            int minute = ModConfig.SERVER.scheduledUpdateMinute.get();
             return ChatUtils.message(
                     "mapsyncer.command.incremental_status_scheduled", hour, minute);
         }
@@ -396,70 +395,64 @@ public class CacheCommandHandler {
     }
 
     public static void disableIncremental() {
-        var platform = PlatformManager.getPlatform();
-        platform.setIncrementalUpdateMode(UpdateMode.DISABLED);
-        platform.saveConfig();
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.DISABLED);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().stop();
     }
 
     public static void setIncrementalTick(MinecraftServer server) {
-        var platform = PlatformManager.getPlatform();
-        platform.setIncrementalUpdateMode(UpdateMode.TICK);
-        platform.saveConfig();
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.TICK);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static void setIncrementalTick(MinecraftServer server, int interval) {
-        var platform = PlatformManager.getPlatform();
-        platform.setIncrementalUpdateIntervalTicks(interval);
-        platform.setIncrementalUpdateMode(UpdateMode.TICK);
-        platform.saveConfig();
+        ModConfig.SERVER.incrementalUpdateIntervalTicks.set(interval);
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.TICK);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static void setIncrementalScheduled(MinecraftServer server) {
-        var platform = PlatformManager.getPlatform();
-        platform.setIncrementalUpdateMode(UpdateMode.SCHEDULED);
-        platform.saveConfig();
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static void setScheduledTime(MinecraftServer server, int hour) {
-        var platform = PlatformManager.getPlatform();
-        platform.setScheduledUpdateHour(hour);
-        platform.setIncrementalUpdateMode(UpdateMode.SCHEDULED);
-        platform.saveConfig();
+        ModConfig.SERVER.scheduledUpdateHour.set(hour);
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static void setScheduledTime(MinecraftServer server, int hour, int minute) {
-        var platform = PlatformManager.getPlatform();
-        platform.setScheduledUpdateHour(hour);
-        platform.setScheduledUpdateMinute(minute);
-        platform.setIncrementalUpdateMode(UpdateMode.SCHEDULED);
-        platform.saveConfig();
+        ModConfig.SERVER.scheduledUpdateHour.set(hour);
+        ModConfig.SERVER.scheduledUpdateMinute.set(minute);
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
+        ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static UpdateMode getIncrementalUpdateMode() {
-        return PlatformManager.getPlatform().getIncrementalUpdateMode();
+        return ModConfig.SERVER.incrementalUpdateMode.get();
     }
 
     public static int getIncrementalUpdateIntervalTicks() {
-        return PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks();
+        return ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
     }
 
     public static int getScheduledUpdateHour() {
-        return PlatformManager.getPlatform().getScheduledUpdateHour();
+        return ModConfig.SERVER.scheduledUpdateHour.get();
     }
 
     public static int getScheduledUpdateMinute() {
-        return PlatformManager.getPlatform().getScheduledUpdateMinute();
+        return ModConfig.SERVER.scheduledUpdateMinute.get();
     }
 
     public static boolean reloadConfig(MinecraftServer server) {
         try {
-            PlatformManager.getPlatform().reloadConfig();
+            ModConfig.reloadServerFromDisk();
             ModLogConfig.applyDebugLogging();
             DimensionRegistry.resetRegistration();
             DimensionConfigParser.invalidateCache();
@@ -470,7 +463,7 @@ public class CacheCommandHandler {
 
             IncrementalUpdateHandlerLogic handler = IncrementalUpdateHandlerLogic.getInstance();
             handler.stop();
-            UpdateMode mode = PlatformManager.getPlatform().getIncrementalUpdateMode();
+            UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
             if (mode != UpdateMode.DISABLED && server != null) {
                 handler.start(server);
             }

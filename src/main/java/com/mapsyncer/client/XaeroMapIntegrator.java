@@ -1,6 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.platform.XaeroReflectionHelper;
 import com.mapsyncer.util.XaeroPathResolver;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -290,5 +289,34 @@ public class XaeroMapIntegrator {
         Path serverDir = worldMapDir.resolve("Multiplayer_" + serverIP);
         LOGGER.debug("Server directory: {}", serverDir);
         return serverDir;
+    }
+
+    public static Path getClientXaeroWorldMapDir() {
+        try {
+            Path serverDir = getCurrentServerDirectory();
+            if (serverDir != null) {
+                return serverDir;
+            }
+
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.gameDirectory != null) {
+                return XaeroPathResolver.getWorldMapDir(mc.gameDirectory.toPath());
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Failed to get Xaero world map dir: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    public static String getCurrentServerDirectoryName() {
+        try {
+            Path serverDir = getCurrentServerDirectory();
+            if (serverDir != null) {
+                return serverDir.getFileName().toString();
+            }
+        } catch (Exception e) {
+            LOGGER.debug("Failed to get server directory name: {}", e.getMessage());
+        }
+        return "Multiplayer_Server";
     }
 }

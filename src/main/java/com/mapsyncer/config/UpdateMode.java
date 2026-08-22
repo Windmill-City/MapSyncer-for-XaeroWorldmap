@@ -1,4 +1,4 @@
-package com.mapsyncer.platform;
+package com.mapsyncer.config;
 
 public enum UpdateMode {
 

@@ -1,10 +1,10 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.UpdateMode;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -57,8 +57,8 @@ public class PlayerJoinHandlerLogic {
         if (server == null) return;
 
         long lastGenTime = GenerationCache.getInstance(ConversionOrchestrator.getCacheDir()).getLastGenerationTime();
-        UpdateMode mode = PlatformManager.getPlatform().getIncrementalUpdateMode();
-        int intervalTicks = PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks();
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
+        int intervalTicks = ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
         int autoInterval = AutoSyncConfig.computeInterval(mode, intervalTicks);
         NetworkManager.sendToPlayer(player,
             new ServerInstalledPayload(getModVersion(), lastGenTime, autoInterval, mode, intervalTicks));

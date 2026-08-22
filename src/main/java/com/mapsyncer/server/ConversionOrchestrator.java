@@ -4,9 +4,8 @@ package com.mapsyncer.server;
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
-import com.mapsyncer.platform.PlatformManager;
-
 import com.mapsyncer.mca.DimensionTypeInfo;
+
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverterStandalone.LayerConvertedRegion;
@@ -122,7 +121,7 @@ public class ConversionOrchestrator {
 
     private static ExecutorService getOrCreateExecutor() {
         if (conversionExecutor == null || conversionExecutor.isShutdown()) {
-            int maxConcurrent = PlatformManager.getPlatform().getMaxConcurrentRegions();
+            int maxConcurrent = ModConfig.resolveConcurrentRegions(ModConfig.SERVER.maxConcurrentRegions.get());
             conversionExecutor = Executors.newFixedThreadPool(maxConcurrent,
                 new NamedThreadFactory("mapsyncer-converter"));
             LOGGER.info("Created conversion thread pool with {} threads (resolved maxConcurrentRegions)", maxConcurrent);
@@ -315,7 +314,7 @@ public class ConversionOrchestrator {
         String fullDimId = dimension.location().toString();
         String dimPath = dimension.location().getPath();
 
-        DimensionScanConfig scanConfig = PlatformManager.getPlatform().getConfigForDimension(dimPath);
+        DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
 
         String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
 
@@ -382,7 +381,7 @@ public class ConversionOrchestrator {
         String fullDimId = dimRegions.dimension().location().toString();
         String dimPath = dimRegions.dimension().location().getPath();
 
-        DimensionScanConfig scanConfig = PlatformManager.getPlatform().getConfigForDimension(dimPath);
+        DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
 
         String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
@@ -476,7 +475,7 @@ public class ConversionOrchestrator {
                 continue;
             }
             String dimPath = dimRegions.dimension().location().getPath();
-            DimensionScanConfig scanConfig = PlatformManager.getPlatform().getConfigForDimension(dimPath);
+            DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
             DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = RegionGenerationPlanner.countPasses(scanConfig, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
@@ -693,7 +692,7 @@ public class ConversionOrchestrator {
             String fullDimId = dimRegions.dimension().location().toString();
             String dimPath = dimRegions.dimension().location().getPath();
 
-            DimensionScanConfig scanConfig = PlatformManager.getPlatform().getConfigForDimension(dimPath);
+            DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
             String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);

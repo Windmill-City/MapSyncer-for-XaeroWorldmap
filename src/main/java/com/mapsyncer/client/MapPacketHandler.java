@@ -6,10 +6,7 @@ import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.client.ClientSyncSession;
-
-
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.XaeroReflectionHelper;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.client.Minecraft;
@@ -612,7 +609,7 @@ public class MapPacketHandler {
     private static void scheduleDeferredReloadCleanup() {
         int intervalTicks;
         try {
-            intervalTicks = PlatformManager.getPlatform().getMapRegionLoadIntervalTicks();
+            intervalTicks = ModConfig.CLIENT.getMapRegionLoadIntervalTicks();
         } catch (IllegalStateException e) {
             intervalTicks = 1;
         }
@@ -738,7 +735,7 @@ public class MapPacketHandler {
         SyncProgressTracker.onClientTick();
         int intervalTicks;
         try {
-            intervalTicks = PlatformManager.getPlatform().getMapRegionLoadIntervalTicks();
+            intervalTicks = ModConfig.CLIENT.getMapRegionLoadIntervalTicks();
         } catch (IllegalStateException e) {
             return;
         }

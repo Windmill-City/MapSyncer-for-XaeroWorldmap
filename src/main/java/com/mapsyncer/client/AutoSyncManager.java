@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.UpdateMode;
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.server.AutoSyncConfig;
 import com.mapsyncer.util.ClientMeta;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class AutoSyncManager {
 
     public static Object[] getStatusKey(int intervalMinutes) {
         try {
-            if (!PlatformManager.getPlatform().isClientAutoSyncEnabled()) {
+            if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
                 return new Object[]{"mapsyncer.autosync.status.client_disabled"};
             }
         } catch (IllegalStateException ignored) {
@@ -64,7 +64,7 @@ public class AutoSyncManager {
     }
 
     public static boolean isJoinAutoSyncEnabled() {
-        if (!PlatformManager.getPlatform().isClientAutoSyncEnabled()) {
+        if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             return false;
         }
         if (serverUpdateMode == UpdateMode.SCHEDULED || serverUpdateMode == UpdateMode.TICK) {
@@ -120,7 +120,7 @@ public class AutoSyncManager {
     }
 
     public static boolean shouldAutoSyncOnJoin(long serverGenTime, int intervalMinutes) {
-        if (!PlatformManager.getPlatform().isClientAutoSyncEnabled()) {
+        if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             LOGGER.debug("Join auto-sync skipped: client auto-sync disabled");
             return false;
         }
@@ -161,7 +161,7 @@ public class AutoSyncManager {
 
     public static void startTickPeriodicSync(Runnable syncAction) {
         cancelPeriodic();
-        if (!PlatformManager.getPlatform().isClientAutoSyncEnabled()) {
+        if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             return;
         }
         if (serverUpdateMode != UpdateMode.TICK || serverIntervalTicks <= 0) {

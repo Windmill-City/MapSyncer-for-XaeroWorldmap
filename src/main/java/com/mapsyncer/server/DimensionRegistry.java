@@ -2,8 +2,8 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.LayerPlan;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.DimensionTypeInfo;
-import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.resources.ResourceKey;
@@ -37,10 +37,10 @@ public class DimensionRegistry {
         DimensionPathMapping mapping = DimensionPathMapping.getInstance();
         mapping.scanAndRegisterDimensions(worldRoot);
 
-        List<? extends String> currentConfigs = PlatformManager.getPlatform().getDimensionConfigs();
+        List<? extends String> currentConfigs = new ArrayList<>(ModConfig.SERVER.dimensionConfigs.get());
 
         Set<String> configuredDimensions = new HashSet<>();
-        for (DimensionScanConfig config : PlatformManager.getPlatform().parseDimensionConfigs()) {
+        for (DimensionScanConfig config : ModConfig.SERVER.parseDimensionConfigs()) {
             configuredDimensions.add(normalizeDimensionId(config.dimension()));
         }
 
@@ -94,9 +94,9 @@ public class DimensionRegistry {
                     dimId, finalConfig.layerPlan().toConfigString(), dimTypeInfo.hasSkylight());
         }
 
-        PlatformManager.getPlatform().setDimensionConfigs(updatedConfigs);
+        ModConfig.SERVER.dimensionConfigs.set(updatedConfigs);
 
-        PlatformManager.getPlatform().saveConfig();
+        ModConfig.SERVER_SPEC.save();
 
         hasRegistered = true;
         LOGGER.info("Dimension registration completed: {} new dimensions added, total {} dimensions configured",

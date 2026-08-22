@@ -1,7 +1,6 @@
 package com.mapsyncer.config;
 
 import com.mapsyncer.mca.DimensionTypeInfo;
-import com.mapsyncer.platform.UpdateMode;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;

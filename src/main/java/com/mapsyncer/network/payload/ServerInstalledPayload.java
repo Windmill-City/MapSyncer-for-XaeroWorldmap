@@ -1,7 +1,7 @@
 package com.mapsyncer.network.payload;
 
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.network.NetworkHandler;
-import com.mapsyncer.platform.UpdateMode;
 import net.minecraft.network.FriendlyByteBuf;
 
 public record ServerInstalledPayload(

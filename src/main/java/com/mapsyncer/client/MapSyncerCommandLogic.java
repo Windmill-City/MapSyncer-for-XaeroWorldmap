@@ -6,7 +6,7 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.platform.PlatformManager;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.server.CacheCommandHandler;
 import com.mapsyncer.util.ChatUtils;
 
@@ -332,7 +332,7 @@ public class MapSyncerCommandLogic {
     public static int executeAutoSyncStatus() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return 0;
-        boolean enabled = PlatformManager.getPlatform().isClientAutoSyncEnabled();
+        boolean enabled = ModConfig.CLIENT.isAutoSyncEnabled();
         mc.player.displayClientMessage(
                 ChatUtils.prefix().append(ChatUtils.desc(
                         enabled ? "mapsyncer.autosync.client.enabled" : "mapsyncer.autosync.client.disabled")),
@@ -341,7 +341,8 @@ public class MapSyncerCommandLogic {
     }
 
     public static int setClientAutoSync(boolean enabled) {
-        PlatformManager.getPlatform().setClientAutoSyncEnabled(enabled);
+        ModConfig.CLIENT.setAutoSyncEnabled(enabled);
+        ModConfig.saveClientConfig();
         if (!enabled) {
             AutoSyncManager.stopPeriodicSync();
         }

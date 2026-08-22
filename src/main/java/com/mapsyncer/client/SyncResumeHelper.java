@@ -1,6 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.ChatUtils;
 
 import net.minecraft.client.Minecraft;
@@ -62,7 +61,7 @@ public class SyncResumeHelper {
             return;
         }
 
-        Path serverDir = PlatformManager.getPlatform().getClientXaeroWorldMapDir();
+        Path serverDir = XaeroMapIntegrator.getClientXaeroWorldMapDir();
         if (serverDir == null || !serverDir.toFile().exists()) {
             LOGGER.info("Server directory not found, skip sync state check");
             return;
@@ -95,7 +94,7 @@ public class SyncResumeHelper {
 
     public static void clearSyncState() {
         Minecraft mc = Minecraft.getInstance();
-        Path serverDir = PlatformManager.getPlatform().getClientXaeroWorldMapDir();
+        Path serverDir = XaeroMapIntegrator.getClientXaeroWorldMapDir();
         if (serverDir == null || !serverDir.toFile().exists()) {
             return;
         }

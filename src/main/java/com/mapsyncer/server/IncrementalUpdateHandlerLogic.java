@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.UpdateMode;
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -68,15 +68,15 @@ public class IncrementalUpdateHandlerLogic {
         this.tickCounter.set(0);
         this.lastScheduledUpdate = null;
 
-        UpdateMode mode = PlatformManager.getPlatform().getIncrementalUpdateMode();
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode == UpdateMode.TICK) {
             LOGGER.info("Incremental update handler started (TICK mode, interval: {} ticks = {} seconds)",
-                PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks(),
-                PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks() / 20);
+                ModConfig.SERVER.incrementalUpdateIntervalTicks.get(),
+                ModConfig.SERVER.incrementalUpdateIntervalTicks.get() / 20);
         } else if (mode == UpdateMode.SCHEDULED) {
             LOGGER.info("Incremental update handler started (SCHEDULED mode, daily at {}:{})",
-                PlatformManager.getPlatform().getScheduledUpdateHour(),
-                PlatformManager.getPlatform().getScheduledUpdateMinute());
+                ModConfig.SERVER.scheduledUpdateHour.get(),
+                ModConfig.SERVER.scheduledUpdateMinute.get());
         }
     }
 
@@ -131,7 +131,7 @@ public class IncrementalUpdateHandlerLogic {
     public void onServerTick() {
         if (!running || server == null) return;
 
-        UpdateMode mode = PlatformManager.getPlatform().getIncrementalUpdateMode();
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode == UpdateMode.DISABLED) return;
 
         switch (mode) {
@@ -148,7 +148,7 @@ public class IncrementalUpdateHandlerLogic {
     }
 
     private void checkTickMode() {
-        int interval = PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks();
+        int interval = ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
         int currentTick = tickCounter.incrementAndGet();
 
         if (currentTick >= interval) {
@@ -159,8 +159,8 @@ public class IncrementalUpdateHandlerLogic {
 
     private void checkScheduledMode() {
         LocalDateTime now = LocalDateTime.now();
-        int targetHour = PlatformManager.getPlatform().getScheduledUpdateHour();
-        int targetMinute = PlatformManager.getPlatform().getScheduledUpdateMinute();
+        int targetHour = ModConfig.SERVER.scheduledUpdateHour.get();
+        int targetMinute = ModConfig.SERVER.scheduledUpdateMinute.get();
         LocalTime targetTime = LocalTime.of(targetHour, targetMinute);
         LocalTime currentTime = now.toLocalTime();
 

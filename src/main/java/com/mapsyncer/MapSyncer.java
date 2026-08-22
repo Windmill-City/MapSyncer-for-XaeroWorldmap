@@ -2,12 +2,9 @@ package com.mapsyncer;
 
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
-import com.mapsyncer.platform.Platform;
-import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.platform.UpdateMode;
-import com.mapsyncer.platform.impl.ForgeLegacyPlatform;
 import com.mapsyncer.server.CacheCommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.DimensionRegistry;
@@ -45,9 +42,6 @@ public class MapSyncer {
         IEventBus modBus = context.getModEventBus();
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
-
-        PlatformManager.initialize(new ForgeLegacyPlatform());
-        LOGGER.info("Platform initialized: {}", PlatformManager.getPlatform().getPlatformName());
 
         DimensionPathMapping.getInstance().initialize(20);
         LOGGER.info("DimensionPathMapping initialized for version 1.20.X");
@@ -99,8 +93,7 @@ public class MapSyncer {
 
         com.mapsyncer.util.ModLogConfig.applyDebugLogging();
 
-        Platform platform = PlatformManager.getPlatform();
-        UpdateMode mode = platform.getIncrementalUpdateMode();
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode != UpdateMode.DISABLED) {
             IncrementalUpdateHandlerLogic.getInstance().start(event.getServer());
         }

@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.platform.UpdateMode;
+import com.mapsyncer.config.UpdateMode;
 
 public final class AutoSyncConfig {
 

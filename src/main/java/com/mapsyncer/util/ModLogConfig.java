@@ -1,5 +1,6 @@
 package com.mapsyncer.util;
 
+import com.mapsyncer.config.ModConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,7 @@ public final class ModLogConfig {
 
     public static void applyDebugLogging() {
         try {
-            boolean enableDebug = com.mapsyncer.platform.PlatformManager.getPlatform().isDebugLoggingEnabled();
+            boolean enableDebug = ModConfig.SERVER.enableDebugLogging.get();
             if (enableDebug == debugEnabled) return;
             debugEnabled = enableDebug;
             if (enableDebug) {

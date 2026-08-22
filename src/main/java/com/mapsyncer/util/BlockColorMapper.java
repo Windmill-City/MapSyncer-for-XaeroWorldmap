@@ -2,7 +2,6 @@ package com.mapsyncer.util;
 
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.server.BlockPropertyResolver.PlaceholderBlockGetter;
-import com.mapsyncer.platform.PlatformManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockModelShaper;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -228,7 +227,7 @@ public class BlockColorMapper {
             return computeColorFromPattern(blockName);
         }
 
-        if (PlatformManager.getPlatform().isClientEnvironment()) {
+        if (net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT) {
             int textureColor = tryGetTextureColor(state, blockName);
             if (textureColor != -1) {
                 LOGGER.debug("Using texture color for {}: {}", blockName, Integer.toHexString(textureColor));

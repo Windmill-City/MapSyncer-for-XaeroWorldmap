@@ -1,12 +1,12 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
-import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ClientMeta;
@@ -46,12 +46,12 @@ public class ServerSyncHandlerLogic {
     private static final int MAX_PACKET_SIZE_LIMIT = 1_000_000;
 
     private static int getMaxPacketSize() {
-        int configValue = PlatformManager.getPlatform().getMaxSyncPacketSize();
+        int configValue = ModConfig.SERVER.maxSyncPacketSize.get();
         return Math.min(configValue, MAX_PACKET_SIZE_LIMIT);
     }
 
     private static int getBatchThreshold() {
-        int limitKBps = PlatformManager.getPlatform().getSyncSpeedLimitKBps();
+        int limitKBps = ModConfig.SERVER.syncSpeedLimitKBps.get();
         if (limitKBps <= 0) {
 
             return getMaxPacketSize();
@@ -335,7 +335,7 @@ public class ServerSyncHandlerLogic {
 
     private static boolean applySpeedLimit(int bytesSent, MinecraftServer server, UUID playerId,
             ResourceKey<Level> startDimension, int syncVersion) {
-        int limitKBps = PlatformManager.getPlatform().getSyncSpeedLimitKBps();
+        int limitKBps = ModConfig.SERVER.syncSpeedLimitKBps.get();
         if (limitKBps <= 0) return true;
 
         Long cycleStart = speedLimitCycleStart.get(playerId);
