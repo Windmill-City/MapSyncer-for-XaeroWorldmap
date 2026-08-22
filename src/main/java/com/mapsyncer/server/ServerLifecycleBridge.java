@@ -26,8 +26,6 @@ public final class ServerLifecycleBridge {
         BlockPropertyResolver.clearCache();
         ClientHashManager.shutdown();
 
-        ServerSyncHandlerLogic.cleanup();
-
         LOGGER.info("Singleton cache cleanup completed");
     }
 }
