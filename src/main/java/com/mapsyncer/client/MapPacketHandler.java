@@ -192,6 +192,11 @@ public class MapPacketHandler {
 
         if ("no_cache".equals(status) || "dim_not_available".equals(status)) {
             LOGGER.info("Server returned error status: {}, aborting sync", status);
+            if (Minecraft.getInstance().player != null) {
+                Minecraft.getInstance()
+                        .player
+                        .displayClientMessage(ChatUtils.desc("mapsyncer.autosync.no_server_map"), false);
+            }
             clearSyncData();
             return;
         }

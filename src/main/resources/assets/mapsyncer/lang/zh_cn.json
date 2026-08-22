@@ -53,8 +53,9 @@
   "mapsyncer.command.conversion_not_running": "当前没有正在进行的生成任务。",
   "mapsyncer.status.cache_detail": "缓存统计：共 %s 个维度，%s 个区域，占用 %s MB\n%s",
 
-  "mapsyncer.autosync.start": "正在自动同步地图（已是最新时将跳过下载）...",
+  "mapsyncer.autosync.start": "正在自动同步地图...",
   "mapsyncer.autosync.complete": "自动同步完成",
+  "mapsyncer.autosync.no_server_map": "服务端还没有地图数据，已跳过自动同步",
 
   "title.mapsyncer.config": "MapSyncer 服务端配置",
   "title.mapsyncer.client_config": "MapSyncer 客户端配置",

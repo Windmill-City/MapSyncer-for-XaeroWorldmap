@@ -62,7 +62,8 @@ public class ServerSyncHandlerLogic {
     public static void pushManifestOnJoin(ServerPlayer player) {
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         if (!Files.exists(cacheDir)) {
-            LOGGER.debug("No cache dir, skipping proactive manifest push for player {}", player.getUUID());
+            LOGGER.debug("No cache dir, pushing no_cache manifest to player {}", player.getUUID());
+            pushNoCacheManifest(player);
             return;
         }
 
@@ -72,7 +73,8 @@ public class ServerSyncHandlerLogic {
 
         Set<String> dimensions = discoverDimensionsFromCache(absCacheDir);
         if (dimensions.isEmpty()) {
-            LOGGER.debug("No cached dimensions, skipping proactive manifest push for player {}", player.getUUID());
+            LOGGER.debug("No cached dimensions, pushing no_cache manifest to player {}", player.getUUID());
+            pushNoCacheManifest(player);
             return;
         }
 
@@ -80,7 +82,8 @@ public class ServerSyncHandlerLogic {
                 ManifestCache.getInstance().buildManifest(absCacheDir, dimensions, dimMapping, genCache);
         genCache.save();
         if (manifest.isEmpty()) {
-            LOGGER.debug("Manifest is empty, skipping proactive manifest push for player {}", player.getUUID());
+            LOGGER.debug("Manifest is empty, pushing no_cache manifest to player {}", player.getUUID());
+            pushNoCacheManifest(player);
             return;
         }
 
@@ -90,6 +93,12 @@ public class ServerSyncHandlerLogic {
             ForgeNetworkHandler.get().sendToPlayer(player, part);
         }
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
+    }
+
+    private static void pushNoCacheManifest(ServerPlayer player) {
+        ForgeNetworkHandler.confirmPlayer(player.getUUID());
+        int worldId = readWorldIdFromXaeroMap(player);
+        ForgeNetworkHandler.get().sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
     }
 
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {

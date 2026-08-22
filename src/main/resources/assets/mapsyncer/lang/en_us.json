@@ -53,8 +53,9 @@
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
   "mapsyncer.status.cache_detail": "Cache stats: %s dimensions, %s regions, %s MB\n%s",
 
-  "mapsyncer.autosync.start": "Auto-syncing maps (skips download when already up-to-date)...",
+  "mapsyncer.autosync.start": "Auto-syncing maps...",
   "mapsyncer.autosync.complete": "Auto-sync complete",
+  "mapsyncer.autosync.no_server_map": "Server has no map data yet; auto-sync skipped",
 
   "title.mapsyncer.config": "MapSyncer Server Config",
   "title.mapsyncer.client_config": "MapSyncer Client Config",
