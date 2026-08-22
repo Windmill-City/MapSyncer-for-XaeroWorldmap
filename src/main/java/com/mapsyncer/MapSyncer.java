@@ -3,7 +3,6 @@ package com.mapsyncer;
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.server.CacheCommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
@@ -52,13 +51,12 @@ public class MapSyncer {
                 ModConfig.bindServerConfig(event.getConfig()));
 
         ForgeNetworkHandler networkHandler = new ForgeNetworkHandler();
-        NetworkManager.initialize(networkHandler);
-        LOGGER.info("NetworkManager initialized for Forge 1.20.1");
+        ForgeNetworkHandler.setInstance(networkHandler);
+        LOGGER.info("NetworkHandler initialized for Forge 1.20.1");
 
-        networkHandler.registerHandlers(null);
+        networkHandler.registerHandlers();
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            NetworkManager.registerHandlers(null);
             MapPacketHandler.registerHandlers();
             MinecraftForge.EVENT_BUS.register(ClientEventHandler.class);
             LOGGER.info("MapSyncer initialized (client mode, Forge 1.20.1)");

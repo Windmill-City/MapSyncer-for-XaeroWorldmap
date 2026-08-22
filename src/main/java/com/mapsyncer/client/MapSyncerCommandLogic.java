@@ -3,7 +3,7 @@ package com.mapsyncer.client;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.mapsyncer.network.NetworkManager;
+import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.server.CacheCommandHandler;
@@ -251,7 +251,7 @@ public class MapSyncerCommandLogic {
 
         LOGGER.debug("Sending sync manifest request (syncAll={}, targetDimension={})", syncAll, targetDim);
 
-        NetworkManager.sendToServer(new SyncRequestPayload(new java.util.HashMap<>(), syncAll, targetDim, silent));
+        ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(new java.util.HashMap<>(), syncAll, targetDim, silent));
         SyncProgressTracker.startTracking();
     }
 

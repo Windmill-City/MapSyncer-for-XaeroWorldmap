@@ -1,8 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.NetworkManager;
-import com.mapsyncer.network.PayloadContext;
+import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
@@ -14,6 +13,7 @@ import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
+import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class ServerSyncHandlerLogic {
@@ -49,13 +50,13 @@ public class ServerSyncHandlerLogic {
     }
 
     public static void registerHandlers() {
-        NetworkManager.getHandler().registerSyncRequestHandler(
-            (payload, context) -> context.enqueueWork(() -> handleSyncRequest(payload, context))
+        ForgeNetworkHandler.get().registerSyncRequestHandler(
+            (payload, context) -> ForgeNetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context))
         );
     }
 
-    private static void handleSyncRequest(SyncRequestPayload payload, PayloadContext context) {
-        Player player = (Player) NetworkManager.getHandler().getPlayerFromContext(context);
+    private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
+        Player player = ForgeNetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;
 
         Map<String, ClientMeta> clientMeta = payload.clientMeta();
@@ -70,7 +71,7 @@ public class ServerSyncHandlerLogic {
                 serverPlayer.sendSystemMessage(ChatUtils.message(
                         "mapsyncer.server.no_cache", CacheCommandHandler.serverCommandPrefix()));
             }
-            NetworkManager.sendToPlayer(serverPlayer,
+            ForgeNetworkHandler.get().sendToPlayer(serverPlayer,
                     new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
@@ -120,7 +121,7 @@ public class ServerSyncHandlerLogic {
                             "mapsyncer.server.no_cache", CacheCommandHandler.serverCommandPrefix()));
                 }
             }
-            NetworkManager.sendToPlayer(player,
+            ForgeNetworkHandler.get().sendToPlayer(player,
                     new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
             return;
         }
@@ -130,7 +131,7 @@ public class ServerSyncHandlerLogic {
             player.sendSystemMessage(ChatUtils.message("mapsyncer.server.manifest_ready", manifest.size()));
         }
         for (SyncManifestPayload part : parts) {
-            NetworkManager.sendToPlayer(player, part);
+            ForgeNetworkHandler.get().sendToPlayer(player, part);
         }
         LOGGER.info("Sync manifest sent to player {}: {} regions", player.getUUID(), manifest.size());
     }
@@ -176,7 +177,7 @@ public class ServerSyncHandlerLogic {
 
         for (ChunkMapData chunk : chunks) {
             if (batchBytes + chunk.data.length > maxPacketSize && !batch.isEmpty()) {
-                NetworkManager.sendToPlayer(player,
+                ForgeNetworkHandler.get().sendToPlayer(player,
                         new SyncResponsePayload(new ArrayList<>(batch), false, worldId, "ok"));
                 batch.clear();
                 batchBytes = 0;
@@ -186,10 +187,10 @@ public class ServerSyncHandlerLogic {
         }
 
         if (!batch.isEmpty()) {
-            NetworkManager.sendToPlayer(player,
+            ForgeNetworkHandler.get().sendToPlayer(player,
                     new SyncResponsePayload(new ArrayList<>(batch), true, worldId, status));
         } else {
-            NetworkManager.sendToPlayer(player,
+            ForgeNetworkHandler.get().sendToPlayer(player,
                     new SyncResponsePayload(List.of(), true, worldId, status));
         }
     }

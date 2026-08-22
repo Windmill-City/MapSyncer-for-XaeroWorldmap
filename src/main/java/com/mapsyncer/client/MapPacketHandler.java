@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.NetworkManager;
-import com.mapsyncer.network.PayloadContext;
+import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
@@ -14,6 +13,7 @@ import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class MapPacketHandler {
 
@@ -240,7 +241,7 @@ public class MapPacketHandler {
     }
 
     public static void registerHandlers() {
-        var handler = NetworkManager.getHandler();
+        var handler = ForgeNetworkHandler.get();
 
         handler.registerServerInstalledHandler(MapPacketHandler::onServerInstalled);
 
@@ -249,7 +250,7 @@ public class MapPacketHandler {
         handler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
 
         handler.registerSyncRequestHandler((payload, ctx) -> {
-            ctx.enqueueWork(() -> {
+            ForgeNetworkHandler.enqueueWork(ctx, () -> {
                 if (isSyncStale()) {
                     clearSyncData();
                     LOGGER.warn("Cleared stale sync data before starting new sync");
@@ -272,8 +273,8 @@ public class MapPacketHandler {
 
     private static volatile boolean joinSyncScheduled = false;
 
-    public static void onServerInstalled(ServerInstalledPayload payload, PayloadContext ctx) {
-        ctx.enqueueWork(() -> {
+    public static void onServerInstalled(ServerInstalledPayload payload, Supplier<NetworkEvent.Context> ctx) {
+        ForgeNetworkHandler.enqueueWork(ctx, () -> {
             try {
                 boolean firstAnnounce = !serverInstalled;
                 serverInstalled = true;
@@ -314,9 +315,9 @@ public class MapPacketHandler {
         });
     }
 
-    private static void handleSyncResponse(SyncResponsePayload payload, PayloadContext context) {
+    private static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        context.enqueueWork(() -> {
+        ForgeNetworkHandler.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync response after disconnect/clear");
                 return;
@@ -704,13 +705,13 @@ public class MapPacketHandler {
         regionRequestInFlight = true;
         Map<String, ClientMeta> single = new HashMap<>();
         single.put(path, new ClientMeta(0, HashUtils.DEFAULT_HASH));
-        NetworkManager.sendToServer(new SyncRequestPayload(single, false, pendingTargetDim, pendingSilent));
+        ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(single, false, pendingTargetDim, pendingSilent));
         LOGGER.debug("Requesting region: {}", path);
     }
 
-    private static void handleSyncManifest(SyncManifestPayload payload, PayloadContext context) {
+    private static void handleSyncManifest(SyncManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        context.enqueueWork(() -> {
+        ForgeNetworkHandler.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
                 return;

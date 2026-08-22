@@ -1,16 +1,12 @@
 package com.mapsyncer.network.impl;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.NetworkHandler;
-import com.mapsyncer.network.PayloadContext;
-import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncRequestMessage;
-import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncResponseMessage;
-import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncManifestMessage;
-import com.mapsyncer.network.ForgePayloadAdapters.ForgeServerInstalledMessage;
+import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -18,25 +14,43 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object> {
+public class ForgeNetworkHandler {
 
     private static final String PROTOCOL_VERSION = "3";
     private static SimpleChannel CHANNEL;
 
+    private static volatile ForgeNetworkHandler INSTANCE;
+
     static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
 
-    private BiConsumer<SyncResponsePayload, PayloadContext> syncResponseHandler;
-    private BiConsumer<SyncManifestPayload, PayloadContext> syncManifestHandler;
-    private BiConsumer<ServerInstalledPayload, PayloadContext> serverInstalledHandler;
-    private BiConsumer<SyncRequestPayload, PayloadContext> syncRequestHandler;
+    private BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
+    private BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
+    private BiConsumer<ServerInstalledPayload, Supplier<NetworkEvent.Context>> serverInstalledHandler;
+    private BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
 
     private boolean registered = false;
+
+    public static void setInstance(ForgeNetworkHandler handler) {
+        if (INSTANCE != null) {
+            throw new IllegalStateException("ForgeNetworkHandler already initialized");
+        }
+        INSTANCE = handler;
+    }
+
+    public static ForgeNetworkHandler get() {
+        if (INSTANCE == null) {
+            throw new IllegalStateException("ForgeNetworkHandler not initialized");
+        }
+        return INSTANCE;
+    }
 
     public void init() {
         if (CHANNEL != null) return;
@@ -75,94 +89,222 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
             confirmPlayer(sender.getUUID());
         }
         if (syncRequestHandler != null) {
-            syncRequestHandler.accept(msg.getData(), new PayloadContext(ctx));
+            syncRequestHandler.accept(msg.getData(), ctx);
         }
     }
 
     private void handleSyncResponse(ForgeSyncResponseMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (syncResponseHandler != null) {
-            syncResponseHandler.accept(msg.getData(), new PayloadContext(ctx));
+            syncResponseHandler.accept(msg.getData(), ctx);
         }
     }
 
     private void handleSyncManifest(ForgeSyncManifestMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (syncManifestHandler != null) {
-            syncManifestHandler.accept(msg.getData(), new PayloadContext(ctx));
+            syncManifestHandler.accept(msg.getData(), ctx);
         }
     }
 
     private void handleServerInstalled(ForgeServerInstalledMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (serverInstalledHandler != null) {
-            serverInstalledHandler.accept(msg.getData(), new PayloadContext(ctx));
+            serverInstalledHandler.accept(msg.getData(), ctx);
         }
     }
 
-    @Override
-    public void registerHandlers(Object event) {
+    public void registerHandlers() {
         if (registered) return;
         registered = true;
         init();
     }
 
-    @Override
     public void sendToServer(SyncRequestPayload payload) {
         CHANNEL.sendToServer(new ForgeSyncRequestMessage(payload));
     }
 
-    @Override
     public void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncResponseMessage(payload));
     }
 
-    @Override
     public void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
     }
 
-    @Override
     public void sendToPlayer(ServerPlayer player, ServerInstalledPayload payload) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeServerInstalledMessage(payload));
     }
 
-    @Override
-    public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, PayloadContext> handler) {
+    public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
         this.syncResponseHandler = handler;
     }
 
-    @Override
-    public void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, PayloadContext> handler) {
+    public void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
         this.syncManifestHandler = handler;
     }
 
-    @Override
-    public void registerServerInstalledHandler(BiConsumer<ServerInstalledPayload, PayloadContext> handler) {
+    public void registerServerInstalledHandler(BiConsumer<ServerInstalledPayload, Supplier<NetworkEvent.Context>> handler) {
         this.serverInstalledHandler = handler;
     }
 
-    @Override
-    public void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, PayloadContext> handler) {
+    public void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
         this.syncRequestHandler = handler;
     }
 
-    @Override
-    public void enqueueWork(PayloadContext context, Runnable work) {
-        Supplier<NetworkEvent.Context> forgeCtx = (Supplier<NetworkEvent.Context>) context.getPlatformContext();
-        forgeCtx.get().enqueueWork(work);
+    public static void enqueueWork(Supplier<NetworkEvent.Context> ctx, Runnable work) {
+        ctx.get().enqueueWork(work);
     }
 
-    @Override
-    public ServerPlayer getPlayerFromContext(PayloadContext context) {
-        Supplier<NetworkEvent.Context> forgeCtx = (Supplier<NetworkEvent.Context>) context.getPlatformContext();
-        return forgeCtx.get().getSender();
+    public static ServerPlayer getPlayerFromContext(Supplier<NetworkEvent.Context> ctx) {
+        return ctx.get().getSender();
     }
 
-    public static void confirmPlayer(UUID playerId) {
+    private static void confirmPlayer(UUID playerId) {
         confirmedPlayers.add(playerId);
     }
 
     public static void onPlayerDisconnect(UUID playerId) {
         confirmedPlayers.remove(playerId);
+    }
+
+    public static class ForgeSyncRequestMessage {
+        private final SyncRequestPayload data;
+
+        public ForgeSyncRequestMessage(SyncRequestPayload data) {
+            this.data = data;
+        }
+
+        public SyncRequestPayload getData() {
+            return data;
+        }
+
+        public static void encode(ForgeSyncRequestMessage msg, FriendlyByteBuf buf) {
+            SyncRequestPayload.write(buf, msg.data);
+        }
+
+        public static ForgeSyncRequestMessage decode(FriendlyByteBuf buf) {
+            return new ForgeSyncRequestMessage(SyncRequestPayload.read(buf));
+        }
+    }
+
+    public static class ForgeSyncResponseMessage {
+        private final SyncResponsePayload data;
+
+        public ForgeSyncResponseMessage(SyncResponsePayload data) {
+            this.data = data;
+        }
+
+        public SyncResponsePayload getData() {
+            return data;
+        }
+
+        public static void encode(ForgeSyncResponseMessage msg, FriendlyByteBuf buf) {
+            buf.writeInt(msg.data.worldId());
+            buf.writeInt(msg.data.chunks().size());
+            for (ChunkMapData chunk : msg.data.chunks()) {
+                encodeChunkMapData(buf, chunk);
+            }
+            buf.writeBoolean(msg.data.isComplete());
+            buf.writeUtf(msg.data.status());
+        }
+
+        public static ForgeSyncResponseMessage decode(FriendlyByteBuf buf) {
+            int worldId = buf.readInt();
+            int size = buf.readInt();
+            List<ChunkMapData> chunks = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                chunks.add(decodeChunkMapData(buf));
+            }
+            boolean isComplete = buf.readBoolean();
+            String status = buf.readUtf();
+            return new ForgeSyncResponseMessage(new SyncResponsePayload(chunks, isComplete, worldId, status));
+        }
+    }
+
+    public static class ForgeSyncManifestMessage {
+        private final SyncManifestPayload data;
+
+        public ForgeSyncManifestMessage(SyncManifestPayload data) {
+            this.data = data;
+        }
+
+        public SyncManifestPayload getData() {
+            return data;
+        }
+
+        public static void encode(ForgeSyncManifestMessage msg, FriendlyByteBuf buf) {
+            SyncManifestPayload.write(buf, msg.data);
+        }
+
+        public static ForgeSyncManifestMessage decode(FriendlyByteBuf buf) {
+            return new ForgeSyncManifestMessage(SyncManifestPayload.read(buf));
+        }
+    }
+
+    public static class ForgeServerInstalledMessage {
+        private final ServerInstalledPayload data;
+
+        public ForgeServerInstalledMessage(ServerInstalledPayload data) {
+            this.data = data;
+        }
+
+        public ServerInstalledPayload getData() {
+            return data;
+        }
+
+        public static void encode(ForgeServerInstalledMessage msg, FriendlyByteBuf buf) {
+            ServerInstalledPayload.write(buf, msg.data);
+        }
+
+        public static ForgeServerInstalledMessage decode(FriendlyByteBuf buf) {
+            return new ForgeServerInstalledMessage(ServerInstalledPayload.read(buf));
+        }
+    }
+
+    private static void encodeChunkMapData(FriendlyByteBuf buf, ChunkMapData data) {
+        buf.writeInt(data.regionX);
+        buf.writeInt(data.regionZ);
+        buf.writeUtf(data.dimension);
+        buf.writeByteArray(data.data);
+        buf.writeLong(data.timestampSeconds);
+
+        boolean hasCaveLayer = data.caveLayer != Integer.MAX_VALUE;
+        buf.writeBoolean(hasCaveLayer);
+        if (hasCaveLayer) {
+            buf.writeInt(data.caveLayer);
+        }
+        buf.writeBoolean(data.totalParts > 1);
+        if (data.totalParts > 1) {
+            buf.writeInt(data.partIndex);
+            buf.writeInt(data.totalParts);
+        }
+    }
+
+    private static ChunkMapData decodeChunkMapData(FriendlyByteBuf buf) {
+        int regionX = buf.readInt();
+        int regionZ = buf.readInt();
+        String dimension = buf.readUtf();
+        byte[] data = buf.readByteArray();
+        long timestampSeconds = buf.readLong();
+
+        int caveLayer = Integer.MAX_VALUE;
+        if (buf.isReadable()) {
+            boolean hasCaveLayer = buf.readBoolean();
+            if (hasCaveLayer) {
+                caveLayer = buf.readInt();
+            }
+        }
+
+        int partIndex = 0;
+        int totalParts = 0;
+        if (buf.isReadable()) {
+            boolean isSplit = buf.readBoolean();
+            if (isSplit) {
+                partIndex = buf.readInt();
+                totalParts = buf.readInt();
+            }
+        }
+
+        return new ChunkMapData(regionX, regionZ, dimension, data, timestampSeconds, caveLayer, partIndex, totalParts);
     }
 }
