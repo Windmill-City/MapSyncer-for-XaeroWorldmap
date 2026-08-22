@@ -264,7 +264,6 @@ public class MapPacketHandler {
 
     public static void resetServerStatus() {
         serverInstalled = false;
-        AutoSyncManager.resetServerPolicy();
     }
 
     public static void prepareJoinSync() {

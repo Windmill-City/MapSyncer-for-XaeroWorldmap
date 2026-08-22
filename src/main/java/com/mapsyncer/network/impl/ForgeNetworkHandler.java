@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 public class ForgeNetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "3";
+    private static final String PROTOCOL_VERSION = "4";
     private static SimpleChannel CHANNEL;
 
     private static volatile ForgeNetworkHandler INSTANCE;
@@ -70,7 +70,7 @@ public class ForgeNetworkHandler {
                 ForgeSyncResponseMessage::decode,
                 this::handleSyncResponse);
 
-        CHANNEL.registerMessage(4, ForgeSyncManifestMessage.class,
+        CHANNEL.registerMessage(2, ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
                 ForgeSyncManifestMessage::decode,
                 this::handleSyncManifest);
