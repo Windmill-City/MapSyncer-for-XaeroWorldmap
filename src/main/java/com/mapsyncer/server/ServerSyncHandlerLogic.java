@@ -35,6 +35,8 @@ public class ServerSyncHandlerLogic {
 
     private static final int MAX_PACKET_SIZE_LIMIT = 1_000_000;
 
+    private static boolean warnedXaeromapFallback;
+
     private static int getMaxPacketSize() {
         int configValue = ModConfig.SERVER.maxSyncPacketSize.get();
         return Math.min(configValue, MAX_PACKET_SIZE_LIMIT);
@@ -279,8 +281,7 @@ public class ServerSyncHandlerLogic {
                     .resolve("xaeromap.txt");
 
             if (!Files.exists(xaeromapPath)) {
-                LOGGER.warn("xaeromap.txt not found at {}", xaeromapPath);
-                return 0;
+                return fallbackWorldId();
             }
 
             try (BufferedReader reader = new BufferedReader(new FileReader(xaeromapPath.toFile()))) {
@@ -296,6 +297,16 @@ public class ServerSyncHandlerLogic {
             }
         } catch (Exception e) {
             LOGGER.error("Failed to read xaeromap.txt", e);
+        }
+        return 0;
+    }
+
+    private static int fallbackWorldId() {
+        if (!warnedXaeromapFallback) {
+            warnedXaeromapFallback = true;
+            LOGGER.warn(
+                    "xaeromap.txt not found; falling back to worldId 0. "
+                            + "Install Xaero's World Map on the server to generate a proper xaeromap.txt");
         }
         return 0;
     }
