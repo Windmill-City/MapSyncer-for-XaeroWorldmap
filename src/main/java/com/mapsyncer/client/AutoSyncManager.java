@@ -27,41 +27,40 @@ public class AutoSyncManager {
     private static volatile ScheduledFuture<?> pendingTask;
     private static volatile boolean active = false;
 
-    private static volatile int serverAutoSyncIntervalMinutes = -1;
+    private static volatile boolean serverPolicyKnown = false;
     private static volatile UpdateMode serverUpdateMode = UpdateMode.DISABLED;
 
-    public static Object[] getStatusKey(int intervalMinutes) {
+    public static String getStatusKey() {
         try {
             if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
-                return new Object[]{"mapsyncer.autosync.status.client_disabled"};
+                return "mapsyncer.autosync.status.client_disabled";
             }
         } catch (IllegalStateException ignored) {
 
         }
-        if (intervalMinutes <= 0) return new Object[]{"mapsyncer.autosync.status.disabled"};
-        if (intervalMinutes < 1440) return new Object[]{"mapsyncer.autosync.status.minutes", intervalMinutes};
-        return new Object[]{"mapsyncer.autosync.status.daily"};
+        if (serverUpdateMode == UpdateMode.DISABLED) return "mapsyncer.autosync.status.disabled";
+        return "mapsyncer.autosync.status.daily";
     }
 
-    public static void configureFromServer(UpdateMode mode, int intervalMinutes) {
+    public static void configureFromServer(UpdateMode mode) {
         serverUpdateMode = mode;
-        serverAutoSyncIntervalMinutes = intervalMinutes;
+        serverPolicyKnown = true;
     }
 
     public static void resetServerPolicy() {
-        serverAutoSyncIntervalMinutes = -1;
+        serverPolicyKnown = false;
         serverUpdateMode = UpdateMode.DISABLED;
     }
 
     public static boolean isServerPolicyKnown() {
-        return serverAutoSyncIntervalMinutes >= 0;
+        return serverPolicyKnown;
     }
 
     public static boolean isJoinAutoSyncEnabled() {
         if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             return false;
         }
-        return serverAutoSyncIntervalMinutes > 0;
+        return serverUpdateMode != UpdateMode.DISABLED;
     }
 
     public static boolean shouldSyncScheduledOnJoin(long serverGenTime) {
@@ -80,7 +79,7 @@ public class AutoSyncManager {
         return true;
     }
 
-    public static boolean shouldAutoSyncOnJoin(long serverGenTime, int intervalMinutes) {
+    public static boolean shouldAutoSyncOnJoin(long serverGenTime) {
         if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             LOGGER.debug("Join auto-sync skipped: client auto-sync disabled");
             return false;

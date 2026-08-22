@@ -58,9 +58,8 @@ public class PlayerJoinHandlerLogic {
 
         long lastGenTime = GenerationCache.getInstance(ConversionOrchestrator.getCacheDir()).getLastGenerationTime();
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        int autoInterval = AutoSyncConfig.computeInterval(mode);
         NetworkManager.sendToPlayer(player,
-            new ServerInstalledPayload(getModVersion(), lastGenTime, autoInterval, mode));
+            new ServerInstalledPayload(getModVersion(), lastGenTime, mode));
 
         if (!ConversionOrchestrator.isRunning() && mode != UpdateMode.DISABLED) {
             IncrementalUpdateHandlerLogic.getInstance().start(server);

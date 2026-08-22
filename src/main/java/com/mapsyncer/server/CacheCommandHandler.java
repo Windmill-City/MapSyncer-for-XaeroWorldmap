@@ -45,6 +45,8 @@ public class CacheCommandHandler {
                                 .then(Commands.argument("x", IntegerArgumentType.integer())
                                         .then(Commands.argument("z", IntegerArgumentType.integer())
                                                 .executes(CacheCommandHandler::generateSingleRegion)))))
+                .then(Commands.literal("stop")
+                        .executes(CacheCommandHandler::stopConversion))
                 .then(Commands.literal("status")
                         .executes(CacheCommandHandler::showStatus))
                 .then(Commands.literal("incremental")
@@ -169,6 +171,17 @@ public class CacheCommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static int stopConversion(CommandContext<CommandSourceStack> ctx) {
+        if (ConversionOrchestrator.requestCancel()) {
+            ctx.getSource().sendSuccess(
+                    () -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
+        } else {
+            ctx.getSource().sendFailure(
+                    ChatUtils.error("mapsyncer.command.conversion_not_running"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
     private static int showStatus(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(CacheCommandHandler::generationStatusMessage, false);
         ctx.getSource().sendSuccess(CacheCommandHandler::incrementalStatusMessage, false);
@@ -238,6 +251,7 @@ public class CacheCommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_dim", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_region", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_force", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.stop", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.status", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_off", prefix));

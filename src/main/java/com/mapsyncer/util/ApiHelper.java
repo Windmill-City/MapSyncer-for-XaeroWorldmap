@@ -12,8 +12,6 @@ import java.util.function.Predicate;
 
 public final class ApiHelper {
 
-    private ApiHelper() {}
-
     public static String getDimId(ResourceKey<Level> key) {
         return key.location().toString();
     }

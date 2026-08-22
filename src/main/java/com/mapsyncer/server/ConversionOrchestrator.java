@@ -50,6 +50,8 @@ public class ConversionOrchestrator {
 
     private static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+    private static final AtomicBoolean cancelRequested = new AtomicBoolean(false);
+
     private static final AtomicInteger processedCountAtomic = new AtomicInteger(0);
 
     private static volatile int processedCount = 0;
@@ -189,6 +191,7 @@ public class ConversionOrchestrator {
             LOGGER.warn("Conversion already in progress, rejecting generateAll");
             return false;
         }
+        cancelRequested.set(false);
         processedCount = 0;
         skippedCount.set(0);
         convertedCountAtomic.set(0);
@@ -206,11 +209,15 @@ public class ConversionOrchestrator {
         LOGGER.info("Starting conversion of {} regions across {} dimensions", totalCount, allRegions.size());
         try {
             for (DimensionRegions dimRegions : allRegions) {
+                if (isCancelRequested()) {
+                    LOGGER.info("Conversion cancelled, skipping remaining dimensions");
+                    break;
+                }
                 convertDimension(server, dimRegions, false);
             }
         } finally {
             isRunning.set(false);
-            currentStatus = "completed";
+            markRunFinished();
             shutdownExecutor();
             LOGGER.info("Conversion completed: {}/{} regions converted, {} skipped (empty MCA at scan)",
                     convertedCountAtomic.get(), totalCount, totalSkippedEmpty);
@@ -223,6 +230,7 @@ public class ConversionOrchestrator {
             LOGGER.warn("Conversion already in progress, rejecting generateDimension");
             return false;
         }
+        cancelRequested.set(false);
         processedCount = 0;
         skippedCount.set(0);
         convertedCountAtomic.set(0);
@@ -240,7 +248,7 @@ public class ConversionOrchestrator {
             convertDimension(server, new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()), false);
         } finally {
             isRunning.set(false);
-            currentStatus = "completed";
+            markRunFinished();
             shutdownExecutor();
         }
         return true;
@@ -251,6 +259,7 @@ public class ConversionOrchestrator {
             LOGGER.warn("Conversion already in progress, rejecting generateDimensionForce");
             return false;
         }
+        cancelRequested.set(false);
         processedCount = 0;
         skippedCount.set(0);
         convertedCountAtomic.set(0);
@@ -274,7 +283,7 @@ public class ConversionOrchestrator {
             convertDimension(server, new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()), true);
         } finally {
             isRunning.set(false);
-            currentStatus = "completed";
+            markRunFinished();
             shutdownExecutor();
         }
         return true;
@@ -297,6 +306,7 @@ public class ConversionOrchestrator {
             LOGGER.warn("Conversion already in progress");
             return SingleRegionResult.ALREADY_RUNNING;
         }
+        cancelRequested.set(false);
 
         Path mcaPath = checkMcaFileExists(server, dimension, regionX, regionZ);
         if (mcaPath == null) {
@@ -368,7 +378,7 @@ public class ConversionOrchestrator {
         }
         finally {
             isRunning.set(false);
-            currentStatus = "completed";
+            markRunFinished();
         }
         return result;
     }
@@ -551,6 +561,11 @@ public class ConversionOrchestrator {
             McaTimestampCache mcaCache, GenerationCache genCache, long generationTimeSeconds,
             ConcurrentLinkedQueue<RegionCoords> failedRegions, boolean logProgress, String logPrefix) {
 
+        if (isCancelRequested()) {
+            LOGGER.debug("Conversion cancelled, skipping region ({}, {})", coords.x(), coords.z());
+            return;
+        }
+
         Path mcaPath = regionDir.resolve("r." + coords.x() + "." + coords.z() + ".mca");
 
         if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
@@ -626,6 +641,13 @@ public class ConversionOrchestrator {
 
     private static void waitForCompletion(List<java.util.concurrent.Future<?>> futures, String taskName) {
         for (java.util.concurrent.Future<?> future : futures) {
+            if (isCancelRequested()) {
+                LOGGER.info("{} cancelled by user, interrupting {} pending tasks", taskName, futures.size());
+                for (java.util.concurrent.Future<?> remaining : futures) {
+                    remaining.cancel(true);
+                }
+                return;
+            }
             try {
                 future.get(ModConfig.TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (java.util.concurrent.TimeoutException e) {
@@ -734,6 +756,7 @@ public class ConversionOrchestrator {
             LOGGER.debug("Conversion already in progress, skipping incremental scan");
             return;
         }
+        cancelRequested.set(false);
 
         try {
         McaTimestampCache mcaCache = getTimestampCache();
@@ -745,6 +768,10 @@ public class ConversionOrchestrator {
         ExecutorService executor = getOrCreateExecutor();
 
         for (IncrementalScanSnapshot snapshot : snapshots) {
+            if (isCancelRequested()) {
+                LOGGER.info("Incremental scan cancelled, skipping remaining dimensions");
+                break;
+            }
             String dimPath = snapshot.dimPath();
             Path regionDir = snapshot.regionDir();
             Path baseOutputDir = snapshot.baseOutputDir();
@@ -788,10 +815,29 @@ public class ConversionOrchestrator {
         }
         } finally {
             isRunning.set(false);
+            markRunFinished();
         }
     }
 
     public static boolean isRunning() { return isRunning.get(); }
+
+    public static boolean requestCancel() {
+        if (!isRunning.get()) {
+            LOGGER.info("Cancel requested but no conversion is running");
+            return false;
+        }
+        cancelRequested.set(true);
+        LOGGER.info("Cancellation requested for ongoing conversion");
+        return true;
+    }
+
+    private static boolean isCancelRequested() {
+        return cancelRequested.get();
+    }
+
+    private static void markRunFinished() {
+        currentStatus = isCancelRequested() ? "cancelled" : "completed";
+    }
 
     public static int getProcessedCount() { return processedCount; }
 

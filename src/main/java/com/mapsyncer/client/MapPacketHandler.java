@@ -7,6 +7,7 @@ import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.client.ClientSyncSession;
 import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.client.Minecraft;
@@ -227,25 +228,18 @@ public class MapPacketHandler {
                 try {
                 serverInstalled = true;
                 serverVersion = payload.version();
-                int intervalMinutes = payload.autoSyncIntervalMinutes();
-                AutoSyncManager.configureFromServer(payload.updateMode(), intervalMinutes);
-                LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, intervalMinutes={}, joinAutoSync={}",
-                        serverVersion, payload.updateMode(), intervalMinutes, intervalMinutes > 0);
+                AutoSyncManager.configureFromServer(payload.updateMode());
+                LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, joinAutoSync={}",
+                        serverVersion, payload.updateMode(),
+                        payload.updateMode() != UpdateMode.DISABLED);
 
-                Object[] statusKey = AutoSyncManager.getStatusKey(intervalMinutes);
-                String key = (String) statusKey[0];
-                if (statusKey.length > 1) {
-                    Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.prefix().append(ChatUtils.desc(key, statusKey[1])), false);
-                } else {
-                    Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.prefix().append(ChatUtils.desc(key)), false);
-                }
+                Minecraft.getInstance().player.displayClientMessage(
+                    ChatUtils.prefix().append(ChatUtils.desc(AutoSyncManager.getStatusKey())), false);
 
                 boolean shouldJoinSync = AutoSyncManager.shouldAutoSyncOnJoin(
-                        payload.lastGenerationTimestamp(), intervalMinutes);
-                LOGGER.info("shouldAutoSyncOnJoin result: {} (serverGenTime={}, intervalMinutes={})",
-                        shouldJoinSync, payload.lastGenerationTimestamp(), intervalMinutes);
+                        payload.lastGenerationTimestamp());
+                LOGGER.info("shouldAutoSyncOnJoin result: {} (serverGenTime={})",
+                        shouldJoinSync, payload.lastGenerationTimestamp());
                 if (shouldJoinSync) {
                     AutoSyncManager.schedule(() -> {
                         Minecraft.getInstance().execute(() -> {

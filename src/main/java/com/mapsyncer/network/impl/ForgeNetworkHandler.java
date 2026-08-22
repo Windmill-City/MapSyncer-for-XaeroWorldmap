@@ -28,7 +28,7 @@ import java.util.function.Supplier;
 
 public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object> {
 
-    private static final String PROTOCOL_VERSION = "1";
+    private static final String PROTOCOL_VERSION = "2";
     private static SimpleChannel CHANNEL;
 
     static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
