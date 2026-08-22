@@ -4,9 +4,6 @@ import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,14 +18,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientHashManager {
 
     public record MetaScanResult(Map<String, ClientMeta> meta, boolean success, int failedFiles, String failureReason) {
 
         public static MetaScanResult ok(Map<String, ClientMeta> meta) {
-            return new MetaScanResult(
-                    meta != null ? meta : Collections.emptyMap(), true, 0, null);
+            return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, 0, null);
         }
 
         public static MetaScanResult failure(String reason, int failedFiles) {
@@ -65,7 +63,6 @@ public class ClientHashManager {
 
         if (sharedPool == null || sharedPool.isShutdown() || currentPoolThreads != configuredThreads) {
             synchronized (ClientHashManager.class) {
-
                 if (sharedPool == null || sharedPool.isShutdown() || currentPoolThreads != configuredThreads) {
 
                     if (sharedPool != null && !sharedPool.isShutdown()) {
@@ -83,7 +80,9 @@ public class ClientHashManager {
 
                     sharedPool = new ForkJoinPool(configuredThreads);
                     currentPoolThreads = configuredThreads;
-                    LOGGER.info("Created new ForkJoinPool with {} threads (configured via client settings)", configuredThreads);
+                    LOGGER.info(
+                            "Created new ForkJoinPool with {} threads (configured via client settings)",
+                            configuredThreads);
                 }
             }
         }
@@ -125,48 +124,52 @@ public class ClientHashManager {
 
         java.util.List<Path> zipFiles;
         try (Stream<Path> walk = Files.walk(mapDir)) {
-            zipFiles = walk.filter(p -> p.toString().endsWith(".zip"))
-                    .toList();
+            zipFiles = walk.filter(p -> p.toString().endsWith(".zip")).toList();
         } catch (IOException e) {
             LOGGER.error("Failed to walk map directory {}", mapDir, e);
             return MetaScanResult.failure("walk_error", 0);
         }
 
-        LOGGER.info("Computing hashes for {} region files in {} (parallel threads={})", zipFiles.size(), mapDir, currentPoolThreads);
+        LOGGER.info(
+                "Computing hashes for {} region files in {} (parallel threads={})",
+                zipFiles.size(),
+                mapDir,
+                currentPoolThreads);
 
         AtomicInteger failedFiles = new AtomicInteger();
         int totalFiles = zipFiles.size();
 
         ForkJoinPool pool = getSharedPool();
         try {
-            pool.submit(() ->
-                    zipFiles.parallelStream()
-                            .forEach(zipPath -> {
-                                try {
-                                    String fileName = zipPath.getFileName().toString();
-                                    if (!fileName.endsWith(".zip")) return;
+            pool.submit(() -> zipFiles.parallelStream().forEach(zipPath -> {
+                        try {
+                            String fileName = zipPath.getFileName().toString();
+                            if (!fileName.endsWith(".zip")) return;
 
-                                    String relativePath = buildRelativePath(zipPath, serverDir);
-                                    ClientMeta cached = cachedTimestamps.get(relativePath);
-                                    String hash = resolveSyncHash(zipPath, cached);
+                            String relativePath = buildRelativePath(zipPath, serverDir);
+                            ClientMeta cached = cachedTimestamps.get(relativePath);
+                            String hash = resolveSyncHash(zipPath, cached);
 
-                                    long timestampSeconds = resolveSyncTimestamp(zipPath, cached);
-                                    if (cached != null) {
-                                        LOGGER.debug("Region {}: ts={}s, hash={} (cache-first)",
-                                                relativePath, timestampSeconds, hash);
-                                    } else {
-                                        LOGGER.debug("Region {}: ts={}s, hash={} (no cache)",
-                                                relativePath, timestampSeconds, hash);
-                                    }
+                            long timestampSeconds = resolveSyncTimestamp(zipPath, cached);
+                            if (cached != null) {
+                                LOGGER.debug(
+                                        "Region {}: ts={}s, hash={} (cache-first)",
+                                        relativePath,
+                                        timestampSeconds,
+                                        hash);
+                            } else {
+                                LOGGER.debug(
+                                        "Region {}: ts={}s, hash={} (no cache)", relativePath, timestampSeconds, hash);
+                            }
 
-                                    metaMap.put(relativePath, new ClientMeta(timestampSeconds, hash));
+                            metaMap.put(relativePath, new ClientMeta(timestampSeconds, hash));
 
-                                } catch (Exception e) {
-                                    failedFiles.incrementAndGet();
-                                    LOGGER.warn("Failed to hash region file: {}", zipPath, e);
-                                }
-                            })
-            ).join();
+                        } catch (Exception e) {
+                            failedFiles.incrementAndGet();
+                            LOGGER.warn("Failed to hash region file: {}", zipPath, e);
+                        }
+                    }))
+                    .join();
         } catch (Exception e) {
             LOGGER.error("Failed to compute hashes in parallel", e);
             return MetaScanResult.failure("parallel_error", failedFiles.get());
@@ -187,7 +190,8 @@ public class ClientHashManager {
     private static String resolveSyncHash(Path zipPath, ClientMeta cached) {
         if (zipPath == null || !Files.exists(zipPath) || !HashUtils.isValidRegionZip(zipPath)) {
             if (cached != null) {
-                LOGGER.warn("Region {} missing or invalid on disk, will request re-sync",
+                LOGGER.warn(
+                        "Region {} missing or invalid on disk, will request re-sync",
                         zipPath != null ? zipPath.getFileName() : "unknown");
             }
             return HashUtils.DEFAULT_HASH;
@@ -206,8 +210,8 @@ public class ClientHashManager {
         return fileTs;
     }
 
-    private static void addMissingCacheEntries(Map<String, ClientMeta> metaMap,
-            Map<String, ClientMeta> cachedTimestamps, Set<String> dimPrefixes) {
+    private static void addMissingCacheEntries(
+            Map<String, ClientMeta> metaMap, Map<String, ClientMeta> cachedTimestamps, Set<String> dimPrefixes) {
         if (dimPrefixes.isEmpty()) {
             return;
         }

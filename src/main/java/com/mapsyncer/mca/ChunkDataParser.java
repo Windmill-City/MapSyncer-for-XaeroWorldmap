@@ -1,7 +1,6 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.convert.biome.BiomeQuartGrid;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,18 +10,16 @@ import java.util.Set;
 public class ChunkDataParser {
 
     private static final Set<String> ACCEPTABLE_STATUSES = Set.of(
-        "minecraft:features",
-        "minecraft:light",
-        "minecraft:spawn",
-        "minecraft:heightmaps",
-        "minecraft:full",
-
-        "features",
-        "light",
-        "spawn",
-        "heightmaps",
-        "full"
-    );
+            "minecraft:features",
+            "minecraft:light",
+            "minecraft:spawn",
+            "minecraft:heightmaps",
+            "minecraft:full",
+            "features",
+            "light",
+            "spawn",
+            "heightmaps",
+            "full");
 
     private static boolean shouldSkipChunk(String status) {
         if (status == null || status.isEmpty()) {
@@ -35,15 +32,14 @@ public class ChunkDataParser {
     }
 
     public record ChunkInfo(
-        int chunkX,
-        int chunkZ,
-        int chunkBottomY,
-        int[][] heightmap,
-        List<ChunkSectionParser.SectionData> sections,
-        int minSectionY,
-        ChunkSectionParser.SectionData[] sectionLookup,
-        BiomeQuartGrid biomeGrid
-    ) {}
+            int chunkX,
+            int chunkZ,
+            int chunkBottomY,
+            int[][] heightmap,
+            List<ChunkSectionParser.SectionData> sections,
+            int minSectionY,
+            ChunkSectionParser.SectionData[] sectionLookup,
+            BiomeQuartGrid biomeGrid) {}
 
     private static final class HeightmapFields {
         long[] worldSurface;

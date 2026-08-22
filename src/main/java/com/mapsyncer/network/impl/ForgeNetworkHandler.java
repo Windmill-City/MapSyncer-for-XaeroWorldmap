@@ -5,14 +5,6 @@ import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.simple.SimpleChannel;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +12,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 public class ForgeNetworkHandler {
 
@@ -57,20 +56,25 @@ public class ForgeNetworkHandler {
                 new ResourceLocation(MapSyncer.MOD_ID, "main"),
                 () -> PROTOCOL_VERSION,
                 PROTOCOL_VERSION::equals,
-                PROTOCOL_VERSION::equals
-        );
+                PROTOCOL_VERSION::equals);
 
-        CHANNEL.registerMessage(0, ForgeSyncRequestMessage.class,
+        CHANNEL.registerMessage(
+                0,
+                ForgeSyncRequestMessage.class,
                 ForgeSyncRequestMessage::encode,
                 ForgeSyncRequestMessage::decode,
                 this::handleSyncRequest);
 
-        CHANNEL.registerMessage(1, ForgeSyncResponseMessage.class,
+        CHANNEL.registerMessage(
+                1,
+                ForgeSyncResponseMessage.class,
                 ForgeSyncResponseMessage::encode,
                 ForgeSyncResponseMessage::decode,
                 this::handleSyncResponse);
 
-        CHANNEL.registerMessage(2, ForgeSyncManifestMessage.class,
+        CHANNEL.registerMessage(
+                2,
+                ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
                 ForgeSyncManifestMessage::decode,
                 this::handleSyncManifest);

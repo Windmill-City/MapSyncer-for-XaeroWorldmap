@@ -1,5 +1,7 @@
 package com.mapsyncer.mca.convert.scan;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
@@ -9,11 +11,8 @@ import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import com.mapsyncer.mca.convert.overlay.OverlayAccumulator;
-
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class PixelColumnProcessor {
 
@@ -23,9 +22,12 @@ public final class PixelColumnProcessor {
             ChunkDataParser.ChunkInfo chunk,
             ChunkSectionParser.SectionData section,
             int sectionBaseY,
-            int lx, int lz,
-            int relX, int relZ,
-            int effectiveStartY, int scanBottomY,
+            int lx,
+            int lz,
+            int relX,
+            int relZ,
+            int effectiveStartY,
+            int scanBottomY,
             int chunkBottomY,
             int heightMapValue,
             boolean isCaveMode,
@@ -77,9 +79,8 @@ public final class PixelColumnProcessor {
                 break;
             }
 
-            ChunkSectionParser.BlockState state = singlePalette
-                ? singleState
-                : ChunkSectionParser.getBlockStateAt(section, lx, ly, lz);
+            ChunkSectionParser.BlockState state =
+                    singlePalette ? singleState : ChunkSectionParser.getBlockStateAt(section, lx, ly, lz);
 
             if (state.isAir()) {
                 if (isCaveMode) {
@@ -101,35 +102,62 @@ public final class PixelColumnProcessor {
             ArrayList<OverlayEntry> overlays = ctx.overlayLists[pos];
 
             if ((flags & BlockPropertyLookup.FLAG_WATER_INHERITING) != 0) {
-                return finishSurface(chunk, section, lx, ly, lz, relX, relZ, worldY,
-                    state, heightMapValue, overlays, ctx, data, blockLookup,
-                    lightMode, worldHasSkylight, true);
+                return finishSurface(
+                        chunk,
+                        section,
+                        lx,
+                        ly,
+                        lz,
+                        relX,
+                        relZ,
+                        worldY,
+                        state,
+                        heightMapValue,
+                        overlays,
+                        ctx,
+                        data,
+                        blockLookup,
+                        lightMode,
+                        worldHasSkylight,
+                        true);
             }
 
             if (blockLookup.isWaterloggedSurface(blockName, state.properties())
-                && (flags & BlockPropertyLookup.FLAG_SHOULD_OVERLAY) == 0) {
-                return finishSurface(chunk, section, lx, ly, lz, relX, relZ, worldY,
-                    state, heightMapValue, overlays, ctx, data, blockLookup,
-                    lightMode, worldHasSkylight, false);
+                    && (flags & BlockPropertyLookup.FLAG_SHOULD_OVERLAY) == 0) {
+                return finishSurface(
+                        chunk,
+                        section,
+                        lx,
+                        ly,
+                        lz,
+                        relX,
+                        relZ,
+                        worldY,
+                        state,
+                        heightMapValue,
+                        overlays,
+                        ctx,
+                        data,
+                        blockLookup,
+                        lightMode,
+                        worldHasSkylight,
+                        false);
             }
 
             if ((flags & BlockPropertyLookup.FLAG_TRANSLUCENT_FLUID) != 0) {
-                addFluidOverlay(chunk, section, lx, ly, lz, worldY, state,
-                    overlays, ctx, pos, blockLookup);
+                addFluidOverlay(chunk, section, lx, ly, lz, worldY, state, overlays, ctx, pos, blockLookup);
                 continue;
             }
 
             if (state.isWaterlogged() && (flags & BlockPropertyLookup.FLAG_SHOULD_OVERLAY) != 0) {
                 int aboveWorldY = worldY + 1;
                 int waterOpacity = blockLookup.getLightBlock("minecraft:water");
-                byte waterLight = SectionLightAccess.getBlockLightCrossSection(
-                    chunk, section, lx, ly, lz, aboveWorldY);
+                byte waterLight = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
-                OverlayAccumulator.add(overlays, XaeroBinaryWriter.WATER, worldY,
-                    waterOpacity, waterLight, blockLookup);
+                OverlayAccumulator.add(
+                        overlays, XaeroBinaryWriter.WATER, worldY, waterOpacity, waterLight, blockLookup);
                 int opacity = blockLookup.getLightBlock(blockName);
-                byte light = SectionLightAccess.getBlockLightCrossSection(
-                    chunk, section, lx, ly, lz, aboveWorldY);
+                byte light = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
                 OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
                     ctx.topPixelH[pos] = worldY;
@@ -140,8 +168,7 @@ public final class PixelColumnProcessor {
             if ((flags & BlockPropertyLookup.FLAG_SHOULD_OVERLAY) != 0) {
                 int opacity = blockLookup.getLightBlock(blockName);
                 int aboveWorldY = worldY + 1;
-                byte light = SectionLightAccess.getBlockLightCrossSection(
-                    chunk, section, lx, ly, lz, aboveWorldY);
+                byte light = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
                 OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
@@ -157,8 +184,7 @@ public final class PixelColumnProcessor {
             if ((flags & BlockPropertyLookup.FLAG_TRANSPARENT) != 0) {
                 int opacity = blockLookup.getLightBlock(blockName);
                 int aboveWorldY = worldY + 1;
-                byte light = SectionLightAccess.getBlockLightCrossSection(
-                    chunk, section, lx, ly, lz, aboveWorldY);
+                byte light = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
                 OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
@@ -168,8 +194,18 @@ public final class PixelColumnProcessor {
             }
 
             int aboveWorldY = worldY + 1;
-            byte light = SectionLightAccess.calculateSurfaceLight(chunk, section, lx, ly, lz, aboveWorldY,
-                heightMapValue, overlays, lightMode, worldHasSkylight, blockLookup);
+            byte light = SectionLightAccess.calculateSurfaceLight(
+                    chunk,
+                    section,
+                    lx,
+                    ly,
+                    lz,
+                    aboveWorldY,
+                    heightMapValue,
+                    overlays,
+                    lightMode,
+                    worldHasSkylight,
+                    blockLookup);
             int topBlockY = ctx.topPixelH[pos] < 0 ? worldY : ctx.topPixelH[pos];
             recordPixelScan(data, state, worldY, topBlockY, light, ctx.overlayLists[pos], relX, relZ);
             ctx.blockFound[pos] = true;
@@ -182,8 +218,11 @@ public final class PixelColumnProcessor {
     private static boolean finishSurface(
             ChunkDataParser.ChunkInfo chunk,
             ChunkSectionParser.SectionData section,
-            int lx, int ly, int lz,
-            int relX, int relZ,
+            int lx,
+            int ly,
+            int lz,
+            int relX,
+            int relZ,
             int worldY,
             ChunkSectionParser.BlockState state,
             int heightMapValue,
@@ -199,9 +238,19 @@ public final class PixelColumnProcessor {
         int opacity = blockLookup.getLightBlock("minecraft:water");
         int aboveWorldY = worldY + 1;
         byte light = useCalculateLight
-            ? SectionLightAccess.calculateSurfaceLight(chunk, section, lx, ly, lz, aboveWorldY,
-                heightMapValue, overlays, lightMode, worldHasSkylight, blockLookup)
-            : SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
+                ? SectionLightAccess.calculateSurfaceLight(
+                        chunk,
+                        section,
+                        lx,
+                        ly,
+                        lz,
+                        aboveWorldY,
+                        heightMapValue,
+                        overlays,
+                        lightMode,
+                        worldHasSkylight,
+                        blockLookup)
+                : SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
         overlays = ensureOverlayList(ctx, pos, overlays);
         OverlayAccumulator.add(overlays, XaeroBinaryWriter.WATER, worldY, opacity, light, blockLookup);
         int topBlockY = ctx.topPixelH[pos] < 0 ? worldY : ctx.topPixelH[pos];
@@ -213,7 +262,9 @@ public final class PixelColumnProcessor {
     private static void addFluidOverlay(
             ChunkDataParser.ChunkInfo chunk,
             ChunkSectionParser.SectionData section,
-            int lx, int ly, int lz,
+            int lx,
+            int ly,
+            int lz,
             int worldY,
             ChunkSectionParser.BlockState state,
             ArrayList<OverlayEntry> overlays,
@@ -240,9 +291,15 @@ public final class PixelColumnProcessor {
         return overlays;
     }
 
-    static void recordPixelScan(MapRegionData data, ChunkSectionParser.BlockState surfaceState,
-                                int topY, int highestBlockY, byte surfaceLight,
-                                List<OverlayEntry> overlayList, int relX, int relZ) {
+    static void recordPixelScan(
+            MapRegionData data,
+            ChunkSectionParser.BlockState surfaceState,
+            int topY,
+            int highestBlockY,
+            byte surfaceLight,
+            List<OverlayEntry> overlayList,
+            int relX,
+            int relZ) {
         if (relX >= REGION_SIZE_BLOCKS || relZ >= REGION_SIZE_BLOCKS) {
             return;
         }

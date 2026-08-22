@@ -1,8 +1,5 @@
 package com.mapsyncer.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +8,8 @@ import java.nio.file.attribute.FileTime;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class McaTimestampCache {
 
@@ -62,17 +61,18 @@ public class McaTimestampCache {
                     if (parts.length == 2) {
                         String dimension = parts[0];
                         String regionKey = parts[1];
-                        timestampCache.computeIfAbsent(dimension, k -> new ConcurrentHashMap<>())
-                                     .put(regionKey, timestampMillis);
+                        timestampCache
+                                .computeIfAbsent(dimension, k -> new ConcurrentHashMap<>())
+                                .put(regionKey, timestampMillis);
                     }
                 } catch (NumberFormatException e) {
                     LOGGER.warn("Invalid timestamp for {}: {}", key, props.getProperty(key));
                 }
             }
 
-            int totalRegions = timestampCache.values().stream().mapToInt(Map::size).sum();
-            LOGGER.info("Loaded timestamp cache: {} dimensions, {} regions",
-                timestampCache.size(), totalRegions);
+            int totalRegions =
+                    timestampCache.values().stream().mapToInt(Map::size).sum();
+            LOGGER.info("Loaded timestamp cache: {} dimensions, {} regions", timestampCache.size(), totalRegions);
         } catch (IOException e) {
             LOGGER.warn("Failed to load timestamp cache, will rebuild: {}", e.getMessage());
             timestampCache.clear();
@@ -97,13 +97,19 @@ public class McaTimestampCache {
 
             Path tempFile = cacheFilePath.resolveSibling(CACHE_FILE_NAME + ".temp");
             try (OutputStream os = Files.newOutputStream(tempFile)) {
-                props.store(os, "MCA file modification timestamps (seconds since epoch)\nFormat: dimension/region_x_z = timestamp");
+                props.store(
+                        os,
+                        "MCA file modification timestamps (seconds since epoch)\nFormat: dimension/region_x_z = timestamp");
             }
             Files.move(tempFile, cacheFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
-            int totalRegions = timestampCache.values().stream().mapToInt(Map::size).sum();
-            LOGGER.info("Saved timestamp cache: {} dimensions, {} regions to {}",
-                timestampCache.size(), totalRegions, cacheFilePath);
+            int totalRegions =
+                    timestampCache.values().stream().mapToInt(Map::size).sum();
+            LOGGER.info(
+                    "Saved timestamp cache: {} dimensions, {} regions to {}",
+                    timestampCache.size(),
+                    totalRegions,
+                    cacheFilePath);
         } catch (IOException e) {
             LOGGER.error("Failed to save timestamp cache", e);
         }
@@ -127,13 +133,16 @@ public class McaTimestampCache {
         }
 
         String regionKey = regionX + "_" + regionZ;
-        timestampCache.computeIfAbsent(dimension, k -> new ConcurrentHashMap<>())
-                      .put(regionKey, timestamp);
+        timestampCache
+                .computeIfAbsent(dimension, k -> new ConcurrentHashMap<>())
+                .put(regionKey, timestamp);
 
         int totalRegions = getTotalCachedRegions();
         if (totalRegions > MAX_CACHE_REGIONS) {
-            LOGGER.warn("Timestamp cache size {} exceeds limit {}, consider calling trimStaleEntries()",
-                totalRegions, MAX_CACHE_REGIONS);
+            LOGGER.warn(
+                    "Timestamp cache size {} exceeds limit {}, consider calling trimStaleEntries()",
+                    totalRegions,
+                    MAX_CACHE_REGIONS);
         }
 
         LOGGER.debug("Updated timestamp cache for {} / {}: {}", dimension, regionKey, timestamp);
@@ -172,8 +181,12 @@ public class McaTimestampCache {
         }
 
         if (!toRemove.isEmpty()) {
-            LOGGER.info("Trimmed {} stale timestamp entries for dimension {} (before: {}, after: {})",
-                toRemove.size(), dimension, before, dimCache.size());
+            LOGGER.info(
+                    "Trimmed {} stale timestamp entries for dimension {} (before: {}, after: {})",
+                    toRemove.size(),
+                    dimension,
+                    before,
+                    dimCache.size());
         }
     }
 
@@ -195,14 +208,19 @@ public class McaTimestampCache {
                 needsRegeneration.add(coords);
                 dimCache.put(regionKey, currentTimestamp);
                 if (cachedTimestamp != null) {
-                    LOGGER.info("Detected update in {} / {}: cached={}s, current={}s",
-                            dimension, regionKey, cachedSeconds, currentSeconds);
+                    LOGGER.info(
+                            "Detected update in {} / {}: cached={}s, current={}s",
+                            dimension,
+                            regionKey,
+                            cachedSeconds,
+                            currentSeconds);
                 }
             }
         }
 
         if (getTotalCachedRegions() > MAX_CACHE_REGIONS) {
-            Path regionDir = fileEntries.isEmpty() ? null : fileEntries.get(0).path().getParent();
+            Path regionDir =
+                    fileEntries.isEmpty() ? null : fileEntries.get(0).path().getParent();
             if (regionDir != null) {
                 trimStaleEntries(dimension, regionDir);
             }

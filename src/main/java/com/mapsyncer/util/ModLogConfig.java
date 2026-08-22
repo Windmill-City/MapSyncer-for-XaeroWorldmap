@@ -37,7 +37,8 @@ public final class ModLogConfig {
 
             Object logger = logManagerClass.getMethod("getLogger", String.class).invoke(null, packageName);
             Object logLevel = levelClass.getMethod("toLevel", String.class).invoke(null, level);
-            configuratorClass.getMethod("setAllLevels", String.class, levelClass)
+            configuratorClass
+                    .getMethod("setAllLevels", String.class, levelClass)
                     .invoke(null, logger.getClass().getMethod("getName").invoke(logger), logLevel);
         } catch (ClassNotFoundException ignored) {
 

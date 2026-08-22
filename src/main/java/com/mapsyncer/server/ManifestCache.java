@@ -3,9 +3,6 @@ package com.mapsyncer.server;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,6 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ManifestCache {
 
@@ -41,8 +40,11 @@ public class ManifestCache {
         return instance;
     }
 
-    public Map<String, Long> buildManifest(Path absCacheDir, Set<String> requestedDimensions,
-            DimensionPathMapping dimMapping, GenerationCache genCache) {
+    public Map<String, Long> buildManifest(
+            Path absCacheDir,
+            Set<String> requestedDimensions,
+            DimensionPathMapping dimMapping,
+            GenerationCache genCache) {
         if (!isValid(absCacheDir)) {
             synchronized (this) {
                 if (!isValid(absCacheDir)) {

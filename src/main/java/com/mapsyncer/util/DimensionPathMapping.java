@@ -1,8 +1,5 @@
 package com.mapsyncer.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DimensionPathMapping {
 
@@ -26,7 +25,6 @@ public class DimensionPathMapping {
     private static final Map<String, String> VANILLA_XAERO_MAPPINGS = new LinkedHashMap<>();
 
     static {
-
         VANILLA_LEGACY_FORMAT.put("overworld", ".");
         VANILLA_LEGACY_FORMAT.put("the_nether", "DIM-1");
         VANILLA_LEGACY_FORMAT.put("the_end", "DIM1");
@@ -269,52 +267,50 @@ public class DimensionPathMapping {
             Path dimensionsDir = worldRoot.resolve("dimensions");
             if (Files.exists(dimensionsDir)) {
                 try (Stream<Path> namespaceStream = Files.list(dimensionsDir)) {
-                    namespaceStream.filter(Files::isDirectory)
-                        .forEach(namespaceDir -> {
-                            String namespace = namespaceDir.getFileName().toString();
+                    namespaceStream.filter(Files::isDirectory).forEach(namespaceDir -> {
+                        String namespace = namespaceDir.getFileName().toString();
 
-                            if ("minecraft".equals(namespace)) {
-                                LOGGER.debug("Skipping minecraft namespace in dimensions/ (vanilla dims use traditional format)");
-                                return;
-                            }
+                        if ("minecraft".equals(namespace)) {
+                            LOGGER.debug(
+                                    "Skipping minecraft namespace in dimensions/ (vanilla dims use traditional format)");
+                            return;
+                        }
 
-                            try (Stream<Path> dimStream = Files.list(namespaceDir)) {
-                                dimStream.filter(Files::isDirectory)
-                                    .forEach(dimDir -> {
-                                        String dimName = dimDir.getFileName().toString();
-                                        Path regionDir = dimDir.resolve("region");
-                                        if (Files.exists(regionDir)) {
-                                            String dimPath = namespace + ":" + dimName;
-                                            if (!pathToFolder.containsKey(dimPath)) {
-                                                String folderPath = "dimensions/" + namespace + "/" + dimName;
-                                                registerMapping(dimPath, folderPath);
-                                                LOGGER.info("Auto-registered dimension: {} -> {}", dimPath, folderPath);
-                                            }
-                                        }
-                                    });
-                            } catch (IOException e) {
-                                LOGGER.warn("Error scanning namespace directory: {}", namespace, e);
-                            }
-                        });
+                        try (Stream<Path> dimStream = Files.list(namespaceDir)) {
+                            dimStream.filter(Files::isDirectory).forEach(dimDir -> {
+                                String dimName = dimDir.getFileName().toString();
+                                Path regionDir = dimDir.resolve("region");
+                                if (Files.exists(regionDir)) {
+                                    String dimPath = namespace + ":" + dimName;
+                                    if (!pathToFolder.containsKey(dimPath)) {
+                                        String folderPath = "dimensions/" + namespace + "/" + dimName;
+                                        registerMapping(dimPath, folderPath);
+                                        LOGGER.info("Auto-registered dimension: {} -> {}", dimPath, folderPath);
+                                    }
+                                }
+                            });
+                        } catch (IOException e) {
+                            LOGGER.warn("Error scanning namespace directory: {}", namespace, e);
+                        }
+                    });
                 }
             }
 
             try (Stream<Path> rootStream = Files.list(worldRoot)) {
-                rootStream.filter(Files::isDirectory)
-                    .forEach(dir -> {
-                        String dirName = dir.getFileName().toString();
-                        if (dirName.startsWith("DIM") || dirName.startsWith("DIM-")) {
+                rootStream.filter(Files::isDirectory).forEach(dir -> {
+                    String dirName = dir.getFileName().toString();
+                    if (dirName.startsWith("DIM") || dirName.startsWith("DIM-")) {
 
-                            if ("DIM-1".equals(dirName) || "DIM1".equals(dirName)) {
-                                return;
-                            }
-                            Path regionDir = dir.resolve("region");
-                            if (Files.exists(regionDir)) {
-
-                                LOGGER.info("Found unknown DIM directory: {} (cannot determine dimension ID)", dirName);
-                            }
+                        if ("DIM-1".equals(dirName) || "DIM1".equals(dirName)) {
+                            return;
                         }
-                    });
+                        Path regionDir = dir.resolve("region");
+                        if (Files.exists(regionDir)) {
+
+                            LOGGER.info("Found unknown DIM directory: {} (cannot determine dimension ID)", dirName);
+                        }
+                    }
+                });
             }
 
             Path overworldRegion = worldRoot.resolve("region");

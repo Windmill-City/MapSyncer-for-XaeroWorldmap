@@ -1,8 +1,5 @@
 package com.mapsyncer.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,14 +9,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PropertiesCacheIO {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesCacheIO.class);
 
-    private PropertiesCacheIO() {
-
-    }
+    private PropertiesCacheIO() {}
 
     public static <T> Map<String, T> load(Path cacheFile, Function<String, T> parser) {
         Map<String, T> cache = new HashMap<>();

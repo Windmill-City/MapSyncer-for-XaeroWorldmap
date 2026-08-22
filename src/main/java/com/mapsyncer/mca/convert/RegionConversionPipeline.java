@@ -8,7 +8,6 @@ import com.mapsyncer.mca.convert.io.McaRegionLoader.PassMapData;
 import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,30 +19,30 @@ public final class RegionConversionPipeline {
     private RegionConversionPipeline() {}
 
     public static List<RegionConverterStandalone.LayerConvertedRegion> convertMulti(
-            Path mcaPath, int regionX, int regionZ,
+            Path mcaPath,
+            int regionX,
+            int regionZ,
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
-            BlockPropertyLookup blockLookup) throws IOException {
+            BlockPropertyLookup blockLookup)
+            throws IOException {
 
         if (!Files.exists(mcaPath) || passes.isEmpty()) {
             return List.of();
         }
 
         List<PassMapData> loaded = McaRegionLoader.loadMulti(
-            mcaPath, dimTypeInfo.minY(), dimTypeInfo.maxY(),
-            dimTypeInfo.hasSkylight(), blockLookup, passes);
+                mcaPath, dimTypeInfo.minY(), dimTypeInfo.maxY(), dimTypeInfo.hasSkylight(), blockLookup, passes);
 
         List<RegionConverterStandalone.LayerConvertedRegion> results = new ArrayList<>();
         for (PassMapData passData : loaded) {
             MapRegionData regionData = passData.data();
             if (!regionData.hasAnyMapData()) {
-                results.add(new RegionConverterStandalone.LayerConvertedRegion(
-                    regionX, regionZ, new byte[0]));
+                results.add(new RegionConverterStandalone.LayerConvertedRegion(regionX, regionZ, new byte[0]));
                 continue;
             }
             byte[] xaeroData = XaeroBinaryWriter.serialize(regionData, dimTypeInfo.minY(), blockLookup);
-            results.add(new RegionConverterStandalone.LayerConvertedRegion(
-                regionX, regionZ, xaeroData));
+            results.add(new RegionConverterStandalone.LayerConvertedRegion(regionX, regionZ, xaeroData));
         }
         return results;
     }

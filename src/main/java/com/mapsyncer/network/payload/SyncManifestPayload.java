@@ -1,12 +1,11 @@
 package com.mapsyncer.network.payload;
 
-import net.minecraft.network.FriendlyByteBuf;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncManifestPayload {
     public static final int MAX_PAYLOAD_BYTES = 28_000;
@@ -25,8 +24,8 @@ public class SyncManifestPayload {
         this(timestamps, worldId, status, 0, 0);
     }
 
-    public SyncManifestPayload(Map<String, Long> timestamps, int worldId, String status,
-            int partIndex, int totalParts) {
+    public SyncManifestPayload(
+            Map<String, Long> timestamps, int worldId, String status, int partIndex, int totalParts) {
         this.timestamps = timestamps != null ? timestamps : Map.of();
         this.worldId = worldId;
         this.status = status != null ? status : "";
@@ -34,18 +33,32 @@ public class SyncManifestPayload {
         this.totalParts = totalParts;
     }
 
-    public Map<String, Long> timestamps() { return timestamps; }
-    public int worldId() { return worldId; }
-    public String status() { return status; }
-    public int partIndex() { return partIndex; }
-    public int totalParts() { return totalParts; }
+    public Map<String, Long> timestamps() {
+        return timestamps;
+    }
+
+    public int worldId() {
+        return worldId;
+    }
+
+    public String status() {
+        return status;
+    }
+
+    public int partIndex() {
+        return partIndex;
+    }
+
+    public int totalParts() {
+        return totalParts;
+    }
 
     private static final int ESTIMATED_ENTRY_BYTES = 80;
 
     public static SyncManifestPayload[] split(Map<String, Long> timestamps, int worldId, String status) {
         int maxEntriesPerPart = Math.max(1, MAX_PAYLOAD_BYTES / ESTIMATED_ENTRY_BYTES);
         if (timestamps.size() <= maxEntriesPerPart) {
-            return new SyncManifestPayload[] { new SyncManifestPayload(timestamps, worldId, status) };
+            return new SyncManifestPayload[] {new SyncManifestPayload(timestamps, worldId, status)};
         }
 
         List<Map.Entry<String, Long>> entries = new ArrayList<>(timestamps.entrySet());

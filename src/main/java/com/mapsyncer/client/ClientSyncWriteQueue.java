@@ -1,15 +1,14 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.payload.ChunkMapData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ClientSyncWriteQueue {
 
@@ -46,8 +45,12 @@ public final class ClientSyncWriteQueue {
         return pendingWrites.get() > 0;
     }
 
-    public static void submit(ChunkMapData chunk, Path serverDir, int worldId,
-            ClientTimestampCache tsCache, Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
+    public static void submit(
+            ChunkMapData chunk,
+            Path serverDir,
+            int worldId,
+            ClientTimestampCache tsCache,
+            Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
             XaeroMapDataHandler.RegionWriteResult result = null;
@@ -76,13 +79,14 @@ public final class ClientSyncWriteQueue {
             getExecutor().execute(task);
         } catch (RejectedExecutionException e) {
             pendingWrites.decrementAndGet();
-            LOGGER.error("Sync write queue rejected task for ({}, {}), executor shutdown?",
-                    chunk.regionX, chunk.regionZ, e);
+            LOGGER.error(
+                    "Sync write queue rejected task for ({}, {}), executor shutdown?", chunk.regionX, chunk.regionZ, e);
             invokeCallback(chunk, callback, null);
         }
     }
 
-    private static void invokeCallback(ChunkMapData chunk,
+    private static void invokeCallback(
+            ChunkMapData chunk,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback,
             XaeroMapDataHandler.RegionWriteResult result) {
         try {

@@ -1,11 +1,11 @@
 package com.mapsyncer.mca.convert.biome;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class BiomeFillPass {
 
@@ -29,8 +29,7 @@ public final class BiomeFillPass {
                 int lz = rz & 0xF;
                 int[][] heightmap = chunk.heightmap();
 
-                boolean caveMode = data.lightMode == LightMode.CAVE
-                    && data.caveParams.caveStart() != Integer.MAX_VALUE;
+                boolean caveMode = data.lightMode == LightMode.CAVE && data.caveParams.caveStart() != Integer.MAX_VALUE;
 
                 int sampleY;
                 if (data.hasData[rx][rz]) {
@@ -45,8 +44,8 @@ public final class BiomeFillPass {
                 }
 
                 String biome = caveMode
-                    ? BiomeQuartResolver.resolveAtY(chunk, lx, sampleY, lz)
-                    : BiomeQuartResolver.resolve(chunk, lx, sampleY, lz);
+                        ? BiomeQuartResolver.resolveAtY(chunk, lx, sampleY, lz)
+                        : BiomeQuartResolver.resolve(chunk, lx, sampleY, lz);
                 if (BiomeQuartResolver.isValidBiome(biome)) {
                     data.biomeNames[rx][rz] = biome;
                 }

@@ -1,13 +1,12 @@
 package com.mapsyncer.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.CRC32;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class HashUtils {
 
@@ -15,9 +14,7 @@ public final class HashUtils {
 
     public static final String DEFAULT_HASH = "00000000";
 
-    private HashUtils() {
-
-    }
+    private HashUtils() {}
 
     public static String computeFileHash(Path filePath) {
         if (filePath == null || !Files.exists(filePath)) {

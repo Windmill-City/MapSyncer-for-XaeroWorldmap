@@ -1,9 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.util.ClientMeta;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +8,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientTimestampCache {
 
@@ -100,7 +99,10 @@ public class ClientTimestampCache {
                 content.append("# Format: dimension/region_x_z = timestamp_seconds:hash\n");
 
                 for (Map.Entry<String, ClientMeta> entry : cache.entrySet()) {
-                    content.append(entry.getKey()).append("=").append(entry.getValue().format()).append("\n");
+                    content.append(entry.getKey())
+                            .append("=")
+                            .append(entry.getValue().format())
+                            .append("\n");
                 }
 
                 out.write(content.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));

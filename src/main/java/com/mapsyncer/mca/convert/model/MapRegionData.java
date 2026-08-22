@@ -1,17 +1,16 @@
 package com.mapsyncer.mca.convert.model;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.RegionConverterStandalone.CaveModeParams;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public class MapRegionData {
 

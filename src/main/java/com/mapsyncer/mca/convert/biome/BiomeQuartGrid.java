@@ -1,7 +1,6 @@
 package com.mapsyncer.mca.convert.biome;
 
 import com.mapsyncer.mca.ChunkSectionParser;
-
 import java.util.List;
 
 public final class BiomeQuartGrid {
@@ -16,9 +15,10 @@ public final class BiomeQuartGrid {
         this.sectionVoxels = sectionVoxels;
     }
 
-    public static BiomeQuartGrid build(List<ChunkSectionParser.SectionData> sections,
-                                       int minSectionY,
-                                       ChunkSectionParser.SectionData[] sectionLookup) {
+    public static BiomeQuartGrid build(
+            List<ChunkSectionParser.SectionData> sections,
+            int minSectionY,
+            ChunkSectionParser.SectionData[] sectionLookup) {
         if (sectionLookup == null || sectionLookup.length == 0) {
             return new BiomeQuartGrid(minSectionY, new String[0][]);
         }
@@ -44,8 +44,7 @@ public final class BiomeQuartGrid {
                             int blockY = voxelY << 2;
                             int blockZ = voxelZ << 2;
                             int voxelIndex = (voxelY << 4) | (voxelZ << 2) | voxelX;
-                            voxels[voxelIndex] = ChunkSectionParser.getBiomeAt(
-                                    section, blockX, blockY, blockZ, false);
+                            voxels[voxelIndex] = ChunkSectionParser.getBiomeAt(section, blockX, blockY, blockZ, false);
                         }
                     }
                 }

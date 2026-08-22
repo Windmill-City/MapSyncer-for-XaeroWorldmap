@@ -6,6 +6,8 @@ import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
+import java.nio.file.Path;
+import java.util.*;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -13,9 +15,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.file.Path;
-import java.util.*;
 
 public class DimensionRegistry {
 
@@ -74,24 +73,27 @@ public class DimensionRegistry {
             DimensionTypeInfo dimTypeInfo;
             if (level != null) {
                 dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
-                LOGGER.info("Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, height={}",
-                    dimId, dimTypeInfo.hasSkylight(), dimTypeInfo.hasCeiling(),
-                    dimTypeInfo.minY(), dimTypeInfo.height());
+                LOGGER.info(
+                        "Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, height={}",
+                        dimId,
+                        dimTypeInfo.hasSkylight(),
+                        dimTypeInfo.hasCeiling(),
+                        dimTypeInfo.minY(),
+                        dimTypeInfo.height());
             } else {
 
                 dimTypeInfo = DimensionTypeInfo.fromDimensionId(dimId);
             }
 
-            DimensionScanConfig finalConfig = new DimensionScanConfig(
-                    dimId,
-                    LayerPlan.surfaceOnly(),
-                    dimTypeInfo
-            );
+            DimensionScanConfig finalConfig = new DimensionScanConfig(dimId, LayerPlan.surfaceOnly(), dimTypeInfo);
 
             String configStr = configToString(finalConfig);
             updatedConfigs.add(configStr);
-            LOGGER.info("Added dimension config: {} (layerPlan={}, hasSkylight={})",
-                    dimId, finalConfig.layerPlan().toConfigString(), dimTypeInfo.hasSkylight());
+            LOGGER.info(
+                    "Added dimension config: {} (layerPlan={}, hasSkylight={})",
+                    dimId,
+                    finalConfig.layerPlan().toConfigString(),
+                    dimTypeInfo.hasSkylight());
         }
 
         ModConfig.SERVER.dimensionConfigs.set(updatedConfigs);
@@ -99,8 +101,10 @@ public class DimensionRegistry {
         ModConfig.SERVER_SPEC.save();
 
         hasRegistered = true;
-        LOGGER.info("Dimension registration completed: {} new dimensions added, total {} dimensions configured",
-                newDimensions.size(), updatedConfigs.size());
+        LOGGER.info(
+                "Dimension registration completed: {} new dimensions added, total {} dimensions configured",
+                newDimensions.size(),
+                updatedConfigs.size());
     }
 
     public static void resetRegistration() {

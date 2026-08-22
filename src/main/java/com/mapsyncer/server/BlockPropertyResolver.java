@@ -2,6 +2,9 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.BlockPropertyLookup;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -28,6 +31,7 @@ import net.minecraft.world.level.block.FlowerBlock;
 import net.minecraft.world.level.block.GrowingPlantBlock;
 import net.minecraft.world.level.block.GrowingPlantBodyBlock;
 import net.minecraft.world.level.block.GrowingPlantHeadBlock;
+import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.MushroomBlock;
 import net.minecraft.world.level.block.NetherWartBlock;
@@ -39,16 +43,15 @@ import net.minecraft.world.level.block.StemBlock;
 import net.minecraft.world.level.block.SugarCaneBlock;
 import net.minecraft.world.level.block.TallFlowerBlock;
 import net.minecraft.world.level.block.TallGrassBlock;
-import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.TorchflowerCropBlock;
 import net.minecraft.world.level.block.TwistingVinesBlock;
 import net.minecraft.world.level.block.TwistingVinesPlantBlock;
 import net.minecraft.world.level.block.WaterlilyBlock;
 import net.minecraft.world.level.block.WeepingVinesBlock;
 import net.minecraft.world.level.block.WeepingVinesPlantBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
@@ -56,25 +59,68 @@ import net.minecraft.world.level.material.MapColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class BlockPropertyResolver {
 
     public static final BlockPropertyLookup INSTANCE = new BlockPropertyLookup() {
-        @Override public int getFlags(String name) { return BlockPropertyResolver.getFlags(name); }
-        @Override public boolean isWater(String name) { return BlockPropertyResolver.isWater(name); }
-        @Override public boolean isTransparent(String name) { return BlockPropertyResolver.isTransparent(name); }
-        @Override public boolean isInvisible(String name) { return BlockPropertyResolver.isInvisible(name); }
-        @Override public boolean shouldOverlay(String name) { return BlockPropertyResolver.shouldOverlay(name); }
-        @Override public boolean hasVanillaColor(String name) { return BlockPropertyResolver.hasVanillaColor(name); }
-        @Override public boolean isGrassBlock(String name) { return BlockPropertyResolver.isGrassBlock(name); }
-        @Override public boolean isGlowing(String name) { return BlockPropertyResolver.isGlowing(name); }
-        @Override public boolean isTranslucentFluid(String name) { return BlockPropertyResolver.isTranslucentFluid(name); }
-        @Override public boolean isWaterloggedSurface(String name, Map<String, String> props) { return BlockPropertyResolver.isWaterloggedSurface(name, props); }
-        @Override public boolean isWaterInheriting(String name) { return BlockPropertyResolver.isWaterInheriting(name); }
-        @Override public int getLightBlock(String name) { return BlockPropertyResolver.getLightBlock(name); }
+        @Override
+        public int getFlags(String name) {
+            return BlockPropertyResolver.getFlags(name);
+        }
+
+        @Override
+        public boolean isWater(String name) {
+            return BlockPropertyResolver.isWater(name);
+        }
+
+        @Override
+        public boolean isTransparent(String name) {
+            return BlockPropertyResolver.isTransparent(name);
+        }
+
+        @Override
+        public boolean isInvisible(String name) {
+            return BlockPropertyResolver.isInvisible(name);
+        }
+
+        @Override
+        public boolean shouldOverlay(String name) {
+            return BlockPropertyResolver.shouldOverlay(name);
+        }
+
+        @Override
+        public boolean hasVanillaColor(String name) {
+            return BlockPropertyResolver.hasVanillaColor(name);
+        }
+
+        @Override
+        public boolean isGrassBlock(String name) {
+            return BlockPropertyResolver.isGrassBlock(name);
+        }
+
+        @Override
+        public boolean isGlowing(String name) {
+            return BlockPropertyResolver.isGlowing(name);
+        }
+
+        @Override
+        public boolean isTranslucentFluid(String name) {
+            return BlockPropertyResolver.isTranslucentFluid(name);
+        }
+
+        @Override
+        public boolean isWaterloggedSurface(String name, Map<String, String> props) {
+            return BlockPropertyResolver.isWaterloggedSurface(name, props);
+        }
+
+        @Override
+        public boolean isWaterInheriting(String name) {
+            return BlockPropertyResolver.isWaterInheriting(name);
+        }
+
+        @Override
+        public int getLightBlock(String name) {
+            return BlockPropertyResolver.getLightBlock(name);
+        }
     };
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BlockPropertyResolver.class);
@@ -117,7 +163,6 @@ public class BlockPropertyResolver {
         }
     }
 
-
     private static final ConcurrentHashMap<String, BlockProperties> propertiesCache = new ConcurrentHashMap<>();
 
     private static final int MAX_CACHE_SIZE = ModConfig.MAX_BLOCK_PROPERTIES_CACHE;
@@ -125,29 +170,26 @@ public class BlockPropertyResolver {
     private static final ConcurrentHashMap<String, Boolean> buggedBlocks = new ConcurrentHashMap<>();
 
     public record BlockProperties(
-        boolean isAir,
-        boolean isWater,
-        boolean isLava,
-        boolean isFluid,
-        boolean isTransparent,
-        boolean isInvisible,
-        boolean isFlower,
-        boolean isPlant,
-        boolean isGrassBlock,
-        boolean isGlowing,
-        int lightBlock,
-        int lightEmission,
-        boolean canBeWaterlogged,
-        boolean hasVanillaColor,
-        boolean hasMapColor,
-        boolean isAquaticPlant
-    ) {
+            boolean isAir,
+            boolean isWater,
+            boolean isLava,
+            boolean isFluid,
+            boolean isTransparent,
+            boolean isInvisible,
+            boolean isFlower,
+            boolean isPlant,
+            boolean isGrassBlock,
+            boolean isGlowing,
+            int lightBlock,
+            int lightEmission,
+            boolean canBeWaterlogged,
+            boolean hasVanillaColor,
+            boolean hasMapColor,
+            boolean isAquaticPlant) {
 
         public boolean isWaterloggedSurface(Map<String, String> properties) {
             if (properties == null) return false;
-            return canBeWaterlogged &&
-                   "true".equals(properties.get("waterlogged")) &&
-                   !isWater && !isAir;
+            return canBeWaterlogged && "true".equals(properties.get("waterlogged")) && !isWater && !isAir;
         }
 
         public boolean isTranslucentFluid() {
@@ -230,11 +272,22 @@ public class BlockPropertyResolver {
             boolean hasVanillaColor = !isAir && !isInvisible && !buggedBlocks.containsKey(blockName) && hasMapColor;
 
             return new BlockProperties(
-                isAir, isWater, isLava, isFluid,
-                isTransparent, isInvisible, isFlower, isPlant, isGrassBlock,
-                isGlowing, lightBlock, lightEmission, canBeWaterlogged,
-                hasVanillaColor, hasMapColor, isAquaticPlant
-            );
+                    isAir,
+                    isWater,
+                    isLava,
+                    isFluid,
+                    isTransparent,
+                    isInvisible,
+                    isFlower,
+                    isPlant,
+                    isGrassBlock,
+                    isGlowing,
+                    lightBlock,
+                    lightEmission,
+                    canBeWaterlogged,
+                    hasVanillaColor,
+                    hasMapColor,
+                    isAquaticPlant);
 
         } catch (RuntimeException e) {
             LOGGER.warn("Failed to resolve block properties for {}: {}", blockName, e.getMessage());
@@ -326,8 +379,7 @@ public class BlockPropertyResolver {
 
     private static boolean checkInvisibility(Block block, BlockState state, boolean flowers) {
 
-        if (!(block instanceof LiquidBlock) &&
-            state.getRenderShape() == RenderShape.INVISIBLE) {
+        if (!(block instanceof LiquidBlock) && state.getRenderShape() == RenderShape.INVISIBLE) {
             return true;
         }
 
@@ -450,7 +502,9 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        if (block instanceof GrowingPlantBlock || block instanceof GrowingPlantBodyBlock || block instanceof GrowingPlantHeadBlock) {
+        if (block instanceof GrowingPlantBlock
+                || block instanceof GrowingPlantBodyBlock
+                || block instanceof GrowingPlantHeadBlock) {
             return true;
         }
 
@@ -483,13 +537,20 @@ public class BlockPropertyResolver {
         }
 
         String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
-        if (blockId.contains("plant") || blockId.contains("crop") ||
-            blockId.contains("sapling") || blockId.contains("seed") ||
-            blockId.contains("vine") || blockId.contains("fern") ||
-            blockId.contains("bush") || blockId.contains("grass") ||
-            blockId.contains("cactus") || blockId.contains("reed") ||
-            blockId.contains("stem") || blockId.contains("leaf") ||
-            blockId.contains("mushroom") || blockId.contains("fungus")) {
+        if (blockId.contains("plant")
+                || blockId.contains("crop")
+                || blockId.contains("sapling")
+                || blockId.contains("seed")
+                || blockId.contains("vine")
+                || blockId.contains("fern")
+                || blockId.contains("bush")
+                || blockId.contains("grass")
+                || blockId.contains("cactus")
+                || blockId.contains("reed")
+                || blockId.contains("stem")
+                || blockId.contains("leaf")
+                || blockId.contains("mushroom")
+                || blockId.contains("fungus")) {
             return true;
         }
 
@@ -505,15 +566,24 @@ public class BlockPropertyResolver {
         }
 
         String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
-        if (blockId.contains("fence_gate") || blockId.contains("stairs") ||
-            blockId.contains("slab") || blockId.contains("wall") ||
-            blockId.contains("door") || blockId.contains("trapdoor") ||
-            blockId.contains("lantern") || blockId.contains("chain") ||
-            blockId.contains("coral") || blockId.contains("grate") ||
-            blockId.contains("sign") || blockId.contains("banner") ||
-            blockId.contains("bed") || blockId.contains("scaffolding") ||
-            blockId.contains("conduit") || blockId.contains("light") ||
-            blockId.contains("sea_pickle") || blockId.contains("kelp")) {
+        if (blockId.contains("fence_gate")
+                || blockId.contains("stairs")
+                || blockId.contains("slab")
+                || blockId.contains("wall")
+                || blockId.contains("door")
+                || blockId.contains("trapdoor")
+                || blockId.contains("lantern")
+                || blockId.contains("chain")
+                || blockId.contains("coral")
+                || blockId.contains("grate")
+                || blockId.contains("sign")
+                || blockId.contains("banner")
+                || blockId.contains("bed")
+                || blockId.contains("scaffolding")
+                || blockId.contains("conduit")
+                || blockId.contains("light")
+                || blockId.contains("sea_pickle")
+                || blockId.contains("kelp")) {
             return true;
         }
 
@@ -531,8 +601,10 @@ public class BlockPropertyResolver {
         }
 
         String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
-        return blockId.equals("seagrass") || blockId.equals("tall_seagrass") ||
-               blockId.equals("kelp") || blockId.equals("kelp_plant");
+        return blockId.equals("seagrass")
+                || blockId.equals("tall_seagrass")
+                || blockId.equals("kelp")
+                || blockId.equals("kelp_plant");
     }
 
     private static BlockProperties getFallbackProperties(String blockName) {
@@ -545,35 +617,52 @@ public class BlockPropertyResolver {
 
         boolean isTransparent = name.contains("glass") || name.contains("ice");
 
-        boolean isInvisible = name.contains("torch") ||
-                             (name.contains("grass") && !name.contains("grass_block") && !name.contains("tall"));
+        boolean isInvisible = name.contains("torch")
+                || (name.contains("grass") && !name.contains("grass_block") && !name.contains("tall"));
 
-        boolean isFlower = name.contains("flower") || name.contains("rose") ||
-                          name.contains("tulip") || name.contains("lily");
+        boolean isFlower =
+                name.contains("flower") || name.contains("rose") || name.contains("tulip") || name.contains("lily");
 
-        boolean isPlant = isFlower || name.contains("plant") || name.contains("crop") ||
-                         name.contains("sapling") || name.contains("seed") ||
-                         name.contains("vine") || name.contains("fern") ||
-                         name.contains("bush") || name.contains("grass") ||
-                         name.contains("cactus") || name.contains("reed") ||
-                         name.contains("stem") || name.contains("leaf") ||
-                         name.contains("mushroom") || name.contains("fungus") ||
-                         name.contains("wheat") || name.contains("carrot") ||
-                         name.contains("potato") || name.contains("beetroot");
+        boolean isPlant = isFlower
+                || name.contains("plant")
+                || name.contains("crop")
+                || name.contains("sapling")
+                || name.contains("seed")
+                || name.contains("vine")
+                || name.contains("fern")
+                || name.contains("bush")
+                || name.contains("grass")
+                || name.contains("cactus")
+                || name.contains("reed")
+                || name.contains("stem")
+                || name.contains("leaf")
+                || name.contains("mushroom")
+                || name.contains("fungus")
+                || name.contains("wheat")
+                || name.contains("carrot")
+                || name.contains("potato")
+                || name.contains("beetroot");
 
         boolean isGrassBlock = name.contains("grass_block");
 
-        boolean isGlowing = name.contains("glow") || name.contains("lantern") ||
-                           name.contains("lamp") || name.contains("torch") ||
-                           name.contains("lava") || name.contains("fire");
+        boolean isGlowing = name.contains("glow")
+                || name.contains("lantern")
+                || name.contains("lamp")
+                || name.contains("torch")
+                || name.contains("lava")
+                || name.contains("fire");
 
         int lightBlock = isAir ? 0 : (isFluid || isTransparent ? 2 : 15);
         int lightEmission = isGlowing ? 15 : 0;
 
-        boolean canBeWaterlogged = name.contains("fence") || name.contains("stairs") ||
-                                  name.contains("slab") || name.contains("door") ||
-                                  name.contains("trapdoor") || name.contains("wall") ||
-                                  name.contains("lantern") || name.contains("coral");
+        boolean canBeWaterlogged = name.contains("fence")
+                || name.contains("stairs")
+                || name.contains("slab")
+                || name.contains("door")
+                || name.contains("trapdoor")
+                || name.contains("wall")
+                || name.contains("lantern")
+                || name.contains("coral");
 
         boolean isAquaticPlant = name.contains("seagrass") || name.contains("kelp");
 
@@ -581,11 +670,22 @@ public class BlockPropertyResolver {
         boolean hasMapColor = hasVanillaColor;
 
         return new BlockProperties(
-            isAir, isWater, isLava, isFluid,
-            isTransparent, isInvisible, isFlower, isPlant, isGrassBlock,
-            isGlowing, lightBlock, lightEmission, canBeWaterlogged,
-            hasVanillaColor, hasMapColor, isAquaticPlant
-        );
+                isAir,
+                isWater,
+                isLava,
+                isFluid,
+                isTransparent,
+                isInvisible,
+                isFlower,
+                isPlant,
+                isGrassBlock,
+                isGlowing,
+                lightBlock,
+                lightEmission,
+                canBeWaterlogged,
+                hasVanillaColor,
+                hasMapColor,
+                isAquaticPlant);
     }
 
     public static void clearCache() {

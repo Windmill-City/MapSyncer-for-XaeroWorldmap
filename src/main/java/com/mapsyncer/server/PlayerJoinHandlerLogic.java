@@ -16,7 +16,9 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@EventBusSubscriber(value = {Dist.CLIENT, Dist.DEDICATED_SERVER}, bus = EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(
+        value = {Dist.CLIENT, Dist.DEDICATED_SERVER},
+        bus = EventBusSubscriber.Bus.FORGE)
 public class PlayerJoinHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlayerJoinHandlerLogic.class);

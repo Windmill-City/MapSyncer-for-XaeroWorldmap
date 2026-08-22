@@ -1,16 +1,15 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.util.PropertiesCacheIO;
 import com.mapsyncer.util.ClientMeta;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.mapsyncer.util.PropertiesCacheIO;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GenerationCache {
 
@@ -47,8 +46,11 @@ public class GenerationCache {
     }
 
     public void save() {
-        PropertiesCacheIO.save(cacheFile, new HashMap<>(cache), ClientMeta::format,
-            "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds:hash\nHash is CRC32 of file content");
+        PropertiesCacheIO.save(
+                cacheFile,
+                new HashMap<>(cache),
+                ClientMeta::format,
+                "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds:hash\nHash is CRC32 of file content");
     }
 
     public void update(String relativePath, long timestampSeconds, String hash) {
@@ -62,14 +64,18 @@ public class GenerationCache {
         }
 
         int toRemove = cache.size() - MAX_CACHE_REGIONS;
-        LOGGER.info("Cache size {} exceeds limit {}, trimming {} oldest entries",
-            cache.size(), MAX_CACHE_REGIONS, toRemove);
+        LOGGER.info(
+                "Cache size {} exceeds limit {}, trimming {} oldest entries",
+                cache.size(),
+                MAX_CACHE_REGIONS,
+                toRemove);
 
         cache.entrySet().stream()
-            .sorted((a, b) -> Long.compare(a.getValue().timestampSeconds(), b.getValue().timestampSeconds()))
-            .limit(toRemove)
-            .map(Map.Entry::getKey)
-            .forEach(cache::remove);
+                .sorted((a, b) -> Long.compare(
+                        a.getValue().timestampSeconds(), b.getValue().timestampSeconds()))
+                .limit(toRemove)
+                .map(Map.Entry::getKey)
+                .forEach(cache::remove);
 
         LOGGER.info("Cache trimmed to {} entries", cache.size());
     }
@@ -86,8 +92,9 @@ public class GenerationCache {
 
     public long getLastGenerationTime() {
         return cache.values().stream()
-            .mapToLong(ClientMeta::timestampSeconds)
-            .max().orElse(0);
+                .mapToLong(ClientMeta::timestampSeconds)
+                .max()
+                .orElse(0);
     }
 
     public int removeByPrefix(String prefix) {

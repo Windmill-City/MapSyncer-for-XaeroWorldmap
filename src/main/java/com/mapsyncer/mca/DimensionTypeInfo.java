@@ -1,12 +1,6 @@
 package com.mapsyncer.mca;
 
-public record DimensionTypeInfo(
-    boolean hasSkylight,
-    boolean hasCeiling,
-    int minY,
-    int height,
-    int logicalHeight
-) {
+public record DimensionTypeInfo(boolean hasSkylight, boolean hasCeiling, int minY, int height, int logicalHeight) {
 
     public int maxY() {
         return minY + height;
@@ -37,9 +31,7 @@ public record DimensionTypeInfo(
             return overworld();
         }
 
-        String normalized = dimensionId
-            .replace("minecraft:", "")
-            .toLowerCase();
+        String normalized = dimensionId.replace("minecraft:", "").toLowerCase();
 
         switch (normalized) {
             case "overworld":
@@ -49,14 +41,14 @@ public record DimensionTypeInfo(
             case "the_end":
                 return theEnd();
             default:
-
                 return overworld();
         }
     }
 
     @Override
     public String toString() {
-        return String.format("DimensionTypeInfo[hasSkylight=%s, hasCeiling=%s, minY=%d, height=%d, maxY=%d]",
-            hasSkylight, hasCeiling, minY, height, maxY());
+        return String.format(
+                "DimensionTypeInfo[hasSkylight=%s, hasCeiling=%s, minY=%d, height=%d, maxY=%d]",
+                hasSkylight, hasCeiling, minY, height, maxY());
     }
 }

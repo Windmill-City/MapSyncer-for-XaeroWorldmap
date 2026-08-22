@@ -4,11 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public record LayerPlan(
-    boolean includeSurface,
-    boolean includeAllCaves,
-    List<Integer> caveStarts
-) {
+public record LayerPlan(boolean includeSurface, boolean includeAllCaves, List<Integer> caveStarts) {
     public static final int DEFAULT_CAVE_START = 63;
 
     public enum ScanMode {
@@ -17,9 +13,7 @@ public record LayerPlan(
     }
 
     public LayerPlan {
-        caveStarts = caveStarts == null || caveStarts.isEmpty()
-            ? List.of()
-            : List.copyOf(caveStarts);
+        caveStarts = caveStarts == null || caveStarts.isEmpty() ? List.of() : List.copyOf(caveStarts);
     }
 
     public static LayerPlan empty() {
@@ -38,14 +32,16 @@ public record LayerPlan(
         if (starts == null || starts.length == 0) {
             return empty();
         }
-        return new LayerPlan(false, false, java.util.Arrays.stream(starts).boxed().toList());
+        return new LayerPlan(
+                false, false, java.util.Arrays.stream(starts).boxed().toList());
     }
 
     public static LayerPlan mixed(int... caveStarts) {
         if (caveStarts == null || caveStarts.length == 0) {
             return surfaceOnly();
         }
-        return new LayerPlan(true, false, java.util.Arrays.stream(caveStarts).boxed().toList());
+        return new LayerPlan(
+                true, false, java.util.Arrays.stream(caveStarts).boxed().toList());
     }
 
     public boolean isEmpty() {

@@ -1,12 +1,10 @@
 package com.mapsyncer.config;
 
 import com.mapsyncer.mca.DimensionTypeInfo;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DimensionConfigParser {
 
@@ -106,8 +104,7 @@ public final class DimensionConfigParser {
             try {
                 legacyMode = LayerPlan.ScanMode.valueOf(parts[1].trim().toUpperCase());
             } catch (IllegalArgumentException e) {
-                LOGGER.warn("Invalid legacy scan_mode '{}' in [{}], treating as layer plan",
-                    parts[1], configStr);
+                LOGGER.warn("Invalid legacy scan_mode '{}' in [{}], treating as layer plan", parts[1], configStr);
                 layerPlan = LayerPlan.parse(parts[1]);
                 dimTypeStartIndex = 2;
                 return finishParse(dimension, layerPlan, dimTypeInfo, parts, dimTypeStartIndex, configStr);
@@ -122,8 +119,13 @@ public final class DimensionConfigParser {
         return finishParse(dimension, layerPlan, dimTypeInfo, parts, dimTypeStartIndex, configStr);
     }
 
-    private static DimensionScanConfig finishParse(String dimension, LayerPlan layerPlan,
-            DimensionTypeInfo dimTypeInfo, String[] parts, int dimTypeStartIndex, String configStr) {
+    private static DimensionScanConfig finishParse(
+            String dimension,
+            LayerPlan layerPlan,
+            DimensionTypeInfo dimTypeInfo,
+            String[] parts,
+            int dimTypeStartIndex,
+            String configStr) {
         return new DimensionScanConfig(dimension, layerPlan, dimTypeInfo);
     }
 
@@ -136,41 +138,42 @@ public final class DimensionConfigParser {
         return "true".equalsIgnoreCase(t) || "false".equalsIgnoreCase(t);
     }
 
-    public static DimensionScanConfig getConfigForDimension(String dimensionPath,
-            List<? extends String> dimensionConfigs, LayerPlan.ScanMode defaultMode, int defaultCave) {
-        LayerPlan defaultPlan = defaultMode == LayerPlan.ScanMode.SURFACE
-            ? LayerPlan.surfaceOnly()
-            : LayerPlan.caves(defaultCave);
+    public static DimensionScanConfig getConfigForDimension(
+            String dimensionPath,
+            List<? extends String> dimensionConfigs,
+            LayerPlan.ScanMode defaultMode,
+            int defaultCave) {
+        LayerPlan defaultPlan =
+                defaultMode == LayerPlan.ScanMode.SURFACE ? LayerPlan.surfaceOnly() : LayerPlan.caves(defaultCave);
 
         List<DimensionScanConfig> parsed = parseDimensionConfigs(dimensionConfigs);
 
         String normalizedPath = dimensionPath.replace("minecraft:", "").toLowerCase();
         boolean isVanilla = normalizedPath.equals("the_nether")
-                         || normalizedPath.equals("overworld")
-                         || normalizedPath.equals("the_end");
+                || normalizedPath.equals("overworld")
+                || normalizedPath.equals("the_end");
 
         for (DimensionScanConfig config : parsed) {
             String configDim = config.dimension().replace("minecraft:", "").toLowerCase();
             if (configDim.equals(normalizedPath)) return config;
-            if (configDim.equalsIgnoreCase(dimensionPath)
-                || configDim.equalsIgnoreCase("minecraft:" + dimensionPath)) return config;
+            if (configDim.equalsIgnoreCase(dimensionPath) || configDim.equalsIgnoreCase("minecraft:" + dimensionPath))
+                return config;
         }
 
         if (isVanilla) {
             switch (normalizedPath) {
                 case "the_nether":
-                    return new DimensionScanConfig("minecraft:the_nether",
-                        LayerPlan.mixed(DEFAULT_CAVE_START), DimensionTypeInfo.nether());
+                    return new DimensionScanConfig(
+                            "minecraft:the_nether", LayerPlan.mixed(DEFAULT_CAVE_START), DimensionTypeInfo.nether());
                 case "overworld":
-                    return new DimensionScanConfig("minecraft:overworld",
-                        LayerPlan.surfaceOnly(), DimensionTypeInfo.overworld());
+                    return new DimensionScanConfig(
+                            "minecraft:overworld", LayerPlan.surfaceOnly(), DimensionTypeInfo.overworld());
                 default:
-                    return new DimensionScanConfig("minecraft:the_end",
-                        LayerPlan.surfaceOnly(), DimensionTypeInfo.theEnd());
+                    return new DimensionScanConfig(
+                            "minecraft:the_end", LayerPlan.surfaceOnly(), DimensionTypeInfo.theEnd());
             }
         }
 
-        return new DimensionScanConfig(dimensionPath, defaultPlan,
-            DimensionTypeInfo.fromDimensionId(dimensionPath));
+        return new DimensionScanConfig(dimensionPath, defaultPlan, DimensionTypeInfo.fromDimensionId(dimensionPath));
     }
 }

@@ -2,9 +2,6 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.util.HashUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
@@ -15,8 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.CheckedOutputStream;
 import java.util.zip.CRC32;
+import java.util.zip.CheckedOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class XaeroMapDataHandler {
 
@@ -74,12 +73,15 @@ public final class XaeroMapDataHandler {
             Files.createDirectories(targetDir);
 
             try (OutputStream fileOut = Files.newOutputStream(tempFile);
-                 CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32)) {
+                    CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32)) {
                 checkedOut.write(chunk.data);
             }
             Files.move(tempFile, outputFile, StandardCopyOption.REPLACE_EXISTING);
-            LOGGER.debug("Wrote map file: {} (layer={}, {} bytes)", outputFile,
-                chunk.isSurfaceLayer() ? "surface" : chunk.caveLayer, chunk.data.length);
+            LOGGER.debug(
+                    "Wrote map file: {} (layer={}, {} bytes)",
+                    outputFile,
+                    chunk.isSurfaceLayer() ? "surface" : chunk.caveLayer,
+                    chunk.data.length);
         } catch (IOException e) {
             LOGGER.error("Failed to write map file: {}", outputFile, e);
             return null;
@@ -106,8 +108,8 @@ public final class XaeroMapDataHandler {
         String baseName = coord.x() + "_" + coord.z();
         for (Path cacheDir : findCacheDirectories(mwDir)) {
             Path cacheRoot = coord.isSurfaceLayer()
-                ? cacheDir
-                : cacheDir.resolve("caves").resolve(String.valueOf(coord.caveLayer()));
+                    ? cacheDir
+                    : cacheDir.resolve("caves").resolve(String.valueOf(coord.caveLayer()));
             deleteRegionCacheFile(cacheRoot.resolve(baseName + ".xwmc"));
             deleteRegionCacheFile(cacheRoot.resolve(baseName + ".xwmc.outdated"));
         }

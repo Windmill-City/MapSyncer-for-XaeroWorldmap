@@ -1,11 +1,19 @@
 package com.mapsyncer.mca.convert.io;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.BLOCKS_PER_TILE;
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BLOCK;
+import static com.mapsyncer.mca.RegionConverterStandalone.MAJOR_VERSION;
+import static com.mapsyncer.mca.RegionConverterStandalone.MINOR_VERSION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverterStandalone.TILES_PER_TILE_CHUNK;
+import static com.mapsyncer.mca.RegionConverterStandalone.TILE_CHUNKS_PER_REGION;
+
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -14,15 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.BLOCKS_PER_TILE;
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BLOCK;
-import static com.mapsyncer.mca.RegionConverterStandalone.MAJOR_VERSION;
-import static com.mapsyncer.mca.RegionConverterStandalone.MINOR_VERSION;
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
-import static com.mapsyncer.mca.RegionConverterStandalone.TILE_CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverterStandalone.TILES_PER_TILE_CHUNK;
 
 public final class XaeroBinaryWriter {
 
@@ -70,8 +69,8 @@ public final class XaeroBinaryWriter {
 
     private XaeroBinaryWriter() {}
 
-    public static byte[] serialize(MapRegionData data, int minBuildHeight,
-                                    BlockPropertyLookup blockLookup) throws IOException {
+    public static byte[] serialize(MapRegionData data, int minBuildHeight, BlockPropertyLookup blockLookup)
+            throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (DataOutputStream dos = new DataOutputStream(baos)) {
             dos.writeByte(0xFF);
@@ -104,11 +103,11 @@ public final class XaeroBinaryWriter {
 
                                     if (!data.hasData[rx][rz]) {
                                         if (data.lightMode == LightMode.CAVE) {
-                                            writeCaveEmptyPixel(dos, data, rx, rz, minBuildHeight,
-                                                blockPalette, biomePalette);
+                                            writeCaveEmptyPixel(
+                                                    dos, data, rx, rz, minBuildHeight, blockPalette, biomePalette);
                                         } else {
-                                            writeEmptyPixel(dos, data, rx, rz, minBuildHeight,
-                                                blockPalette, biomePalette);
+                                            writeEmptyPixel(
+                                                    dos, data, rx, rz, minBuildHeight, blockPalette, biomePalette);
                                         }
                                         continue;
                                     }
@@ -128,10 +127,15 @@ public final class XaeroBinaryWriter {
         return baos.toByteArray();
     }
 
-    private static void writeCaveEmptyPixel(DataOutputStream dos, MapRegionData data, int rx, int rz,
-                                            int minBuildHeight,
-                                            Map<PaletteKey, Integer> blockPalette,
-                                            Map<String, Integer> biomePalette) throws IOException {
+    private static void writeCaveEmptyPixel(
+            DataOutputStream dos,
+            MapRegionData data,
+            int rx,
+            int rz,
+            int minBuildHeight,
+            Map<PaletteKey, Integer> blockPalette,
+            Map<String, Integer> biomePalette)
+            throws IOException {
         BlockState air = AIR;
         PaletteKey paletteKey = PaletteKey.from(air);
         int emptyHeight = minBuildHeight;
@@ -155,10 +159,15 @@ public final class XaeroBinaryWriter {
         writeBiomeRef(dos, biomeName, biomePalette);
     }
 
-    private static void writeEmptyPixel(DataOutputStream dos, MapRegionData data, int rx, int rz,
-                                         int minBuildHeight,
-                                         Map<PaletteKey, Integer> blockPalette,
-                                         Map<String, Integer> biomePalette) throws IOException {
+    private static void writeEmptyPixel(
+            DataOutputStream dos,
+            MapRegionData data,
+            int rx,
+            int rz,
+            int minBuildHeight,
+            Map<PaletteKey, Integer> blockPalette,
+            Map<String, Integer> biomePalette)
+            throws IOException {
         BlockState air = AIR;
         PaletteKey paletteKey = PaletteKey.from(air);
         int emptyHeight = data.heightMap[rx][rz];
@@ -187,8 +196,8 @@ public final class XaeroBinaryWriter {
         writeBiomeRef(dos, biomeName, biomePalette);
     }
 
-    private static void writeBiomeRef(DataOutputStream dos, String biomeName,
-                                      Map<String, Integer> biomePalette) throws IOException {
+    private static void writeBiomeRef(DataOutputStream dos, String biomeName, Map<String, Integer> biomePalette)
+            throws IOException {
         if (biomeName == null) {
             return;
         }
@@ -200,10 +209,15 @@ public final class XaeroBinaryWriter {
         }
     }
 
-    private static void writePixel(DataOutputStream dos, MapRegionData data, int rx, int rz,
-                                    Map<PaletteKey, Integer> blockPalette,
-                                    Map<String, Integer> biomePalette,
-                                    BlockPropertyLookup blockLookup) throws IOException {
+    private static void writePixel(
+            DataOutputStream dos,
+            MapRegionData data,
+            int rx,
+            int rz,
+            Map<PaletteKey, Integer> blockPalette,
+            Map<String, Integer> biomePalette,
+            BlockPropertyLookup blockLookup)
+            throws IOException {
         BlockState blockState = data.blockStates[rx][rz];
         if (blockState == null) {
             blockState = new BlockState(DEFAULT_BLOCK, Map.of());
@@ -267,8 +281,8 @@ public final class XaeroBinaryWriter {
         writeBiomeRef(dos, biomeName, biomePalette);
     }
 
-    private static void writeBlockStateRef(DataOutputStream dos, BlockState blockState,
-                                          Map<PaletteKey, Integer> blockPalette) throws IOException {
+    private static void writeBlockStateRef(
+            DataOutputStream dos, BlockState blockState, Map<PaletteKey, Integer> blockPalette) throws IOException {
         PaletteKey paletteKey = PaletteKey.from(blockState);
         if (blockPalette.containsKey(paletteKey)) {
             dos.writeInt(blockPalette.get(paletteKey));
@@ -282,9 +296,12 @@ public final class XaeroBinaryWriter {
         return (height & 0xFF) << 12 | ((height >> 8) & 0xF) << 25;
     }
 
-    private static void serializeOverlay(OverlayEntry overlay, DataOutputStream dos,
-                                          Map<PaletteKey, Integer> blockPalette,
-                                          BlockPropertyLookup blockLookup) throws IOException {
+    private static void serializeOverlay(
+            OverlayEntry overlay,
+            DataOutputStream dos,
+            Map<PaletteKey, Integer> blockPalette,
+            BlockPropertyLookup blockLookup)
+            throws IOException {
         BlockState blockState = overlay.blockState;
         boolean isWater = blockLookup.isWater(blockState.name());
         int opacity = overlay.opacity;

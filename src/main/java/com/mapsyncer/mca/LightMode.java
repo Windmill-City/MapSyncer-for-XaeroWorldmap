@@ -1,14 +1,17 @@
 package com.mapsyncer.mca;
 
 public enum LightMode {
-
     SURFACE,
 
     CAVE;
 
-    public byte calculateEffectiveLight(byte blockLight, byte skyLight,
-                                         boolean hasSkyAccess, boolean hasOverlay,
-                                         boolean isGlowing, boolean worldHasSkylight) {
+    public byte calculateEffectiveLight(
+            byte blockLight,
+            byte skyLight,
+            boolean hasSkyAccess,
+            boolean hasOverlay,
+            boolean isGlowing,
+            boolean worldHasSkylight) {
 
         if (isGlowing) {
             return 15;
@@ -16,11 +19,9 @@ public enum LightMode {
 
         switch (this) {
             case SURFACE:
-
                 return blockLight;
 
             case CAVE:
-
                 if (blockLight >= 15) {
                     return blockLight;
                 }

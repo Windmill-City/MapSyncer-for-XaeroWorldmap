@@ -9,11 +9,6 @@ import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.network.NetworkEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import net.minecraft.client.Minecraft;
+import net.minecraftforge.network.NetworkEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MapPacketHandler {
 
@@ -41,6 +40,7 @@ public class MapPacketHandler {
     private static final Set<XaeroMapDataHandler.RegionCoord> loadedRegions = ConcurrentHashMap.newKeySet();
 
     private record PartEntry(ChunkMapData[] parts, long firstArrivedMs) {}
+
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
     private static volatile boolean expectManifest = false;
@@ -82,8 +82,9 @@ public class MapPacketHandler {
         partBuffer.clear();
         syncStartMs = System.currentTimeMillis();
         if (Minecraft.getInstance().player != null) {
-            Minecraft.getInstance().player.displayClientMessage(
-                ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
+            Minecraft.getInstance()
+                    .player
+                    .displayClientMessage(ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
         }
         LOGGER.info("Prepared join sync: waiting for server-pushed manifest");
     }
@@ -186,8 +187,8 @@ public class MapPacketHandler {
 
         String status = payload.status();
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-        ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
-                ? ClientTimestampCache.getInstance(serverDir) : null;
+        ClientTimestampCache tsCache =
+                serverDir != null && serverDir.toFile().exists() ? ClientTimestampCache.getInstance(serverDir) : null;
 
         if ("no_cache".equals(status) || "dim_not_available".equals(status)) {
             LOGGER.info("Server returned error status: {}, aborting sync", status);
@@ -198,8 +199,9 @@ public class MapPacketHandler {
         if (serverDir == null) {
             LOGGER.error("Unable to resolve server directory, cannot compute diff sync");
             if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.error("mapsyncer.sync.server_dir_missing"), false);
+                Minecraft.getInstance()
+                        .player
+                        .displayClientMessage(ChatUtils.error("mapsyncer.sync.server_dir_missing"), false);
             }
             clearSyncData();
             return;
@@ -227,8 +229,7 @@ public class MapPacketHandler {
                         mc.player.displayClientMessage(
                                 ChatUtils.error("mapsyncer.sync.hash_scan_partial", result.failedFiles()), false);
                     } else {
-                        mc.player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.hash_scan_failed"), false);
+                        mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.hash_scan_failed"), false);
                     }
                     clearSyncData();
                     return;
@@ -248,8 +249,11 @@ public class MapPacketHandler {
                     }
                 }
 
-                LOGGER.info("Manifest comparison: {} server regions, {} already up-to-date, {} need update",
-                        serverTimestamps.size(), upToDateCount, diff.size());
+                LOGGER.info(
+                        "Manifest comparison: {} server regions, {} already up-to-date, {} need update",
+                        serverTimestamps.size(),
+                        upToDateCount,
+                        diff.size());
 
                 if (diff.isEmpty()) {
                     finishUpToDate(tsCache);
@@ -305,7 +309,9 @@ public class MapPacketHandler {
                 LOGGER.warn("Sync was stale, clearing accumulated data");
                 clearSyncData();
                 if (Minecraft.getInstance().player != null) {
-                    Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.timeout"), false);
+                    Minecraft.getInstance()
+                            .player
+                            .displayClientMessage(ChatUtils.error("mapsyncer.sync.timeout"), false);
                 }
                 return;
             }
@@ -316,16 +322,19 @@ public class MapPacketHandler {
                 if (!initializeReflectionCache()) {
                     session.markReflectionFailed();
                     if (Minecraft.getInstance().player != null) {
-                        Minecraft.getInstance().player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.reflection_failed"), false);
+                        Minecraft.getInstance()
+                                .player
+                                .displayClientMessage(ChatUtils.error("mapsyncer.sync.reflection_failed"), false);
                     }
                 }
             }
 
             Minecraft mc = Minecraft.getInstance();
             Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-            ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
-                    ? ClientTimestampCache.getInstance(serverDir) : null;
+            ClientTimestampCache tsCache =
+                    serverDir != null && serverDir.toFile().exists()
+                            ? ClientTimestampCache.getInstance(serverDir)
+                            : null;
 
             cleanStaleParts();
 
@@ -336,20 +345,21 @@ public class MapPacketHandler {
                 }
 
                 if (serverDir == null) {
-                    LOGGER.error("Unable to resolve server directory, skipping region ({}, {})",
-                            assembled.regionX, assembled.regionZ);
+                    LOGGER.error(
+                            "Unable to resolve server directory, skipping region ({}, {})",
+                            assembled.regionX,
+                            assembled.regionZ);
                     syncFailed++;
                     continue;
                 }
 
-                XaeroMapDataHandler.RegionCoord coord = new XaeroMapDataHandler.RegionCoord(
-                    assembled.regionX, assembled.regionZ, assembled.caveLayer);
+                XaeroMapDataHandler.RegionCoord coord =
+                        new XaeroMapDataHandler.RegionCoord(assembled.regionX, assembled.regionZ, assembled.caveLayer);
                 updatedRegionCoords.add(coord);
 
-                boolean syncingCaveDimension = DimensionPathMapping.getInstance().isNether(assembled.dimension);
-                boolean shouldProcess = syncingCaveDimension
-                    ? !assembled.isSurfaceLayer()
-                    : assembled.isSurfaceLayer();
+                boolean syncingCaveDimension =
+                        DimensionPathMapping.getInstance().isNether(assembled.dimension);
+                boolean shouldProcess = syncingCaveDimension ? !assembled.isSurfaceLayer() : assembled.isSurfaceLayer();
 
                 syncPendingWrites.incrementAndGet();
                 final int gen = generationAtEnqueue;
@@ -364,12 +374,14 @@ public class MapPacketHandler {
                             }
 
                             if (writeResult == null) {
-                                LOGGER.error("Region ({}, {}) write failed, skipping load ({} bytes)",
-                                        assembled.regionX, assembled.regionZ, assembled.data.length);
+                                LOGGER.error(
+                                        "Region ({}, {}) write failed, skipping load ({} bytes)",
+                                        assembled.regionX,
+                                        assembled.regionZ,
+                                        assembled.data.length);
                                 syncFailed++;
                                 if (batchTsCache != null) {
-                                    batchTsCache.remove(
-                                            XaeroMapDataHandler.buildRelativePathForCache(assembled));
+                                    batchTsCache.remove(XaeroMapDataHandler.buildRelativePathForCache(assembled));
                                 }
                             } else if (processRegion && !session.reflectionFailed()) {
                                 triggerSingleRegionLoad(coord);
@@ -421,8 +433,8 @@ public class MapPacketHandler {
 
     private static void completeSync() {
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-        ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
-                ? ClientTimestampCache.getInstance(serverDir) : null;
+        ClientTimestampCache tsCache =
+                serverDir != null && serverDir.toFile().exists() ? ClientTimestampCache.getInstance(serverDir) : null;
 
         int totalReceived = updatedRegionCoords.size();
         LOGGER.info("Sync complete: {} regions processed", totalReceived);
@@ -430,14 +442,19 @@ public class MapPacketHandler {
         if (Minecraft.getInstance().player != null) {
             if (totalReceived > 0) {
                 if (syncFailed > 0) {
-                    Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"), false);
+                    Minecraft.getInstance()
+                            .player
+                            .displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"), false);
                 }
                 long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
-                Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.success("mapsyncer.sync.completed", totalReceived, elapsed), false);
+                Minecraft.getInstance()
+                        .player
+                        .displayClientMessage(
+                                ChatUtils.success("mapsyncer.sync.completed", totalReceived, elapsed), false);
             } else {
-                Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.desc("mapsyncer.command.no_regions"), false);
+                Minecraft.getInstance()
+                        .player
+                        .displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
             }
         }
 
@@ -455,8 +472,7 @@ public class MapPacketHandler {
 
     private static void finishUpToDate(ClientTimestampCache tsCache) {
         if (Minecraft.getInstance().player != null) {
-            Minecraft.getInstance().player.displayClientMessage(
-                    ChatUtils.desc("mapsyncer.command.no_regions"), false);
+            Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
         }
         if (tsCache != null) {
             ClientSyncWriteQueue.saveTimestampCacheAsync(tsCache);
@@ -492,14 +508,17 @@ public class MapPacketHandler {
     private static void triggerSingleRegionLoad(XaeroMapDataHandler.RegionCoord coord) {
         try {
             if (!XaeroReflectionHelper.isInitialized()) {
-                LOGGER.warn("Reflection cache not initialized, cannot load region ({}, {}) layer={}",
-                        coord.x(), coord.z(), coord.caveLayer());
+                LOGGER.warn(
+                        "Reflection cache not initialized, cannot load region ({}, {}) layer={}",
+                        coord.x(),
+                        coord.z(),
+                        coord.caveLayer());
                 return;
             }
 
             if (loadedRegions.contains(coord)) {
-                LOGGER.debug("Region ({}, {}) layer={} already loaded, skipping",
-                        coord.x(), coord.z(), coord.caveLayer());
+                LOGGER.debug(
+                        "Region ({}, {}) layer={} already loaded, skipping", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 
@@ -510,7 +529,8 @@ public class MapPacketHandler {
             }
 
             if (!XaeroReflectionHelper.prepareRegionLoad(mapRegion)) {
-                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", coord.x(), coord.z(), coord.caveLayer());
+                LOGGER.warn(
+                        "Region ({}, {}) layer={} load preparation failed", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 
@@ -526,8 +546,13 @@ public class MapPacketHandler {
 
             loadedRegions.add(coord);
         } catch (Exception e) {
-            LOGGER.error("Failed to load region ({}, {}) layer={}: {}",
-                    coord.x(), coord.z(), coord.caveLayer(), e.getMessage(), e);
+            LOGGER.error(
+                    "Failed to load region ({}, {}) layer={}: {}",
+                    coord.x(),
+                    coord.z(),
+                    coord.caveLayer(),
+                    e.getMessage(),
+                    e);
         }
     }
 
@@ -560,8 +585,11 @@ public class MapPacketHandler {
 
         if (now - entry.firstArrivedMs() > PART_STALE_TIMEOUT_MS) {
             partBuffer.remove(key);
-            LOGGER.warn("Chunk part assembly timed out for {} ({}ms), discarding {} received parts",
-                key, now - entry.firstArrivedMs(), countNonNull(parts));
+            LOGGER.warn(
+                    "Chunk part assembly timed out for {} ({}ms), discarding {} received parts",
+                    key,
+                    now - entry.firstArrivedMs(),
+                    countNonNull(parts));
             return null;
         }
 
@@ -583,8 +611,8 @@ public class MapPacketHandler {
         }
 
         ChunkMapData first = parts[0];
-        return new ChunkMapData(first.regionX, first.regionZ, first.dimension,
-                assembled, first.timestampSeconds, first.caveLayer);
+        return new ChunkMapData(
+                first.regionX, first.regionZ, first.dimension, assembled, first.timestampSeconds, first.caveLayer);
     }
 
     private static int countNonNull(ChunkMapData[] parts) {
@@ -601,8 +629,10 @@ public class MapPacketHandler {
             var e = it.next();
             if (now - e.getValue().firstArrivedMs() > PART_STALE_TIMEOUT_MS) {
                 it.remove();
-                LOGGER.warn("Cleaned stale part buffer for {} ({}ms overdue)",
-                    e.getKey(), now - e.getValue().firstArrivedMs());
+                LOGGER.warn(
+                        "Cleaned stale part buffer for {} ({}ms overdue)",
+                        e.getKey(),
+                        now - e.getValue().firstArrivedMs());
             }
         }
     }

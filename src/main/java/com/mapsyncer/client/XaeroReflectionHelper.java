@@ -1,10 +1,9 @@
 package com.mapsyncer.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class XaeroReflectionHelper {
 
@@ -59,7 +58,8 @@ public final class XaeroReflectionHelper {
             getCurrentSessionMethod = worldMapSessionClass.getMethod("getCurrentSession");
             getMapProcessorMethod = worldMapSessionClass.getMethod("getMapProcessor");
             getMapSaveLoadMethod = mapProcessorClass.getMethod("getMapSaveLoad");
-            getLeafMapRegionMethod = mapProcessorClass.getMethod("getLeafMapRegion", int.class, int.class, int.class, boolean.class);
+            getLeafMapRegionMethod =
+                    mapProcessorClass.getMethod("getLeafMapRegion", int.class, int.class, int.class, boolean.class);
             requestLoadMethod = mapSaveLoadClass.getMethod("requestLoad", mapRegionClass, String.class, boolean.class);
             cancelRefreshMethod = mapRegionClass.getMethod("cancelRefresh", mapProcessorClass);
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
@@ -160,8 +160,10 @@ public final class XaeroReflectionHelper {
 
     public static boolean setRegionDetectionComplete(boolean value) {
         if (!initialized || setRegionDetectionCompleteMethod == null) {
-            LOGGER.warn("setRegionDetectionComplete 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
-                initialized, setRegionDetectionCompleteMethod != null);
+            LOGGER.warn(
+                    "setRegionDetectionComplete 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
+                    initialized,
+                    setRegionDetectionCompleteMethod != null);
             return false;
         }
 
@@ -182,8 +184,8 @@ public final class XaeroReflectionHelper {
 
     public static boolean requestLoad(Object mapRegion, String reason, boolean prioritize) {
         if (!initialized || requestLoadMethod == null) {
-            LOGGER.warn("requestLoad 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
-                initialized, requestLoadMethod != null);
+            LOGGER.warn(
+                    "requestLoad 失败：反射未初始化或方法缓存为空 (initialized={}, method={})", initialized, requestLoadMethod != null);
             return false;
         }
 
@@ -204,8 +206,10 @@ public final class XaeroReflectionHelper {
 
     public static boolean cancelRefresh(Object mapRegion) {
         if (!initialized || cancelRefreshMethod == null) {
-            LOGGER.warn("cancelRefresh 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
-                initialized, cancelRefreshMethod != null);
+            LOGGER.warn(
+                    "cancelRefresh 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
+                    initialized,
+                    cancelRefreshMethod != null);
             return false;
         }
 
@@ -226,8 +230,8 @@ public final class XaeroReflectionHelper {
 
     public static boolean setLoadState(Object mapRegion, byte state) {
         if (!initialized || loadStateField == null) {
-            LOGGER.warn("setLoadState 失败：反射未初始化或字段缓存为空 (initialized={}, field={})",
-                initialized, loadStateField != null);
+            LOGGER.warn(
+                    "setLoadState 失败：反射未初始化或字段缓存为空 (initialized={}, field={})", initialized, loadStateField != null);
             return false;
         }
 
@@ -243,8 +247,10 @@ public final class XaeroReflectionHelper {
 
     public static boolean setShouldCache(Object mapRegion, boolean value) {
         if (!initialized || shouldCacheField == null) {
-            LOGGER.warn("setShouldCache 失败：反射未初始化或字段缓存为空 (initialized={}, field={})",
-                initialized, shouldCacheField != null);
+            LOGGER.warn(
+                    "setShouldCache 失败：反射未初始化或字段缓存为空 (initialized={}, field={})",
+                    initialized,
+                    shouldCacheField != null);
             return false;
         }
 
@@ -260,8 +266,10 @@ public final class XaeroReflectionHelper {
 
     public static boolean setHasHadTerrain(Object mapRegion) {
         if (!initialized || setHasHadTerrainMethod == null) {
-            LOGGER.warn("setHasHadTerrain 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
-                initialized, setHasHadTerrainMethod != null);
+            LOGGER.warn(
+                    "setHasHadTerrain 失败：反射未初始化或方法缓存为空 (initialized={}, method={})",
+                    initialized,
+                    setHasHadTerrainMethod != null);
             return false;
         }
 
@@ -331,8 +339,7 @@ public final class XaeroReflectionHelper {
             LOGGER.debug("区域加载准备完成");
             return true;
         } else {
-            LOGGER.warn("区域加载准备部分失败: cancelRefresh={}, setShouldCache={}, setHasHadTerrain={}",
-                step1, step2, step3);
+            LOGGER.warn("区域加载准备部分失败: cancelRefresh={}, setShouldCache={}, setHasHadTerrain={}", step1, step2, step3);
             return false;
         }
     }

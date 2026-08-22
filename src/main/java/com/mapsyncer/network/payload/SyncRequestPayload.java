@@ -1,10 +1,9 @@
 package com.mapsyncer.network.payload;
 
 import com.mapsyncer.util.ClientMeta;
-import net.minecraft.network.FriendlyByteBuf;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncRequestPayload {
     private final Map<String, ClientMeta> clientMeta;
@@ -14,12 +13,18 @@ public class SyncRequestPayload {
     private final String targetDimension;
     private final boolean silent;
 
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
+    public SyncRequestPayload(
+            Map<String, ClientMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
         this(clientMeta, 0, 0, syncAll, targetDimension, silent);
     }
 
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta, int partIndex, int totalParts,
-            boolean syncAll, String targetDimension, boolean silent) {
+    public SyncRequestPayload(
+            Map<String, ClientMeta> clientMeta,
+            int partIndex,
+            int totalParts,
+            boolean syncAll,
+            String targetDimension,
+            boolean silent) {
         this.clientMeta = clientMeta;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
@@ -28,12 +33,29 @@ public class SyncRequestPayload {
         this.silent = silent;
     }
 
-    public Map<String, ClientMeta> clientMeta() { return clientMeta; }
-    public int partIndex() { return partIndex; }
-    public int totalParts() { return totalParts; }
-    public boolean syncAll() { return syncAll; }
-    public String targetDimension() { return targetDimension; }
-    public boolean silent() { return silent; }
+    public Map<String, ClientMeta> clientMeta() {
+        return clientMeta;
+    }
+
+    public int partIndex() {
+        return partIndex;
+    }
+
+    public int totalParts() {
+        return totalParts;
+    }
+
+    public boolean syncAll() {
+        return syncAll;
+    }
+
+    public String targetDimension() {
+        return targetDimension;
+    }
+
+    public boolean silent() {
+        return silent;
+    }
 
     public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
         buf.writeInt(payload.clientMeta().size());

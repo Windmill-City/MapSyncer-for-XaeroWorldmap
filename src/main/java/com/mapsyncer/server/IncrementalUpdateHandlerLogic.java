@@ -2,6 +2,10 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -10,12 +14,10 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-@Mod.EventBusSubscriber(modid = "mapsyncer", value = {Dist.CLIENT, Dist.DEDICATED_SERVER}, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@Mod.EventBusSubscriber(
+        modid = "mapsyncer",
+        value = {Dist.CLIENT, Dist.DEDICATED_SERVER},
+        bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class IncrementalUpdateHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
@@ -38,9 +40,7 @@ public class IncrementalUpdateHandlerLogic {
 
     private volatile boolean emptyModeTriggered = false;
 
-    private IncrementalUpdateHandlerLogic() {
-
-    }
+    private IncrementalUpdateHandlerLogic() {}
 
     public static IncrementalUpdateHandlerLogic getInstance() {
         if (instance == null) {

@@ -1,19 +1,21 @@
 package com.mapsyncer.server;
 
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
 import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
-import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ApiHelper;
+import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.ModLogConfig;
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.List;
+import java.util.function.Consumer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.DimensionArgument;
@@ -24,9 +26,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.function.Consumer;
 
 public class CacheCommandHandler {
 
@@ -40,25 +39,18 @@ public class CacheCommandHandler {
                         .executes(CacheCommandHandler::generateAll)
                         .then(Commands.argument("dimension", DimensionArgument.dimension())
                                 .executes(CacheCommandHandler::generateDimension)
-                                .then(Commands.literal("--force")
-                                        .executes(CacheCommandHandler::generateDimensionForce))
+                                .then(Commands.literal("--force").executes(CacheCommandHandler::generateDimensionForce))
                                 .then(Commands.argument("x", IntegerArgumentType.integer())
                                         .then(Commands.argument("z", IntegerArgumentType.integer())
                                                 .executes(CacheCommandHandler::generateSingleRegion)))))
-                .then(Commands.literal("stop")
-                        .executes(CacheCommandHandler::stopConversion))
-                .then(Commands.literal("status")
-                        .executes(CacheCommandHandler::showStatus))
+                .then(Commands.literal("stop").executes(CacheCommandHandler::stopConversion))
+                .then(Commands.literal("status").executes(CacheCommandHandler::showStatus))
                 .then(Commands.literal("incremental")
                         .executes(CacheCommandHandler::showIncrementalMode)
-                        .then(Commands.literal("off")
-                                .executes(CacheCommandHandler::setIncrementalOff))
-                        .then(Commands.literal("onempty")
-                                .executes(CacheCommandHandler::setIncrementalOnEmpty)))
-                .then(Commands.literal("reloadconfig")
-                        .executes(CacheCommandHandler::reloadConfig))
-                .then(Commands.literal("help")
-                        .executes(ctx -> showHelp(ctx, prefix))));
+                        .then(Commands.literal("off").executes(CacheCommandHandler::setIncrementalOff))
+                        .then(Commands.literal("onempty").executes(CacheCommandHandler::setIncrementalOnEmpty)))
+                .then(Commands.literal("reloadconfig").executes(CacheCommandHandler::reloadConfig))
+                .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
     }
 
     private static int showHelp(CommandContext<CommandSourceStack> ctx, String prefix) {
@@ -73,11 +65,9 @@ public class CacheCommandHandler {
 
     private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
         if (reloadConfig(ctx.getSource().getServer())) {
-            ctx.getSource().sendSuccess(
-                    () -> ChatUtils.success("mapsyncer.command.config_reloaded"), false);
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.config_reloaded"), false);
         } else {
-            ctx.getSource().sendFailure(
-                    ChatUtils.error("mapsyncer.command.config_reload_failed"));
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.config_reload_failed"));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -86,11 +76,15 @@ public class CacheCommandHandler {
         MinecraftServer server = ctx.getSource().getServer();
         if (!generateAll(server, () -> {
             String dimList = String.join(", ", getCompletedDimensions());
-            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.full_complete",
-                    getProcessedCount(),
-                    getTotalCount(),
-                    getCompletedDimensions().size(),
-                    dimList), false);
+            ctx.getSource()
+                    .sendSuccess(
+                            () -> ChatUtils.success(
+                                    "mapsyncer.generate.full_complete",
+                                    getProcessedCount(),
+                                    getTotalCount(),
+                                    getCompletedDimensions().size(),
+                                    dimList),
+                            false);
         })) {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
             return 0;
@@ -106,10 +100,14 @@ public class CacheCommandHandler {
         String friendlyName = getFriendlyDimensionName(dimension);
 
         if (!generateDimension(ctx.getSource().getServer(), dimensionId, () -> {
-            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.dim_complete",
-                    getProcessedCount(),
-                    getTotalCount(),
-                    getUpdatedCount()), false);
+            ctx.getSource()
+                    .sendSuccess(
+                            () -> ChatUtils.success(
+                                    "mapsyncer.generate.dim_complete",
+                                    getProcessedCount(),
+                                    getTotalCount(),
+                                    getUpdatedCount()),
+                            false);
         })) {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
             return 0;
@@ -125,10 +123,14 @@ public class CacheCommandHandler {
         String friendlyName = getFriendlyDimensionName(dimension);
 
         if (!generateDimensionForce(ctx.getSource().getServer(), dimensionId, () -> {
-            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.force_complete",
-                    getProcessedCount(),
-                    getTotalCount(),
-                    getUpdatedCount()), false);
+            ctx.getSource()
+                    .sendSuccess(
+                            () -> ChatUtils.success(
+                                    "mapsyncer.generate.force_complete",
+                                    getProcessedCount(),
+                                    getTotalCount(),
+                                    getUpdatedCount()),
+                            false);
         })) {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
             return 0;
@@ -162,18 +164,17 @@ public class CacheCommandHandler {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
             return 0;
         }
-        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.command.generating_region", x, z, friendlyName), false);
+        ctx.getSource()
+                .sendSuccess(() -> ChatUtils.message("mapsyncer.command.generating_region", x, z, friendlyName), false);
 
         return Command.SINGLE_SUCCESS;
     }
 
     private static int stopConversion(CommandContext<CommandSourceStack> ctx) {
         if (ConversionOrchestrator.requestCancel()) {
-            ctx.getSource().sendSuccess(
-                    () -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
         } else {
-            ctx.getSource().sendFailure(
-                    ChatUtils.error("mapsyncer.command.conversion_not_running"));
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_not_running"));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -185,19 +186,29 @@ public class CacheCommandHandler {
         List<DimensionCacheStats> cacheStats = getCacheStats();
         if (!cacheStats.isEmpty()) {
             int totalDims = cacheStats.size();
-            int totalRegions = cacheStats.stream().mapToInt(DimensionCacheStats::regionCount).sum();
-            long totalSize = cacheStats.stream().mapToLong(DimensionCacheStats::sizeBytes).sum();
+            int totalRegions = cacheStats.stream()
+                    .mapToInt(DimensionCacheStats::regionCount)
+                    .sum();
+            long totalSize = cacheStats.stream()
+                    .mapToLong(DimensionCacheStats::sizeBytes)
+                    .sum();
 
             StringBuilder dims = new StringBuilder();
             for (DimensionCacheStats stat : cacheStats) {
                 if (dims.length() > 0) dims.append("\n");
-                dims.append(String.format("  %s: %d regions, %.2f MB",
-                        stat.dimension(), stat.regionCount(), stat.sizeMB()));
+                dims.append(String.format(
+                        "  %s: %d regions, %.2f MB", stat.dimension(), stat.regionCount(), stat.sizeMB()));
             }
 
-            ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.status.cache_detail",
-                    totalDims, totalRegions, String.format("%.2f", totalSize / (1024.0 * 1024.0)),
-                    dims.toString()), false);
+            ctx.getSource()
+                    .sendSuccess(
+                            () -> ChatUtils.message(
+                                    "mapsyncer.status.cache_detail",
+                                    totalDims,
+                                    totalRegions,
+                                    String.format("%.2f", totalSize / (1024.0 * 1024.0)),
+                                    dims.toString()),
+                            false);
         }
 
         return Command.SINGLE_SUCCESS;
@@ -239,13 +250,13 @@ public class CacheCommandHandler {
 
     public static void showIncrementalMode(Consumer<net.minecraft.network.chat.Component> sender) {
         sender.accept(incrementalStatusMessage());
-        sender.accept(ChatUtils.desc(
-                "mapsyncer.command.incremental_status_hint", serverCommandPrefix()));
+        sender.accept(ChatUtils.desc("mapsyncer.command.incremental_status_hint", serverCommandPrefix()));
     }
 
     public static MutableComponent generationStatusMessage() {
         if (ConversionOrchestrator.isRunning()) {
-            return ChatUtils.message("mapsyncer.generate.in_progress",
+            return ChatUtils.message(
+                    "mapsyncer.generate.in_progress",
                     ConversionOrchestrator.getProcessedCount(),
                     ConversionOrchestrator.getTotalCount(),
                     ConversionOrchestrator.getStatus());
@@ -269,11 +280,13 @@ public class CacheCommandHandler {
         }
 
         server.saveEverything(false, true, true);
-        Thread worker = new Thread(() -> {
-            if (ConversionOrchestrator.generateAll(server) && onSuccess != null) {
-                onSuccess.run();
-            }
-        }, "xaero-map-generator");
+        Thread worker = new Thread(
+                () -> {
+                    if (ConversionOrchestrator.generateAll(server) && onSuccess != null) {
+                        onSuccess.run();
+                    }
+                },
+                "xaero-map-generator");
         worker.start();
         return true;
     }
@@ -284,11 +297,13 @@ public class CacheCommandHandler {
             return false;
         }
         server.saveEverything(false, true, true);
-        Thread worker = new Thread(() -> {
-            if (ConversionOrchestrator.generateDimension(server, dimensionId) && onSuccess != null) {
-                onSuccess.run();
-            }
-        }, "xaero-map-generator");
+        Thread worker = new Thread(
+                () -> {
+                    if (ConversionOrchestrator.generateDimension(server, dimensionId) && onSuccess != null) {
+                        onSuccess.run();
+                    }
+                },
+                "xaero-map-generator");
         worker.start();
         return true;
     }
@@ -299,11 +314,13 @@ public class CacheCommandHandler {
             return false;
         }
         server.saveEverything(false, true, true);
-        Thread worker = new Thread(() -> {
-            if (ConversionOrchestrator.generateDimensionForce(server, dimensionId) && onSuccess != null) {
-                onSuccess.run();
-            }
-        }, "xaero-map-generator");
+        Thread worker = new Thread(
+                () -> {
+                    if (ConversionOrchestrator.generateDimensionForce(server, dimensionId) && onSuccess != null) {
+                        onSuccess.run();
+                    }
+                },
+                "xaero-map-generator");
         worker.start();
         return true;
     }
@@ -312,8 +329,12 @@ public class CacheCommandHandler {
         return ConversionOrchestrator.checkMcaFileExists(server, dimension, x, z) != null;
     }
 
-    public static boolean generateSingleRegion(MinecraftServer server, ResourceKey<Level> dimension, int x, int z,
-                                            Consumer<SingleRegionResult> resultHandler) {
+    public static boolean generateSingleRegion(
+            MinecraftServer server,
+            ResourceKey<Level> dimension,
+            int x,
+            int z,
+            Consumer<SingleRegionResult> resultHandler) {
         if (ConversionOrchestrator.isRunning()) {
             LOGGER.warn("Conversion already in progress, rejecting generateSingleRegion command");
             resultHandler.accept(SingleRegionResult.ALREADY_RUNNING);
@@ -321,12 +342,14 @@ public class CacheCommandHandler {
         }
 
         server.saveEverything(false, true, true);
-        Thread worker = new Thread(() -> {
-            SingleRegionResult result = ConversionOrchestrator.generateSingleRegion(server, dimension, x, z);
-            if (resultHandler != null) {
-                resultHandler.accept(result);
-            }
-        }, "xaero-map-generator");
+        Thread worker = new Thread(
+                () -> {
+                    SingleRegionResult result = ConversionOrchestrator.generateSingleRegion(server, dimension, x, z);
+                    if (resultHandler != null) {
+                        resultHandler.accept(result);
+                    }
+                },
+                "xaero-map-generator");
         worker.start();
         return true;
     }

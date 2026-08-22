@@ -3,13 +3,6 @@ package com.mapsyncer.server;
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,6 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RegionScanner {
 
@@ -25,17 +24,18 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record RegionCoords(int x, int z) {
-    }
+    public record RegionCoords(int x, int z) {}
 
     public record RegionFileEntry(RegionCoords coords, Path path, long lastModifiedMillis, long sizeBytes) {}
 
-    public record RegionScanResult(List<RegionCoords> regions, int skippedEmptyCount, List<RegionFileEntry> fileEntries) {
-    }
+    public record RegionScanResult(
+            List<RegionCoords> regions, int skippedEmptyCount, List<RegionFileEntry> fileEntries) {}
 
-    public record DimensionRegions(net.minecraft.resources.ResourceKey<Level> dimension, List<RegionCoords> regions,
-                                   int skippedEmptyCount, List<RegionFileEntry> fileEntries) {
-    }
+    public record DimensionRegions(
+            net.minecraft.resources.ResourceKey<Level> dimension,
+            List<RegionCoords> regions,
+            int skippedEmptyCount,
+            List<RegionFileEntry> fileEntries) {}
 
     public static List<DimensionRegions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
@@ -50,7 +50,8 @@ public class RegionScanner {
         List<DimensionRegions> result = new ArrayList<>();
         for (DimensionNames dn : dimNames) {
             RegionScanResult scanResult = scanRegionDir(server.getWorldPath(LevelResource.ROOT), dn.key());
-            result.add(new DimensionRegions(dn.key(), scanResult.regions(), scanResult.skippedEmptyCount(), scanResult.fileEntries()));
+            result.add(new DimensionRegions(
+                    dn.key(), scanResult.regions(), scanResult.skippedEmptyCount(), scanResult.fileEntries()));
         }
         return result;
     }
@@ -83,7 +84,8 @@ public class RegionScanner {
         }
     }
 
-    private static RegionScanResult scanRegionDir(Path worldRoot, net.minecraft.resources.ResourceKey<Level> dimensionKey) {
+    private static RegionScanResult scanRegionDir(
+            Path worldRoot, net.minecraft.resources.ResourceKey<Level> dimensionKey) {
         DimensionPathMapping mapping = DimensionPathMapping.getInstance();
         String dimId = ApiHelper.getDimId(dimensionKey);
 

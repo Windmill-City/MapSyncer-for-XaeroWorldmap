@@ -1,5 +1,6 @@
 plugins {
     id 'net.minecraftforge.gradle' version '[6.0.24,6.2)'
+    id 'com.diffplug.spotless' version '7.0.2'
     id 'maven-publish'
 }
 
@@ -56,6 +57,12 @@ processResources {
     filesMatching("META-INF/mods.toml") {
         expand "version": project.version,
                 "minecraft_range_forge": g1_minecraft_range_forge
+    }
+}
+
+spotless {
+    java {
+        palantirJavaFormat('2.50.0')
     }
 }
 

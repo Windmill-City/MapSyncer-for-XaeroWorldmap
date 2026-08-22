@@ -1,9 +1,9 @@
 package com.mapsyncer.mca.convert.biome;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
+
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
 
 public final class BiomeQuartResolver {
 
@@ -17,8 +17,8 @@ public final class BiomeQuartResolver {
         return resolveAtY(chunk, lx, absoluteY, lz, false);
     }
 
-    public static String resolveAtY(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz,
-                                    boolean smoothBoundary) {
+    public static String resolveAtY(
+            ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         String biome = resolveBiomeAtAbsoluteY(chunk, lx, absoluteY, lz, smoothBoundary);
         if (isValidBiome(biome)) {
             return biome;
@@ -53,8 +53,8 @@ public final class BiomeQuartResolver {
         return DEFAULT_BIOME;
     }
 
-    public static String resolve(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz,
-                                   boolean smoothBoundary) {
+    public static String resolve(
+            ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         String biome = resolveBiomeAtAbsoluteY(chunk, lx, absoluteY, lz, smoothBoundary);
         if (isValidBiome(biome)) {
             return biome;
@@ -98,9 +98,8 @@ public final class BiomeQuartResolver {
         return DEFAULT_BIOME;
     }
 
-    private static String resolveBiomeAtAbsoluteY(ChunkDataParser.ChunkInfo chunk,
-                                                   int lx, int absoluteY, int lz,
-                                                   boolean smoothBoundary) {
+    private static String resolveBiomeAtAbsoluteY(
+            ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         if (!smoothBoundary && chunk.biomeGrid() != null) {
             String gridBiome = chunk.biomeGrid().lookup(lx, absoluteY, lz);
             if (isValidBiome(gridBiome)) {

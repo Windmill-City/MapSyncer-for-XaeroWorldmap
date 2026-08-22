@@ -1,13 +1,12 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.util.XaeroPathResolver;
+import java.nio.file.Path;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.file.Path;
 
 public class XaeroMapIntegrator {
 

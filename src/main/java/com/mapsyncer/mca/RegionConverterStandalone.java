@@ -1,14 +1,12 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.convert.RegionConversionPipeline;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RegionConverterStandalone {
 
@@ -34,13 +32,14 @@ public class RegionConverterStandalone {
     }
 
     public static List<LayerConvertedRegion> convertRegionMulti(
-            Path mcaPath, int regionX, int regionZ,
+            Path mcaPath,
+            int regionX,
+            int regionZ,
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
             BlockPropertyLookup blockLookup) {
         try {
-            return RegionConversionPipeline.convertMulti(
-                mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);
+            return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);
         } catch (IOException e) {
             LOGGER.warn("Failed to convert region ({}, {}) multi-pass", regionX, regionZ, e);
             return List.of();

@@ -5,7 +5,6 @@ import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
-
 import java.util.List;
 
 public final class SectionLightAccess {
@@ -24,9 +23,13 @@ public final class SectionLightAccess {
         return null;
     }
 
-    public static byte getBlockLightCrossSection(ChunkDataParser.ChunkInfo chunk,
-                                                  ChunkSectionParser.SectionData currentSection,
-                                                  int lx, int ly, int lz, int worldY) {
+    public static byte getBlockLightCrossSection(
+            ChunkDataParser.ChunkInfo chunk,
+            ChunkSectionParser.SectionData currentSection,
+            int lx,
+            int ly,
+            int lz,
+            int worldY) {
         int sectionY = worldY >> 4;
         if (sectionY == currentSection.sectionY()) {
             int localY = worldY - (sectionY * 16);
@@ -42,14 +45,18 @@ public final class SectionLightAccess {
         return 0;
     }
 
-    public static byte calculateSurfaceLight(ChunkDataParser.ChunkInfo chunk,
-                                             ChunkSectionParser.SectionData currentSection,
-                                             int lx, int ly, int lz, int worldY,
-                                             int heightMapValue,
-                                             List<OverlayEntry> overlayList,
-                                             LightMode lightMode,
-                                             boolean worldHasSkylight,
-                                             BlockPropertyLookup blockLookup) {
+    public static byte calculateSurfaceLight(
+            ChunkDataParser.ChunkInfo chunk,
+            ChunkSectionParser.SectionData currentSection,
+            int lx,
+            int ly,
+            int lz,
+            int worldY,
+            int heightMapValue,
+            List<OverlayEntry> overlayList,
+            LightMode lightMode,
+            boolean worldHasSkylight,
+            BlockPropertyLookup blockLookup) {
         byte blockLight = getBlockLightCrossSection(chunk, currentSection, lx, ly, lz, worldY);
         byte skyLight = 0;
         ChunkSectionParser.SectionData stateSection = null;
@@ -89,10 +96,10 @@ public final class SectionLightAccess {
         if (stateLocalY < 0 || stateLocalY > 15) {
             stateLocalY = ly;
         }
-        boolean isGlowing = blockLookup.isGlowing(
-            ChunkSectionParser.getBlockStateAt(stateSection, lx, stateLocalY, lz).name());
+        boolean isGlowing = blockLookup.isGlowing(ChunkSectionParser.getBlockStateAt(stateSection, lx, stateLocalY, lz)
+                .name());
 
         return lightMode.calculateEffectiveLight(
-            blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
+                blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
     }
 }

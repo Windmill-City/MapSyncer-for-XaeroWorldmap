@@ -1,17 +1,15 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.zip.CheckedOutputStream;
 import java.util.zip.CRC32;
+import java.util.zip.CheckedOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,18 +24,17 @@ public class XaeroWriter {
         long cutoff = System.currentTimeMillis() - TEMP_FILE_MAX_AGE_MS;
         int[] count = {0};
         try (var stream = Files.walk(rootDir)) {
-            stream.filter(p -> p.getFileName().toString().endsWith(".zip.temp"))
-                  .forEach(p -> {
-                      try {
-                          if (Files.getLastModifiedTime(p).toMillis() < cutoff) {
-                              Files.deleteIfExists(p);
-                              count[0]++;
-                              LOGGER.debug("Cleaned stale temp file: {}", p);
-                          }
-                      } catch (IOException ignored) {
+            stream.filter(p -> p.getFileName().toString().endsWith(".zip.temp")).forEach(p -> {
+                try {
+                    if (Files.getLastModifiedTime(p).toMillis() < cutoff) {
+                        Files.deleteIfExists(p);
+                        count[0]++;
+                        LOGGER.debug("Cleaned stale temp file: {}", p);
+                    }
+                } catch (IOException ignored) {
 
-                      }
-                  });
+                }
+            });
         } catch (IOException e) {
             LOGGER.warn("Failed to scan for stale temp files in {}", rootDir, e);
         }
@@ -58,8 +55,8 @@ public class XaeroWriter {
 
         CRC32 crc32 = new CRC32();
         try (OutputStream fileOut = Files.newOutputStream(tempFile);
-             CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32);
-             ZipOutputStream zos = new ZipOutputStream(checkedOut)) {
+                CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32);
+                ZipOutputStream zos = new ZipOutputStream(checkedOut)) {
             ZipEntry entry = new ZipEntry("region.xaero");
             zos.putNextEntry(entry);
             zos.write(region.xaeroData());

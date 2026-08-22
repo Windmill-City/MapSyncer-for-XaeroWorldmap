@@ -8,17 +8,14 @@ import java.util.Map;
 
 public class ChunkSectionParser {
 
-    public record BlockState(
-        String name,
-        Map<String, String> properties
-    ) {
+    public record BlockState(String name, Map<String, String> properties) {
 
         public static final Map<String, String> EMPTY_PROPERTIES = Map.of();
 
         public boolean isAir() {
-            return name.equals("minecraft:air") ||
-                   name.equals("minecraft:cave_air") ||
-                   name.equals("minecraft:void_air");
+            return name.equals("minecraft:air")
+                    || name.equals("minecraft:cave_air")
+                    || name.equals("minecraft:void_air");
         }
 
         public boolean isWater() {
@@ -34,26 +31,22 @@ public class ChunkSectionParser {
         }
 
         public boolean isWaterlogged() {
-            return properties.containsKey("waterlogged") &&
-                   "true".equals(properties.get("waterlogged"));
+            return properties.containsKey("waterlogged") && "true".equals(properties.get("waterlogged"));
         }
     }
 
     public record SectionData(
-        int sectionY,
-        List<BlockState> blockPalette,
-        long[] blockData,
-        int blockBitsPerEntry,
-        List<String> biomePalette,
-        long[] biomeData,
-        int biomeBitsPerEntry,
-        byte[] blockLight,
-        byte[] skyLight,
-        int blockUVal,
-        long blockMask
-    ) {
-
-    }
+            int sectionY,
+            List<BlockState> blockPalette,
+            long[] blockData,
+            int blockBitsPerEntry,
+            List<String> biomePalette,
+            long[] biomeData,
+            int biomeBitsPerEntry,
+            byte[] blockLight,
+            byte[] skyLight,
+            int blockUVal,
+            long blockMask) {}
 
     private record BlockData(List<BlockState> palette, long[] data) {}
 
@@ -148,11 +141,17 @@ public class ChunkSectionParser {
         }
 
         return new SectionData(
-            sectionY, blockPalette, blockData, blockBitsPerEntry,
-            biomePalette, biomeData, biomeBitsPerEntry,
-            decodedBlockLight, decodedSkyLight,
-            blockUVal, blockMask
-        );
+                sectionY,
+                blockPalette,
+                blockData,
+                blockBitsPerEntry,
+                biomePalette,
+                biomeData,
+                biomeBitsPerEntry,
+                decodedBlockLight,
+                decodedSkyLight,
+                blockUVal,
+                blockMask);
     }
 
     private static BlockData readBlockStates(NbtStream stream) throws IOException {
@@ -272,9 +271,8 @@ public class ChunkSectionParser {
         }
 
         return new BlockState(
-            name == null ? "" : name,
-            properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties
-        );
+                name == null ? "" : name,
+                properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties);
     }
 
     private static int calculateBitsPerEntry(int paletteSize, long[] data) {

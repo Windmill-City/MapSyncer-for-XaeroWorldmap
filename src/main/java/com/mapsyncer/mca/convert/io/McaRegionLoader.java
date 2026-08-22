@@ -8,14 +8,12 @@ import com.mapsyncer.mca.convert.biome.BiomeFillPass;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class McaRegionLoader {
 
@@ -25,10 +23,14 @@ public final class McaRegionLoader {
 
     public record PassMapData(RegionScanPass pass, MapRegionData data) {}
 
-    public static List<PassMapData> loadMulti(Path mcaPath, int minBuildHeight, int worldTopY,
-                                               boolean worldHasSkylight,
-                                               BlockPropertyLookup blockLookup,
-                                               List<RegionScanPass> passes) throws IOException {
+    public static List<PassMapData> loadMulti(
+            Path mcaPath,
+            int minBuildHeight,
+            int worldTopY,
+            boolean worldHasSkylight,
+            BlockPropertyLookup blockLookup,
+            List<RegionScanPass> passes)
+            throws IOException {
         if (passes.isEmpty()) {
             return List.of();
         }
@@ -51,9 +53,15 @@ public final class McaRegionLoader {
                     for (PassMapData passData : results) {
                         RegionScanPass pass = passData.pass();
                         ChunkColumnScanner.scan(
-                            passData.data(), chunkInfo, minBuildHeight, worldTopY,
-                            pass.lightMode(), pass.caveParams(), worldHasSkylight, blockLookup,
-                            pass.verticalBounds());
+                                passData.data(),
+                                chunkInfo,
+                                minBuildHeight,
+                                worldTopY,
+                                pass.lightMode(),
+                                pass.caveParams(),
+                                worldHasSkylight,
+                                blockLookup,
+                                pass.verticalBounds());
                     }
                 }
             }
@@ -67,8 +75,8 @@ public final class McaRegionLoader {
 
     private static ChunkDataParser.ChunkInfo[][] readAllChunks(McaReader reader, int worldHeightRange)
             throws IOException {
-        ChunkDataParser.ChunkInfo[][] grid =
-            new ChunkDataParser.ChunkInfo[RegionConverterStandalone.CHUNKS_PER_REGION][RegionConverterStandalone.CHUNKS_PER_REGION];
+        ChunkDataParser.ChunkInfo[][] grid = new ChunkDataParser.ChunkInfo[RegionConverterStandalone.CHUNKS_PER_REGION]
+                [RegionConverterStandalone.CHUNKS_PER_REGION];
 
         for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
             for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
@@ -79,8 +87,11 @@ public final class McaRegionLoader {
                             ? null
                             : ChunkDataParser.parseChunk(localX, localZ, nbtData, worldHeightRange);
                 } catch (Throwable t) {
-                    LOGGER.warn("Failed to read chunk ({}, {}) from region file, skipping: {}",
-                            localX, localZ, t.getMessage());
+                    LOGGER.warn(
+                            "Failed to read chunk ({}, {}) from region file, skipping: {}",
+                            localX,
+                            localZ,
+                            t.getMessage());
                     continue;
                 }
                 if (chunkInfo != null) {

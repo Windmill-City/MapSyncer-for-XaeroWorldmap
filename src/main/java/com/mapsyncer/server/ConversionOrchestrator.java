@@ -1,29 +1,18 @@
 package com.mapsyncer.server;
 
-
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
 import com.mapsyncer.mca.DimensionTypeInfo;
-
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverterStandalone.LayerConvertedRegion;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.DimensionRegions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
-import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.ApiHelper;
+import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.XaeroPathResolver;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -32,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -39,8 +29,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConversionOrchestrator {
 
@@ -84,7 +81,10 @@ public class ConversionOrchestrator {
 
     public static void tryInitIntegratedServerCache(MinecraftServer server, Path gameDir) {
         if (!server.isDedicatedServer()) {
-            String worldName = server.getWorldPath(LevelResource.ROOT).getParent().getFileName().toString();
+            String worldName = server.getWorldPath(LevelResource.ROOT)
+                    .getParent()
+                    .getFileName()
+                    .toString();
             setCacheDir(XaeroPathResolver.getWorldMapDir(gameDir).resolve(worldName));
         }
 
@@ -94,7 +94,6 @@ public class ConversionOrchestrator {
     private static McaTimestampCache timestampCache;
 
     public enum SingleRegionResult {
-
         SUCCESS,
 
         REGION_NOT_FOUND,
@@ -105,7 +104,8 @@ public class ConversionOrchestrator {
     }
 
     private static final class NamedThreadFactory implements java.util.concurrent.ThreadFactory {
-        private final java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(0);
+        private final java.util.concurrent.atomic.AtomicInteger counter =
+                new java.util.concurrent.atomic.AtomicInteger(0);
         private final String baseName;
 
         NamedThreadFactory(String baseName) {
@@ -124,9 +124,10 @@ public class ConversionOrchestrator {
     private static ExecutorService getOrCreateExecutor() {
         if (conversionExecutor == null || conversionExecutor.isShutdown()) {
             int maxConcurrent = ModConfig.resolveConcurrentRegions(ModConfig.SERVER.maxConcurrentRegions.get());
-            conversionExecutor = Executors.newFixedThreadPool(maxConcurrent,
-                new NamedThreadFactory("mapsyncer-converter"));
-            LOGGER.info("Created conversion thread pool with {} threads (resolved maxConcurrentRegions)", maxConcurrent);
+            conversionExecutor =
+                    Executors.newFixedThreadPool(maxConcurrent, new NamedThreadFactory("mapsyncer-converter"));
+            LOGGER.info(
+                    "Created conversion thread pool with {} threads (resolved maxConcurrentRegions)", maxConcurrent);
         }
         return conversionExecutor;
     }
@@ -154,15 +155,14 @@ public class ConversionOrchestrator {
 
         try {
             try (var files = Files.walk(dimCacheDir)) {
-                files.sorted((a, b) -> -a.compareTo(b))
-                        .forEach(path -> {
-                            try {
-                                Files.deleteIfExists(path);
-                                LOGGER.debug("Deleted: {}", path);
-                            } catch (IOException e) {
-                                LOGGER.warn("Failed to delete: {}", path);
-                            }
-                        });
+                files.sorted((a, b) -> -a.compareTo(b)).forEach(path -> {
+                    try {
+                        Files.deleteIfExists(path);
+                        LOGGER.debug("Deleted: {}", path);
+                    } catch (IOException e) {
+                        LOGGER.warn("Failed to delete: {}", path);
+                    }
+                });
             }
             ManifestCache.getInstance().invalidate();
             LOGGER.info("Cleared cache directory: {}", dimCacheDir);
@@ -201,7 +201,9 @@ public class ConversionOrchestrator {
 
         List<DimensionRegions> allRegions = RegionScanner.scanAllDimensions(server);
         totalCount = countTotalWork(server, allRegions);
-        int totalSkippedEmpty = allRegions.stream().mapToInt(DimensionRegions::skippedEmptyCount).sum();
+        int totalSkippedEmpty = allRegions.stream()
+                .mapToInt(DimensionRegions::skippedEmptyCount)
+                .sum();
         if (totalCount == 0) {
             LOGGER.info("No regions found to convert");
             isRunning.set(false);
@@ -220,8 +222,11 @@ public class ConversionOrchestrator {
             isRunning.set(false);
             markRunFinished();
             shutdownExecutor();
-            LOGGER.info("Conversion completed: {}/{} regions converted, {} skipped (empty MCA at scan)",
-                    convertedCountAtomic.get(), totalCount, totalSkippedEmpty);
+            LOGGER.info(
+                    "Conversion completed: {}/{} regions converted, {} skipped (empty MCA at scan)",
+                    convertedCountAtomic.get(),
+                    totalCount,
+                    totalSkippedEmpty);
         }
         return true;
     }
@@ -237,16 +242,27 @@ public class ConversionOrchestrator {
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
         ResourceKey<Level> dimKey = parseDimensionId(dimensionId, server);
-        if (dimKey == null) { LOGGER.error("Unknown dimension: {}", dimensionId); isRunning.set(false); return true; }
+        if (dimKey == null) {
+            LOGGER.error("Unknown dimension: {}", dimensionId);
+            isRunning.set(false);
+            return true;
+        }
         ServerLevel level = server.getLevel(dimKey);
-        if (level == null) { LOGGER.error("Level not loaded for dimension: {}", dimensionId); isRunning.set(false); return true; }
+        if (level == null) {
+            LOGGER.error("Level not loaded for dimension: {}", dimensionId);
+            isRunning.set(false);
+            return true;
+        }
 
         RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
         List<RegionCoords> regions = scanResult.regions();
         totalCount = regions.size();
         currentDimension = dimKey;
         try {
-            convertDimension(server, new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()), false);
+            convertDimension(
+                    server,
+                    new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()),
+                    false);
         } finally {
             isRunning.set(false);
             markRunFinished();
@@ -266,9 +282,17 @@ public class ConversionOrchestrator {
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
         ResourceKey<Level> dimKey = parseDimensionId(dimensionId, server);
-        if (dimKey == null) { LOGGER.error("Unknown dimension: {}", dimensionId); isRunning.set(false); return true; }
+        if (dimKey == null) {
+            LOGGER.error("Unknown dimension: {}", dimensionId);
+            isRunning.set(false);
+            return true;
+        }
         ServerLevel level = server.getLevel(dimKey);
-        if (level == null) { LOGGER.error("Level not loaded for dimension: {}", dimensionId); isRunning.set(false); return true; }
+        if (level == null) {
+            LOGGER.error("Level not loaded for dimension: {}", dimensionId);
+            isRunning.set(false);
+            return true;
+        }
 
         String fullDimId = dimKey.location().toString();
         String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
@@ -281,7 +305,10 @@ public class ConversionOrchestrator {
         totalCount = regions.size();
         currentDimension = dimKey;
         try {
-            convertDimension(server, new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()), true);
+            convertDimension(
+                    server,
+                    new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()),
+                    true);
         } finally {
             isRunning.set(false);
             markRunFinished();
@@ -290,7 +317,8 @@ public class ConversionOrchestrator {
         return true;
     }
 
-    public static Path checkMcaFileExists(MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
+    public static Path checkMcaFileExists(
+            MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
         ServerLevel level = server.getLevel(dimension);
         if (level == null) return null;
 
@@ -302,7 +330,8 @@ public class ConversionOrchestrator {
         return Files.exists(mcaPath) ? mcaPath : null;
     }
 
-    public static SingleRegionResult generateSingleRegion(MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
+    public static SingleRegionResult generateSingleRegion(
+            MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.warn("Conversion already in progress");
             return SingleRegionResult.ALREADY_RUNNING;
@@ -311,7 +340,11 @@ public class ConversionOrchestrator {
 
         Path mcaPath = checkMcaFileExists(server, dimension, regionX, regionZ);
         if (mcaPath == null) {
-            LOGGER.warn("MCA file not found for region ({}, {}) in dimension {}", regionX, regionZ, dimension.location().getPath());
+            LOGGER.warn(
+                    "MCA file not found for region ({}, {}) in dimension {}",
+                    regionX,
+                    regionZ,
+                    dimension.location().getPath());
             isRunning.set(false);
             return SingleRegionResult.REGION_NOT_FOUND;
         }
@@ -320,7 +353,11 @@ public class ConversionOrchestrator {
         processedCount = 0;
         currentDimension = dimension;
         ServerLevel level = server.getLevel(dimension);
-        if (level == null) { LOGGER.error("Level not loaded for dimension: {}", dimension); isRunning.set(false); return SingleRegionResult.CONVERSION_FAILED; }
+        if (level == null) {
+            LOGGER.error("Level not loaded for dimension: {}", dimension);
+            isRunning.set(false);
+            return SingleRegionResult.CONVERSION_FAILED;
+        }
 
         String fullDimId = dimension.location().toString();
         String dimPath = dimension.location().getPath();
@@ -341,9 +378,14 @@ public class ConversionOrchestrator {
         List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
         Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
 
-        LOGGER.info("Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, logicalTop={}, passes={}",
-            dimPath, dimTypeInfo.hasSkylight(), dimTypeInfo.hasCeiling(),
-            dimTypeInfo.minY(), dimTypeInfo.logicalTopY(), passes.size());
+        LOGGER.info(
+                "Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, logicalTop={}, passes={}",
+                dimPath,
+                dimTypeInfo.hasSkylight(),
+                dimTypeInfo.hasCeiling(),
+                dimTypeInfo.minY(),
+                dimTypeInfo.logicalTopY(),
+                passes.size());
 
         SingleRegionResult result = SingleRegionResult.SUCCESS;
         try {
@@ -352,13 +394,13 @@ public class ConversionOrchestrator {
             }
             totalCount = passes.size();
             List<LayerConvertedRegion> converted = RegionConverterStandalone.convertRegionMulti(
-                mcaPath, regionX, regionZ, dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
+                    mcaPath, regionX, regionZ, dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
             int written = 0;
             for (int i = 0; i < passes.size(); i++) {
                 RegionScanPass pass = passes.get(i);
                 LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
-                ConvertedRegion single = layer == null ? null
-                    : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
+                ConvertedRegion single =
+                        layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
                 if (isEmptyConverted(single)) {
                     continue;
                 }
@@ -377,8 +419,7 @@ public class ConversionOrchestrator {
         } catch (IOException e) {
             LOGGER.error("Failed to write region file", e);
             result = SingleRegionResult.CONVERSION_FAILED;
-        }
-        finally {
+        } finally {
             isRunning.set(false);
             markRunFinished();
         }
@@ -387,7 +428,10 @@ public class ConversionOrchestrator {
 
     private static void convertDimension(MinecraftServer server, DimensionRegions dimRegions, boolean force) {
         ServerLevel level = server.getLevel(dimRegions.dimension());
-        if (level == null) { LOGGER.error("Level not loaded"); return; }
+        if (level == null) {
+            LOGGER.error("Level not loaded");
+            return;
+        }
 
         currentDimension = dimRegions.dimension();
         String fullDimId = dimRegions.dimension().location().toString();
@@ -416,21 +460,32 @@ public class ConversionOrchestrator {
             return;
         }
 
-        LOGGER.info("Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, logicalTop={}, passes={}",
-            dimPath, dimTypeInfo.hasSkylight(), dimTypeInfo.hasCeiling(),
-            dimTypeInfo.minY(), dimTypeInfo.logicalTopY(), passes.size());
+        LOGGER.info(
+                "Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, logicalTop={}, passes={}",
+                dimPath,
+                dimTypeInfo.hasSkylight(),
+                dimTypeInfo.hasCeiling(),
+                dimTypeInfo.minY(),
+                dimTypeInfo.logicalTopY(),
+                passes.size());
 
         McaTimestampCache mcaCache = getTimestampCache();
         GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
-        List<RegionCoords> needsUpdate = force ? dimRegions.regions()
-            : (!dimRegions.fileEntries().isEmpty()
-                ? mcaCache.classifyUpdates(dimPath, dimRegions.fileEntries())
-                : mcaCache.scanAndUpdate(dimPath, regionDir));
+        List<RegionCoords> needsUpdate = force
+                ? dimRegions.regions()
+                : (!dimRegions.fileEntries().isEmpty()
+                        ? mcaCache.classifyUpdates(dimPath, dimRegions.fileEntries())
+                        : mcaCache.scanAndUpdate(dimPath, regionDir));
         List<RegionCoords> regions = dimRegions.regions();
 
         totalCount = regions.size() * passes.size();
-        LOGGER.info("Dimension {}: {} total regions, {} need update, {} passes/region (force={})",
-            dimPath, regions.size(), needsUpdate.size(), passes.size(), force);
+        LOGGER.info(
+                "Dimension {}: {} total regions, {} need update, {} passes/region (force={})",
+                dimPath,
+                regions.size(),
+                needsUpdate.size(),
+                passes.size(),
+                force);
 
         ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
         processedCountAtomic.set(0);
@@ -442,16 +497,37 @@ public class ConversionOrchestrator {
         ExecutorService executor = getOrCreateExecutor();
 
         List<java.util.concurrent.Future<?>> futures = submitConversionTasks(
-            executor, needsUpdate, regions, regionDir, baseOutputDir, xaeroDimName, dimPath,
-            dimTypeInfo, passes, mcaCache, genCache,
-            generationTimeSeconds, failedRegions, true);
+                executor,
+                needsUpdate,
+                regions,
+                regionDir,
+                baseOutputDir,
+                xaeroDimName,
+                dimPath,
+                dimTypeInfo,
+                passes,
+                mcaCache,
+                genCache,
+                generationTimeSeconds,
+                failedRegions,
+                true);
         waitForCompletion(futures, "Region conversion");
 
         if (!force) {
             futures = submitNewRegionTasks(
-                executor, regions, new HashSet<>(needsUpdate), regionDir, baseOutputDir, xaeroDimName, dimPath,
-                dimTypeInfo, passes, mcaCache, genCache,
-                generationTimeSeconds, failedRegions);
+                    executor,
+                    regions,
+                    new HashSet<>(needsUpdate),
+                    regionDir,
+                    baseOutputDir,
+                    xaeroDimName,
+                    dimPath,
+                    dimTypeInfo,
+                    passes,
+                    mcaCache,
+                    genCache,
+                    generationTimeSeconds,
+                    failedRegions);
             waitForCompletion(futures, "New region conversion");
         }
 
@@ -464,11 +540,18 @@ public class ConversionOrchestrator {
             }
         }
 
-        LOGGER.info("Dimension {} completed: {} total, {} converted, {} skipped (unchanged), {} skipped (empty MCA at scan), {} skipped (empty content), {} failed",
-            dimPath, regions.size(), convertedCountAtomic.get(), skippedCount.get(),
-            dimRegions.skippedEmptyCount(), skippedEmptyContentCount.get(), failedRegions.size());
+        LOGGER.info(
+                "Dimension {} completed: {} total, {} converted, {} skipped (unchanged), {} skipped (empty MCA at scan), {} skipped (empty content), {} failed",
+                dimPath,
+                regions.size(),
+                convertedCountAtomic.get(),
+                skippedCount.get(),
+                dimRegions.skippedEmptyCount(),
+                skippedEmptyContentCount.get(),
+                failedRegions.size());
 
-        String friendlyName = DimensionPathMapping.getInstance().getFriendlyName(dimRegions.dimension().location().toString());
+        String friendlyName = DimensionPathMapping.getInstance()
+                .getFriendlyName(dimRegions.dimension().location().toString());
         completedDimensions.add(friendlyName);
 
         mcaCache.saveCache();
@@ -492,11 +575,20 @@ public class ConversionOrchestrator {
     }
 
     private static List<java.util.concurrent.Future<?>> submitConversionTasks(
-            ExecutorService executor, List<RegionCoords> coordsToProcess, List<RegionCoords> allRegions,
-            Path regionDir, Path baseOutputDir, String xaeroDimName, String dimPath,
-            DimensionTypeInfo dimTypeInfo, List<RegionScanPass> passes,
-            McaTimestampCache mcaCache, GenerationCache genCache, long generationTimeSeconds,
-            ConcurrentLinkedQueue<RegionCoords> failedRegions, boolean logProgress) {
+            ExecutorService executor,
+            List<RegionCoords> coordsToProcess,
+            List<RegionCoords> allRegions,
+            Path regionDir,
+            Path baseOutputDir,
+            String xaeroDimName,
+            String dimPath,
+            DimensionTypeInfo dimTypeInfo,
+            List<RegionScanPass> passes,
+            McaTimestampCache mcaCache,
+            GenerationCache genCache,
+            long generationTimeSeconds,
+            ConcurrentLinkedQueue<RegionCoords> failedRegions,
+            boolean logProgress) {
 
         List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
         Set<RegionCoords> validRegions = new HashSet<>(allRegions);
@@ -504,11 +596,20 @@ public class ConversionOrchestrator {
         for (RegionCoords coords : coordsToProcess) {
             if (!validRegions.contains(coords)) continue;
 
-            java.util.concurrent.Future<?> future = executor.submit(() ->
-                convertRegionMultiPasses(coords, regionDir, baseOutputDir, xaeroDimName, dimPath,
-                    dimTypeInfo, passes, mcaCache, genCache,
-                    generationTimeSeconds, failedRegions, logProgress, "Converted")
-            );
+            java.util.concurrent.Future<?> future = executor.submit(() -> convertRegionMultiPasses(
+                    coords,
+                    regionDir,
+                    baseOutputDir,
+                    xaeroDimName,
+                    dimPath,
+                    dimTypeInfo,
+                    passes,
+                    mcaCache,
+                    genCache,
+                    generationTimeSeconds,
+                    failedRegions,
+                    logProgress,
+                    "Converted"));
             futures.add(future);
         }
 
@@ -516,10 +617,18 @@ public class ConversionOrchestrator {
     }
 
     private static List<java.util.concurrent.Future<?>> submitNewRegionTasks(
-            ExecutorService executor, List<RegionCoords> allRegions, Set<RegionCoords> processedRegions,
-            Path regionDir, Path baseOutputDir, String xaeroDimName, String dimPath,
-            DimensionTypeInfo dimTypeInfo, List<RegionScanPass> passes,
-            McaTimestampCache mcaCache, GenerationCache genCache, long generationTimeSeconds,
+            ExecutorService executor,
+            List<RegionCoords> allRegions,
+            Set<RegionCoords> processedRegions,
+            Path regionDir,
+            Path baseOutputDir,
+            String xaeroDimName,
+            String dimPath,
+            DimensionTypeInfo dimTypeInfo,
+            List<RegionScanPass> passes,
+            McaTimestampCache mcaCache,
+            GenerationCache genCache,
+            long generationTimeSeconds,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
 
         List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
@@ -542,11 +651,20 @@ public class ConversionOrchestrator {
                 continue;
             }
 
-            java.util.concurrent.Future<?> future = executor.submit(() ->
-                convertRegionMultiPasses(coords, regionDir, baseOutputDir, xaeroDimName, dimPath,
-                    dimTypeInfo, passes, mcaCache, genCache,
-                    generationTimeSeconds, failedRegions, true, "Generated new")
-            );
+            java.util.concurrent.Future<?> future = executor.submit(() -> convertRegionMultiPasses(
+                    coords,
+                    regionDir,
+                    baseOutputDir,
+                    xaeroDimName,
+                    dimPath,
+                    dimTypeInfo,
+                    passes,
+                    mcaCache,
+                    genCache,
+                    generationTimeSeconds,
+                    failedRegions,
+                    true,
+                    "Generated new"));
             futures.add(future);
         }
 
@@ -554,10 +672,19 @@ public class ConversionOrchestrator {
     }
 
     private static void convertRegionMultiPasses(
-            RegionCoords coords, Path regionDir, Path baseOutputDir, String xaeroDimName, String dimPath,
-            DimensionTypeInfo dimTypeInfo, List<RegionScanPass> passes,
-            McaTimestampCache mcaCache, GenerationCache genCache, long generationTimeSeconds,
-            ConcurrentLinkedQueue<RegionCoords> failedRegions, boolean logProgress, String logPrefix) {
+            RegionCoords coords,
+            Path regionDir,
+            Path baseOutputDir,
+            String xaeroDimName,
+            String dimPath,
+            DimensionTypeInfo dimTypeInfo,
+            List<RegionScanPass> passes,
+            McaTimestampCache mcaCache,
+            GenerationCache genCache,
+            long generationTimeSeconds,
+            ConcurrentLinkedQueue<RegionCoords> failedRegions,
+            boolean logProgress,
+            String logPrefix) {
 
         if (isCancelRequested()) {
             LOGGER.debug("Conversion cancelled, skipping region ({}, {})", coords.x(), coords.z());
@@ -569,10 +696,8 @@ public class ConversionOrchestrator {
         if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
             for (RegionScanPass pass : passes) {
                 Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-                String relativePath = ModConfig.relativePath(
-                    xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
-                purgeGeneratedArtifacts(
-                    outputDir, coords.x(), coords.z(), relativePath, genCache);
+                String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
+                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath, genCache);
             }
             ManifestCache.getInstance().invalidate();
             skippedEmptyContentCount.incrementAndGet();
@@ -583,7 +708,7 @@ public class ConversionOrchestrator {
         }
 
         List<LayerConvertedRegion> converted = RegionConverterStandalone.convertRegionMulti(
-            mcaPath, coords.x(), coords.z(), dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
+                mcaPath, coords.x(), coords.z(), dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
 
         if (converted.isEmpty()) {
             failedRegions.add(coords);
@@ -597,15 +722,13 @@ public class ConversionOrchestrator {
             RegionScanPass pass = passes.get(i);
             LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
             Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-            String relativePath = ModConfig.relativePath(
-                xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
+            String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
 
-            ConvertedRegion single = layer == null ? null
-                : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
+            ConvertedRegion single =
+                    layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
 
             if (isEmptyConverted(single)) {
-                purgeGeneratedArtifacts(
-                    outputDir, coords.x(), coords.z(), relativePath, genCache);
+                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath, genCache);
                 anyPurged = true;
                 if (logProgress) {
                     processedCountAtomic.incrementAndGet();
@@ -621,8 +744,14 @@ public class ConversionOrchestrator {
                     int convertedSoFar = convertedCountAtomic.incrementAndGet();
                     processedCountAtomic.incrementAndGet();
                     String layerLabel = pass.isSurfaceLayer() ? "surface" : String.valueOf(pass.caveLayer());
-                    LOGGER.info("{} region ({}, {}) layer={}: {}/{}",
-                        logPrefix, coords.x(), coords.z(), layerLabel, convertedSoFar, totalCount);
+                    LOGGER.info(
+                            "{} region ({}, {}) layer={}: {}/{}",
+                            logPrefix,
+                            coords.x(),
+                            coords.z(),
+                            layerLabel,
+                            convertedSoFar,
+                            totalCount);
                 }
             } catch (IOException e) {
                 LOGGER.error("Failed to write region file for layer {}", pass.caveLayer(), e);
@@ -682,9 +811,9 @@ public class ConversionOrchestrator {
 
             for (ServerLevel level : server.getAllLevels()) {
                 ResourceLocation dimLocation = level.dimension().location();
-                if (dimLocation.equals(location) ||
-                    dimLocation.getPath().equals(id) ||
-                    dimLocation.toString().equals(id)) {
+                if (dimLocation.equals(location)
+                        || dimLocation.getPath().equals(id)
+                        || dimLocation.toString().equals(id)) {
                     return level.dimension();
                 }
             }
@@ -702,8 +831,7 @@ public class ConversionOrchestrator {
             Path regionDir,
             Path baseOutputDir,
             DimensionTypeInfo dimTypeInfo,
-            List<RegionScanPass> passes
-    ) {}
+            List<RegionScanPass> passes) {}
 
     public static List<IncrementalScanSnapshot> buildIncrementalScanSnapshots(MinecraftServer server) {
         List<DimensionRegions> allRegions = RegionScanner.scanAllDimensions(server);
@@ -730,8 +858,8 @@ public class ConversionOrchestrator {
             DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
-            snapshots.add(new IncrementalScanSnapshot(
-                    dimPath, xaeroDimName, regionDir, baseOutputDir, dimTypeInfo, passes));
+            snapshots.add(
+                    new IncrementalScanSnapshot(dimPath, xaeroDimName, regionDir, baseOutputDir, dimTypeInfo, passes));
         }
 
         return snapshots;
@@ -740,7 +868,8 @@ public class ConversionOrchestrator {
     public static void performIncrementalScan(MinecraftServer server) {
         List<IncrementalScanSnapshot> snapshots;
         try {
-            snapshots = server.submit(() -> buildIncrementalScanSnapshots(server)).get(5, TimeUnit.MINUTES);
+            snapshots =
+                    server.submit(() -> buildIncrementalScanSnapshots(server)).get(5, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             LOGGER.warn("Incremental scan snapshot interrupted");
@@ -763,67 +892,83 @@ public class ConversionOrchestrator {
         cancelRequested.set(false);
 
         try {
-        McaTimestampCache mcaCache = getTimestampCache();
-        GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
-        int totalUpdated = 0;
-        totalCount = 0;
-        long generationTimeSeconds = System.currentTimeMillis() / 1000;
-        ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
-        ExecutorService executor = getOrCreateExecutor();
+            McaTimestampCache mcaCache = getTimestampCache();
+            GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
+            int totalUpdated = 0;
+            totalCount = 0;
+            long generationTimeSeconds = System.currentTimeMillis() / 1000;
+            ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
+            ExecutorService executor = getOrCreateExecutor();
 
-        for (IncrementalScanSnapshot snapshot : snapshots) {
-            if (isCancelRequested()) {
-                LOGGER.info("Incremental scan cancelled, skipping remaining dimensions");
-                break;
-            }
-            String dimPath = snapshot.dimPath();
-            Path regionDir = snapshot.regionDir();
-            Path baseOutputDir = snapshot.baseOutputDir();
-            String xaeroDimName = snapshot.xaeroDimName();
-            List<RegionScanPass> passes = snapshot.passes();
-            DimensionTypeInfo dimTypeInfo = snapshot.dimTypeInfo();
-
-            java.util.List<RegionCoords> needsUpdate = mcaCache.scanAndUpdate(dimPath, regionDir);
-
-            if (needsUpdate.isEmpty()) {
-                LOGGER.debug("No updates needed for dimension {}", dimPath);
-                continue;
-            }
-
-            LOGGER.info("Dimension {}: {} regions need incremental update (passes={})",
-                dimPath, needsUpdate.size(), passes.size());
-
-            try {
-                for (RegionScanPass pass : passes) {
-                    Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
+            for (IncrementalScanSnapshot snapshot : snapshots) {
+                if (isCancelRequested()) {
+                    LOGGER.info("Incremental scan cancelled, skipping remaining dimensions");
+                    break;
                 }
-            } catch (IOException e) {
-                LOGGER.error("Failed to create output directories: {}", baseOutputDir, e);
-                continue;
+                String dimPath = snapshot.dimPath();
+                Path regionDir = snapshot.regionDir();
+                Path baseOutputDir = snapshot.baseOutputDir();
+                String xaeroDimName = snapshot.xaeroDimName();
+                List<RegionScanPass> passes = snapshot.passes();
+                DimensionTypeInfo dimTypeInfo = snapshot.dimTypeInfo();
+
+                java.util.List<RegionCoords> needsUpdate = mcaCache.scanAndUpdate(dimPath, regionDir);
+
+                if (needsUpdate.isEmpty()) {
+                    LOGGER.debug("No updates needed for dimension {}", dimPath);
+                    continue;
+                }
+
+                LOGGER.info(
+                        "Dimension {}: {} regions need incremental update (passes={})",
+                        dimPath,
+                        needsUpdate.size(),
+                        passes.size());
+
+                try {
+                    for (RegionScanPass pass : passes) {
+                        Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
+                    }
+                } catch (IOException e) {
+                    LOGGER.error("Failed to create output directories: {}", baseOutputDir, e);
+                    continue;
+                }
+
+                totalCount += needsUpdate.size() * passes.size();
+                int failuresBefore = failedRegions.size();
+                List<java.util.concurrent.Future<?>> futures = submitConversionTasks(
+                        executor,
+                        needsUpdate,
+                        needsUpdate,
+                        regionDir,
+                        baseOutputDir,
+                        xaeroDimName,
+                        dimPath,
+                        dimTypeInfo,
+                        passes,
+                        mcaCache,
+                        genCache,
+                        generationTimeSeconds,
+                        failedRegions,
+                        false);
+                waitForCompletion(futures, "Incremental update");
+                totalUpdated += needsUpdate.size() - (failedRegions.size() - failuresBefore);
             }
 
-            totalCount += needsUpdate.size() * passes.size();
-            int failuresBefore = failedRegions.size();
-            List<java.util.concurrent.Future<?>> futures = submitConversionTasks(
-                executor, needsUpdate, needsUpdate, regionDir, baseOutputDir, xaeroDimName, dimPath,
-                dimTypeInfo, passes, mcaCache, genCache,
-                generationTimeSeconds, failedRegions, false);
-            waitForCompletion(futures, "Incremental update");
-            totalUpdated += needsUpdate.size() - (failedRegions.size() - failuresBefore);
-        }
-
-        if (totalUpdated > 0) {
-            LOGGER.info("Incremental scan completed: {} regions updated", totalUpdated);
-            mcaCache.saveCache();
-            genCache.save();
-        }
+            if (totalUpdated > 0) {
+                LOGGER.info("Incremental scan completed: {} regions updated", totalUpdated);
+                mcaCache.saveCache();
+                genCache.save();
+            }
         } finally {
             isRunning.set(false);
             markRunFinished();
         }
     }
 
-    public static boolean isRunning() { return isRunning.get(); }
+    public static boolean isRunning() {
+        return isRunning.get();
+    }
 
     public static boolean requestCancel() {
         if (!isRunning.get()) {
@@ -843,15 +988,25 @@ public class ConversionOrchestrator {
         currentStatus = isCancelRequested() ? "cancelled" : "completed";
     }
 
-    public static int getProcessedCount() { return processedCount; }
+    public static int getProcessedCount() {
+        return processedCount;
+    }
 
-    public static int getTotalCount() { return totalCount; }
+    public static int getTotalCount() {
+        return totalCount;
+    }
 
-    public static int getUpdatedCount() { return convertedCountAtomic.get(); }
+    public static int getUpdatedCount() {
+        return convertedCountAtomic.get();
+    }
 
-    public static String getStatus() { return currentStatus; }
+    public static String getStatus() {
+        return currentStatus;
+    }
 
-    public static List<String> getCompletedDimensions() { return completedDimensions; }
+    public static List<String> getCompletedDimensions() {
+        return completedDimensions;
+    }
 
     public record DimensionCacheStats(String dimension, int regionCount, long sizeBytes) {
 
@@ -879,9 +1034,8 @@ public class ConversionOrchestrator {
                 long totalSize = 0;
 
                 try (Stream<Path> files = Files.walk(dimDir)) {
-                    List<Path> zipFiles = files
-                            .filter(p -> p.toString().endsWith(".zip"))
-                            .toList();
+                    List<Path> zipFiles =
+                            files.filter(p -> p.toString().endsWith(".zip")).toList();
 
                     regionCount = zipFiles.size();
                     totalSize = zipFiles.stream()
@@ -910,8 +1064,8 @@ public class ConversionOrchestrator {
         return converted == null || converted.xaeroData() == null || converted.xaeroData().length == 0;
     }
 
-    private static void purgeGeneratedArtifacts(Path outputDir, int regionX, int regionZ,
-            String relativePath, GenerationCache genCache) {
+    private static void purgeGeneratedArtifacts(
+            Path outputDir, int regionX, int regionZ, String relativePath, GenerationCache genCache) {
         Path zip = outputDir.resolve(regionX + "_" + regionZ + ".zip");
         Path temp = outputDir.resolve(regionX + "_" + regionZ + ".zip.temp");
         try {

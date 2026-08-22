@@ -1,5 +1,7 @@
 package com.mapsyncer.mca.convert.scan;
 
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
@@ -7,10 +9,7 @@ import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
-
 import java.util.ArrayList;
-
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class ChunkColumnScanner {
 
@@ -20,8 +19,10 @@ public final class ChunkColumnScanner {
         public final boolean[] underair = new boolean[256];
 
         public final boolean[] shouldEnterGround = new boolean[256];
+
         @SuppressWarnings("unchecked")
         public final ArrayList<OverlayEntry>[] overlayLists = new ArrayList[256];
+
         public final int[] topPixelH = new int[256];
 
         public ColumnScanContext(boolean fullCave) {
@@ -61,15 +62,16 @@ public final class ChunkColumnScanner {
 
     private ChunkColumnScanner() {}
 
-    public static void scan(MapRegionData data,
-                            ChunkDataParser.ChunkInfo chunk,
-                            int minBuildHeight,
-                            int worldTopY,
-                            LightMode lightMode,
-                            RegionConverterStandalone.CaveModeParams caveParams,
-                            boolean worldHasSkylight,
-                            BlockPropertyLookup blockLookup,
-                            RegionScanPass.ScanVerticalBounds bounds) {
+    public static void scan(
+            MapRegionData data,
+            ChunkDataParser.ChunkInfo chunk,
+            int minBuildHeight,
+            int worldTopY,
+            LightMode lightMode,
+            RegionConverterStandalone.CaveModeParams caveParams,
+            boolean worldHasSkylight,
+            BlockPropertyLookup blockLookup,
+            RegionScanPass.ScanVerticalBounds bounds) {
         int chunkX = chunk.chunkX();
         int chunkZ = chunk.chunkZ();
 
@@ -101,8 +103,8 @@ public final class ChunkColumnScanner {
             }
 
             boolean singlePalette = section.blockPalette().size() == 1 && section.blockData() == null;
-            ChunkSectionParser.BlockState singleState = singlePalette
-                ? section.blockPalette().get(0) : null;
+            ChunkSectionParser.BlockState singleState =
+                    singlePalette ? section.blockPalette().get(0) : null;
 
             for (int lx = 0; lx < 16; lx++) {
                 for (int lz = 0; lz < 16; lz++) {
@@ -123,11 +125,11 @@ public final class ChunkColumnScanner {
                     int startY;
                     if (isCaveMode) {
                         startY = bounds.clampStartY(caveStart);
-                        scanBottomY = bounds.clampBottomY(minBuildHeight,
-                            Math.max(caveStart - caveDepth, minBuildHeight));
+                        scanBottomY =
+                                bounds.clampBottomY(minBuildHeight, Math.max(caveStart - caveDepth, minBuildHeight));
                     } else {
                         startY = bounds.resolveSurfaceStartY(
-                            ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY));
+                                ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY));
                         scanBottomY = bounds.clampBottomY(minBuildHeight, minBuildHeight);
                     }
 
@@ -142,17 +144,40 @@ public final class ChunkColumnScanner {
                         continue;
                     }
 
-                    int effectiveStartY = computeEffectiveStartY(sectionIndex, startY, worldTopY,
-                        isCaveMode, heightMapValue, chunkBottomY, sectionTopY, bounds);
+                    int effectiveStartY = computeEffectiveStartY(
+                            sectionIndex,
+                            startY,
+                            worldTopY,
+                            isCaveMode,
+                            heightMapValue,
+                            chunkBottomY,
+                            sectionTopY,
+                            bounds);
 
                     if (!isCaveMode && effectiveStartY < sectionBottomY) {
                         continue;
                     }
 
-                    PixelColumnProcessor.processColumn(chunk, section, sectionBaseY,
-                        lx, lz, relX, relZ, effectiveStartY, scanBottomY, chunkBottomY,
-                        heightMapValue, isCaveMode, worldHasSkylight, lightMode,
-                        singlePalette, singleState, ctx, data, blockLookup);
+                    PixelColumnProcessor.processColumn(
+                            chunk,
+                            section,
+                            sectionBaseY,
+                            lx,
+                            lz,
+                            relX,
+                            relZ,
+                            effectiveStartY,
+                            scanBottomY,
+                            chunkBottomY,
+                            heightMapValue,
+                            isCaveMode,
+                            worldHasSkylight,
+                            lightMode,
+                            singlePalette,
+                            singleState,
+                            ctx,
+                            data,
+                            blockLookup);
                 }
             }
 
@@ -160,9 +185,15 @@ public final class ChunkColumnScanner {
         }
     }
 
-    private static int computeEffectiveStartY(int sectionIndex, int startY, int worldTopY,
-                                               boolean isCaveMode, int heightMapValue, int chunkBottomY,
-                                               int sectionTopY, RegionScanPass.ScanVerticalBounds bounds) {
+    private static int computeEffectiveStartY(
+            int sectionIndex,
+            int startY,
+            int worldTopY,
+            boolean isCaveMode,
+            int heightMapValue,
+            int chunkBottomY,
+            int sectionTopY,
+            RegionScanPass.ScanVerticalBounds bounds) {
         int effectiveStartY = startY;
         if (sectionIndex > 0) {
             effectiveStartY = Math.min(startY + 1, worldTopY - 1);
