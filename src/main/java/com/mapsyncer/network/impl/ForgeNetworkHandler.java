@@ -55,8 +55,8 @@ public class ForgeNetworkHandler {
         CHANNEL = NetworkRegistry.newSimpleChannel(
                 new ResourceLocation(MapSyncer.MOD_ID, "main"),
                 () -> PROTOCOL_VERSION,
-                PROTOCOL_VERSION::equals,
-                PROTOCOL_VERSION::equals);
+                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
+                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
 
         CHANNEL.registerMessage(
                 0,
