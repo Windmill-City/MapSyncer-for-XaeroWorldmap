@@ -44,8 +44,6 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_1201_version}-${forge_1201_version}"
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
-
-    runtimeOnly files("libs/xaeroworldmap-forge-1.20.1-${xaero_worldmap_version}.jar")
 }
 
 tasks.withType(JavaCompile).configureEach {
