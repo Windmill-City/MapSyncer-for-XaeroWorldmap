@@ -24,7 +24,6 @@ tasks.withType(JavaCompile).configureEach {
 afterEvaluate {
     task buildAll {
         dependsOn ':libs:core:build'
-        dependsOn ':libs:platform-api:build'
         dependsOn ':mc-1.20.1:forge:build'
         finalizedBy 'collectJars'
     }
