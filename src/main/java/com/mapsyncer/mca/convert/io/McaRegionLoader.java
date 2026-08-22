@@ -105,9 +105,9 @@ public final class McaRegionLoader {
                     chunkInfo = nbtData == null
                             ? null
                             : ChunkDataParser.parseChunk(localX, localZ, nbtData, worldHeightRange);
-                } catch (IOException e) {
+                } catch (Throwable t) {
                     LOGGER.warn("Failed to read chunk ({}, {}) from region file, skipping: {}",
-                            localX, localZ, e.getMessage());
+                            localX, localZ, t.getMessage());
                     continue;
                 }
                 if (chunkInfo != null) {
