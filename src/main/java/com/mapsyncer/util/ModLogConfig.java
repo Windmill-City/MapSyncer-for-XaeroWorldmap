@@ -11,10 +11,6 @@ public final class ModLogConfig {
 
     private ModLogConfig() {}
 
-    public static boolean isDebugEnabled() {
-        return debugEnabled;
-    }
-
     public static void applyDebugLogging() {
         try {
             boolean enableDebug = ModConfig.SERVER.enableDebugLogging.get();

@@ -50,24 +50,12 @@ public final class ClientSyncSession {
         return phase;
     }
 
-    public long startedAt() {
-        return startedAt;
-    }
-
     public boolean reflectionFailed() {
         return reflectionFailed;
     }
 
-    public SyncOutcome outcome() {
-        return outcome;
-    }
-
     public boolean isCurrent(int gen) {
         return gen == generation;
-    }
-
-    public boolean isSessionActive() {
-        return phase != SyncPhase.IDLE;
     }
 
     public boolean isStale() {

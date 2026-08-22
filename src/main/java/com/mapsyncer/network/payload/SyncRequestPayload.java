@@ -1,19 +1,12 @@
 package com.mapsyncer.network.payload;
 
-import com.mapsyncer.network.NetworkHandler;
 import com.mapsyncer.util.ClientMeta;
 import net.minecraft.network.FriendlyByteBuf;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class SyncRequestPayload {
-    public static final String ID = NetworkHandler.SYNC_REQUEST_ID;
-
-    public static final int MAX_PAYLOAD_BYTES = 28_000;
-
     private final Map<String, ClientMeta> clientMeta;
     private final int partIndex;
     private final int totalParts;
@@ -21,25 +14,8 @@ public class SyncRequestPayload {
     private final String targetDimension;
     private final boolean silent;
 
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta) {
-        this(clientMeta, 0, 0, false, "", false);
-    }
-
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta, int partIndex, int totalParts) {
-        this(clientMeta, partIndex, totalParts, false, "", false);
-    }
-
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta, boolean syncAll, String targetDimension) {
-        this(clientMeta, 0, 0, syncAll, targetDimension, false);
-    }
-
     public SyncRequestPayload(Map<String, ClientMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
         this(clientMeta, 0, 0, syncAll, targetDimension, silent);
-    }
-
-    public SyncRequestPayload(Map<String, ClientMeta> clientMeta, int partIndex, int totalParts,
-            boolean syncAll, String targetDimension) {
-        this(clientMeta, partIndex, totalParts, syncAll, targetDimension, false);
     }
 
     public SyncRequestPayload(Map<String, ClientMeta> clientMeta, int partIndex, int totalParts,
@@ -58,34 +34,6 @@ public class SyncRequestPayload {
     public boolean syncAll() { return syncAll; }
     public String targetDimension() { return targetDimension; }
     public boolean silent() { return silent; }
-
-    private static final int ESTIMATED_ENTRY_BYTES = 100;
-
-    public static SyncRequestPayload[] split(Map<String, ClientMeta> metaMap, boolean syncAll, String targetDimension) {
-        return split(metaMap, syncAll, targetDimension, false);
-    }
-
-    public static SyncRequestPayload[] split(Map<String, ClientMeta> metaMap, boolean syncAll, String targetDimension, boolean silent) {
-        int maxEntriesPerPart = Math.max(1, MAX_PAYLOAD_BYTES / ESTIMATED_ENTRY_BYTES);
-        if (metaMap.size() <= maxEntriesPerPart) {
-            return new SyncRequestPayload[] { new SyncRequestPayload(metaMap, syncAll, targetDimension, silent) };
-        }
-
-        List<Map.Entry<String, ClientMeta>> entries = new ArrayList<>(metaMap.entrySet());
-        int totalParts = (entries.size() + maxEntriesPerPart - 1) / maxEntriesPerPart;
-        SyncRequestPayload[] parts = new SyncRequestPayload[totalParts];
-
-        for (int i = 0; i < totalParts; i++) {
-            int start = i * maxEntriesPerPart;
-            int end = Math.min(start + maxEntriesPerPart, entries.size());
-            Map<String, ClientMeta> partMap = new HashMap<>();
-            for (int j = start; j < end; j++) {
-                partMap.put(entries.get(j).getKey(), entries.get(j).getValue());
-            }
-            parts[i] = new SyncRequestPayload(partMap, i, totalParts, syncAll, targetDimension, silent);
-        }
-        return parts;
-    }
 
     public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
         buf.writeInt(payload.clientMeta().size());

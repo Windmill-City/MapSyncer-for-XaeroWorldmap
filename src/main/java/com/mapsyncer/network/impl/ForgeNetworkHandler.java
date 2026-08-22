@@ -6,12 +6,10 @@ import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.ForgePayloadAdapters;
 import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncRequestMessage;
 import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncResponseMessage;
-import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncProgressMessage;
 import com.mapsyncer.network.ForgePayloadAdapters.ForgeSyncManifestMessage;
 import com.mapsyncer.network.ForgePayloadAdapters.ForgeServerInstalledMessage;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +34,6 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
     static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
 
     private BiConsumer<SyncResponsePayload, PayloadContext> syncResponseHandler;
-    private BiConsumer<SyncProgressPayload, PayloadContext> syncProgressHandler;
     private BiConsumer<SyncManifestPayload, PayloadContext> syncManifestHandler;
     private BiConsumer<ServerInstalledPayload, PayloadContext> serverInstalledHandler;
     private BiConsumer<SyncRequestPayload, PayloadContext> syncRequestHandler;
@@ -63,11 +60,6 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
                 ForgeSyncResponseMessage::decode,
                 this::handleSyncResponse);
 
-        CHANNEL.registerMessage(2, ForgeSyncProgressMessage.class,
-                ForgeSyncProgressMessage::encode,
-                ForgeSyncProgressMessage::decode,
-                this::handleSyncProgress);
-
         CHANNEL.registerMessage(3, ForgeServerInstalledMessage.class,
                 ForgeServerInstalledMessage::encode,
                 ForgeServerInstalledMessage::decode,
@@ -92,12 +84,6 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
     private void handleSyncResponse(ForgeSyncResponseMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (syncResponseHandler != null) {
             syncResponseHandler.accept(msg.getData(), new PayloadContext(ctx));
-        }
-    }
-
-    private void handleSyncProgress(ForgeSyncProgressMessage msg, Supplier<NetworkEvent.Context> ctx) {
-        if (syncProgressHandler != null) {
-            syncProgressHandler.accept(msg.getData(), new PayloadContext(ctx));
         }
     }
 
@@ -132,12 +118,6 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
     }
 
     @Override
-    public void sendToPlayer(ServerPlayer player, SyncProgressPayload payload) {
-        if (!confirmedPlayers.contains(player.getUUID())) return;
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncProgressMessage(payload));
-    }
-
-    @Override
     public void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
@@ -151,11 +131,6 @@ public class ForgeNetworkHandler implements NetworkHandler<ServerPlayer, Object>
     @Override
     public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, PayloadContext> handler) {
         this.syncResponseHandler = handler;
-    }
-
-    @Override
-    public void registerSyncProgressHandler(BiConsumer<SyncProgressPayload, PayloadContext> handler) {
-        this.syncProgressHandler = handler;
     }
 
     @Override

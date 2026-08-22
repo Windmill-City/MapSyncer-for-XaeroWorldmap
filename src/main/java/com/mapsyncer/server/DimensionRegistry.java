@@ -125,8 +125,4 @@ public class DimensionRegistry {
     private static String configToString(DimensionScanConfig config) {
         return config.dimension() + "|" + config.layerPlan().toConfigString();
     }
-
-    public static boolean isRegistered() {
-        return hasRegistered;
-    }
 }

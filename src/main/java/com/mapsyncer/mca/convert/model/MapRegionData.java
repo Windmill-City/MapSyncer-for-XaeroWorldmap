@@ -17,13 +17,11 @@ public class MapRegionData {
 
     public static class OverlayEntry {
         public final BlockState blockState;
-        public final int y;
         public int opacity;
         public final int light;
 
-        public OverlayEntry(BlockState blockState, int y, int opacity, int light) {
+        public OverlayEntry(BlockState blockState, int opacity, int light) {
             this.blockState = blockState;
-            this.y = y;
             this.opacity = opacity;
             this.light = light;
         }
@@ -41,17 +39,11 @@ public class MapRegionData {
     public final boolean[][] hasData;
     public final boolean[][] chunkExists;
     public final Map<Integer, List<OverlayEntry>> overlays;
-    public final int minBuildHeight;
     public final LightMode lightMode;
     public final CaveModeParams caveParams;
     public final ChunkDataParser.ChunkInfo[][] chunkGrid;
 
-    public MapRegionData(int minBuildHeight, LightMode lightMode) {
-        this(minBuildHeight, lightMode, CaveModeParams.NONE);
-    }
-
     public MapRegionData(int minBuildHeight, LightMode lightMode, CaveModeParams caveParams) {
-        this.minBuildHeight = minBuildHeight;
         this.lightMode = lightMode;
         this.caveParams = caveParams != null ? caveParams : CaveModeParams.NONE;
         blockStates = new BlockState[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];

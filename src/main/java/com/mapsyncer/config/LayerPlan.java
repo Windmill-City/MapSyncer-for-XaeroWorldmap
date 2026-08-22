@@ -52,10 +52,6 @@ public record LayerPlan(
         return !includeSurface && !includeAllCaves && caveStarts.isEmpty();
     }
 
-    public int primaryCaveStart() {
-        return caveStarts.isEmpty() ? DEFAULT_CAVE_START : caveStarts.get(0);
-    }
-
     public String toConfigString() {
         if (isEmpty()) {
             return "";

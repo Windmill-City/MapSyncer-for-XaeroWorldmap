@@ -107,10 +107,6 @@ public class IncrementalUpdateHandlerLogic {
         }
     }
 
-    public boolean isRunning() {
-        return running;
-    }
-
     public void onServerTick() {
         if (!running || server == null) return;
 

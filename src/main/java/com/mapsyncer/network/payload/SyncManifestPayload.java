@@ -1,6 +1,5 @@
 package com.mapsyncer.network.payload;
 
-import com.mapsyncer.network.NetworkHandler;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
@@ -10,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 public class SyncManifestPayload {
-    public static final String ID = NetworkHandler.SYNC_MANIFEST_ID;
-
     public static final int MAX_PAYLOAD_BYTES = 28_000;
 
     private final Map<String, Long> timestamps;

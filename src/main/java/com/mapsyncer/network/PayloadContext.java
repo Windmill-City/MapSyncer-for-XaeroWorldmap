@@ -15,8 +15,4 @@ public class PayloadContext {
     public void enqueueWork(Runnable work) {
         NetworkManager.getHandler().enqueueWork(this, work);
     }
-
-    public Object getPlayer() {
-        return NetworkManager.getHandler().getPlayerFromContext(this);
-    }
 }

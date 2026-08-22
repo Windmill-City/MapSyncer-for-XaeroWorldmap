@@ -30,21 +30,9 @@ public final class XaeroMapDataHandler {
 
     public record RegionCoord(int x, int z, int caveLayer) {
 
-        public RegionCoord(int x, int z) {
-            this(x, z, Integer.MAX_VALUE);
-        }
-
         public boolean isSurfaceLayer() {
             return caveLayer == Integer.MAX_VALUE;
         }
-    }
-
-    public static Set<RegionCoord> getUpdatedRegions() {
-        return Set.copyOf(updatedRegions);
-    }
-
-    static Set<RegionCoord> getPreUnloadedRegionsInternal() {
-        return preUnloadedRegions;
     }
 
     public static void clearRegionTracking() {

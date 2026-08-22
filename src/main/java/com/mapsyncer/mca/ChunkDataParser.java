@@ -6,7 +6,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class ChunkDataParser {
@@ -38,9 +37,7 @@ public class ChunkDataParser {
     public record ChunkInfo(
         int chunkX,
         int chunkZ,
-        int yPos,
         int chunkBottomY,
-        String status,
         int[][] heightmap,
         List<ChunkSectionParser.SectionData> sections,
         int minSectionY,
@@ -135,7 +132,7 @@ public class ChunkDataParser {
 
         BiomeQuartGrid biomeGrid = BiomeQuartGrid.build(sections, minSectionY, sectionLookup);
 
-        return new ChunkInfo(localX, localZ, yPos, chunkBottomY, status, heightmap, sections, minSectionY, sectionLookup, biomeGrid);
+        return new ChunkInfo(localX, localZ, chunkBottomY, heightmap, sections, minSectionY, sectionLookup, biomeGrid);
     }
 
     private static void readSections(NbtStream stream, List<ChunkSectionParser.SectionData> sections)
@@ -239,23 +236,6 @@ public class ChunkDataParser {
         }
     }
 
-    public static ChunkSectionParser.BlockState getBlockStateAt(ChunkInfo chunk, int x, int worldY, int z) {
-        int sectionY = worldY >> 4;
-        int localY = worldY & 0xF;
-        ChunkSectionParser.SectionData[] lookup = chunk.sectionLookup();
-        if (lookup != null) {
-            int idx = sectionY - chunk.minSectionY();
-            if (idx >= 0 && idx < lookup.length && lookup[idx] != null) {
-                return ChunkSectionParser.getBlockStateAt(lookup[idx], x, localY, z);
-            }
-        }
-        return new ChunkSectionParser.BlockState("minecraft:air", Map.of());
-    }
-
-    public static String getBiomeAt(ChunkInfo chunk, int x, int worldY, int z) {
-        return getBiomeAt(chunk, x, worldY, z, false);
-    }
-
     public static String getBiomeAt(ChunkInfo chunk, int x, int worldY, int z, boolean smoothBoundary) {
         int sectionY = worldY >> 4;
         int localY = worldY & 0xF;
@@ -267,32 +247,6 @@ public class ChunkDataParser {
             }
         }
         return null;
-    }
-
-    public static byte getBlockLightAt(ChunkInfo chunk, int x, int worldY, int z) {
-        int sectionY = worldY >> 4;
-        int localY = worldY & 0xF;
-
-        for (ChunkSectionParser.SectionData section : chunk.sections()) {
-            if (section.sectionY() == sectionY) {
-                return ChunkSectionParser.getBlockLight(section, x, localY, z);
-            }
-        }
-
-        return 0;
-    }
-
-    public static byte getSkyLightAt(ChunkInfo chunk, int x, int worldY, int z) {
-        int sectionY = worldY >> 4;
-        int localY = worldY & 0xF;
-
-        for (ChunkSectionParser.SectionData section : chunk.sections()) {
-            if (section.sectionY() == sectionY) {
-                return ChunkSectionParser.getSkyLight(section, x, localY, z);
-            }
-        }
-
-        return 0;
     }
 
     public static int getHeightmapStartY(ChunkInfo chunk, int x, int z, int worldTopY) {

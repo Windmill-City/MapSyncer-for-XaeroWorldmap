@@ -25,7 +25,6 @@ public class ModConfig {
     public static final long TASK_TIMEOUT_SECONDS = 60;
 
     public static final int MAX_CONCURRENT_REGIONS = 16;
-    public static final int AUTO_CONCURRENT = 0;
 
     public static int resolveConcurrentRegions(int configured) {
         if (configured > 0) {
@@ -33,10 +32,6 @@ public class ModConfig {
         }
         int processors = Runtime.getRuntime().availableProcessors();
         return Math.max(1, Math.min(MAX_CONCURRENT_REGIONS, processors - 2));
-    }
-
-    public static int clampConcurrentRegions(int configured) {
-        return Math.max(AUTO_CONCURRENT, Math.min(MAX_CONCURRENT_REGIONS, configured));
     }
 
     public static Path outputDir(Path baseOutputDir, int caveLayer) {
@@ -185,8 +180,6 @@ public class ModConfig {
 
         public final IntValue maxSyncPacketSize;
 
-        public final IntValue syncSpeedLimitKBps;
-
         public final EnumValue<UpdateMode> incrementalUpdateMode;
 
         public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
@@ -227,27 +220,6 @@ public class ModConfig {
                              "  1048576 = 1MB  (maximum, 1 packet/s at 1024KB/s)",
                              "Default: 256KB (recommended), Range: 64KB - 1MB")
                     .defineInRange("maxSyncPacketSize", 262144, 65536, 1048576);
-            syncSpeedLimitKBps = builder
-                    .comment("同步速度限制 KB/s（0 = 无限制）",
-                             "Sync speed limit in KB/s (0 = unlimited)",
-                             "",
-                             "速度选项供快速参考：",
-                             "  100  = 100KB/s  （慢速，适合带宽受限）",
-                             "  512  = 512KB/s  （中等，半 MiB）",
-                             "  1024 = 1024KB/s = 1MiB/s （默认，推荐）",
-                             "  5120 = 5120KB/s = 5MiB/s （快速，适合局域网）",
-                             "  10240 = 10240KB/s = 10MiB/s （非常快）",
-                             "",
-                             "Speed options for quick reference:",
-                             "  100  = 100KB/s  (slow, suitable for limited bandwidth)",
-                             "  512  = 512KB/s  (moderate, half MiB)",
-                             "  1024 = 1024KB/s = 1MiB/s (default, recommended)",
-                             "  5120 = 5120KB/s = 5MiB/s (fast, suitable for LAN)",
-                             "  10240 = 10240KB/s = 10MiB/s (very fast)",
-                             "",
-                             "默认：1024（1MiB/s），范围：0 - 10240",
-                             "Default: 1024 (1MiB/s), Range: 0 - 10240")
-                    .defineInRange("syncSpeedLimitKBps", 1024, 0, 10240);
 
             builder.pop();
 

@@ -363,10 +363,6 @@ public class CacheCommandHandler {
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
-    public static UpdateMode getIncrementalUpdateMode() {
-        return ModConfig.SERVER.incrementalUpdateMode.get();
-    }
-
     public static boolean reloadConfig(MinecraftServer server) {
         try {
             ModConfig.reloadServerFromDisk();

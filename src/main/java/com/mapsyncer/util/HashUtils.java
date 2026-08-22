@@ -39,16 +39,6 @@ public final class HashUtils {
         }
     }
 
-    public static String computeHash(byte[] data) {
-        if (data == null || data.length == 0) {
-            return DEFAULT_HASH;
-        }
-
-        CRC32 crc32 = new CRC32();
-        crc32.update(data);
-        return String.format("%08x", crc32.getValue());
-    }
-
     public static boolean isValidHash(String hash) {
         return hash != null && !hash.isEmpty() && !DEFAULT_HASH.equals(hash);
     }

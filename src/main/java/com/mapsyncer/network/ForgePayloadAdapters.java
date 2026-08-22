@@ -4,7 +4,6 @@ import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import net.minecraft.network.FriendlyByteBuf;
@@ -87,28 +86,6 @@ public class ForgePayloadAdapters {
 
         public static ForgeSyncManifestMessage decode(FriendlyByteBuf buf) {
             return new ForgeSyncManifestMessage(SyncManifestPayload.read(buf));
-        }
-    }
-
-    public static class ForgeSyncProgressMessage {
-        private final SyncProgressPayload data;
-
-        public ForgeSyncProgressMessage(SyncProgressPayload data) {
-            this.data = data;
-        }
-
-        public SyncProgressPayload getData() {
-            return data;
-        }
-
-        public static void encode(ForgeSyncProgressMessage msg, FriendlyByteBuf buf) {
-            buf.writeInt(msg.data.processed());
-            buf.writeInt(msg.data.total());
-            buf.writeUtf(msg.data.status());
-        }
-
-        public static ForgeSyncProgressMessage decode(FriendlyByteBuf buf) {
-            return new ForgeSyncProgressMessage(new SyncProgressPayload(buf.readInt(), buf.readInt(), buf.readUtf()));
         }
     }
 

@@ -92,19 +92,4 @@ public class SyncResumeHelper {
         ChatUtils.sendChatMessage(message);
     }
 
-    public static void clearSyncState() {
-        Minecraft mc = Minecraft.getInstance();
-        Path serverDir = XaeroMapIntegrator.getClientXaeroWorldMapDir();
-        if (serverDir == null || !serverDir.toFile().exists()) {
-            return;
-        }
-
-        ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        if (tsCache != null) {
-            tsCache.clearSyncState();
-            if (mc.player != null) {
-                ChatUtils.sendChatMessage(ChatUtils.success("mapsyncer.sync.state_cleared"));
-            }
-        }
-    }
 }

@@ -6,7 +6,6 @@ import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public final class OverlayAccumulator {
 
@@ -14,13 +13,9 @@ public final class OverlayAccumulator {
 
     private OverlayAccumulator() {}
 
-    public static void add(List<OverlayEntry> currentList, ArrayList<OverlayEntry> list,
+    public static void add(ArrayList<OverlayEntry> list,
                            BlockState blockState, int y, int opacityToAdd, int light,
                            BlockPropertyLookup blockLookup) {
-        if (currentList != list) {
-            addSingle(list, blockState, y, opacityToAdd, light, blockLookup);
-            return;
-        }
         if (list.size() >= MAX_LAYERS) {
             return;
         }
@@ -30,17 +25,8 @@ public final class OverlayAccumulator {
                 .equals(XaeroBinaryWriter.PaletteKey.from(blockState))) {
             last.opacity = Math.min(15, last.opacity + opacityToAdd);
         } else {
-            list.add(new OverlayEntry(blockState, y, opacityToAdd, light));
+            list.add(new OverlayEntry(blockState, opacityToAdd, light));
         }
-    }
-
-    private static void addSingle(ArrayList<OverlayEntry> list, BlockState blockState, int y,
-                                  int opacityToAdd, int light, BlockPropertyLookup blockLookup) {
-        if (list.size() >= MAX_LAYERS) {
-            return;
-        }
-        opacityToAdd = normalizeOpacity(blockState.name(), opacityToAdd, blockLookup);
-        list.add(new OverlayEntry(blockState, y, opacityToAdd, light));
     }
 
     private static int normalizeOpacity(String blockName, int opacityToAdd, BlockPropertyLookup blockLookup) {

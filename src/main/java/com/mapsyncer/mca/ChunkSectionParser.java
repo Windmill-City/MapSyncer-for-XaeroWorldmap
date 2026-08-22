@@ -5,21 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class ChunkSectionParser {
-
-    private static final Set<String> FLOWER_NAMES = Set.of(
-        "minecraft:dandelion", "minecraft:poppy",
-        "minecraft:blue_orchid", "minecraft:allium",
-        "minecraft:red_tulip", "minecraft:orange_tulip",
-        "minecraft:white_tulip", "minecraft:pink_tulip",
-        "minecraft:oxeye_daisy", "minecraft:cornflower",
-        "minecraft:lily_of_the_valley", "minecraft:wither_rose",
-        "minecraft:sunflower", "minecraft:rose_bush",
-        "minecraft:peony", "minecraft:azure_bluet",
-        "minecraft:pitcher_plant"
-    );
 
     public record BlockState(
         String name,
@@ -27,22 +14,6 @@ public class ChunkSectionParser {
     ) {
 
         public static final Map<String, String> EMPTY_PROPERTIES = Map.of();
-
-        public String getFullName() {
-            if (properties.isEmpty()) {
-                return name;
-            }
-            StringBuilder sb = new StringBuilder(name);
-            sb.append("[");
-            boolean first = true;
-            for (Map.Entry<String, String> e : properties.entrySet()) {
-                if (!first) sb.append(",");
-                sb.append(e.getKey()).append("=").append(e.getValue());
-                first = false;
-            }
-            sb.append("]");
-            return sb.toString();
-        }
 
         public boolean isAir() {
             return name.equals("minecraft:air") ||
@@ -62,39 +33,15 @@ public class ChunkSectionParser {
             return isWater() || isLava();
         }
 
-        public boolean isInvisible() {
-
-            if (name.equals("minecraft:torch") || name.endsWith("_torch")) return true;
-
-            if (name.equals("minecraft:short_grass") || name.equals("minecraft:grass")) return true;
-
-            if (isFlower()) return true;
-
-            if (name.equals("minecraft:tall_grass") || name.equals("minecraft:large_fern")) return true;
-            return false;
-        }
-
-        public boolean isFlower() {
-            return FLOWER_NAMES.contains(name) ||
-                   name.endsWith("_tulip") ||
-                   name.contains("orchid") ||
-                   name.endsWith("_pitcher_crop");
-        }
-
         public boolean isWaterlogged() {
             return properties.containsKey("waterlogged") &&
                    "true".equals(properties.get("waterlogged"));
-        }
-
-        public boolean isWaterloggedSurface() {
-            return isWaterlogged() && !isWater() && !isAir();
         }
     }
 
     public record SectionData(
         int sectionY,
         List<BlockState> blockPalette,
-        List<String> blockNames,
         long[] blockData,
         int blockBitsPerEntry,
         List<String> biomePalette,
@@ -108,14 +55,13 @@ public class ChunkSectionParser {
 
     }
 
-    private record BlockData(List<BlockState> palette, List<String> names, long[] data) {}
+    private record BlockData(List<BlockState> palette, long[] data) {}
 
     private record BiomeData(List<String> palette, long[] data) {}
 
     static SectionData parseSection(NbtStream stream) throws IOException {
         int sectionY = 0;
         List<BlockState> blockPalette = new ArrayList<>();
-        List<String> blockNames = new ArrayList<>();
         long[] blockData = null;
         List<String> biomePalette = new ArrayList<>();
         long[] biomeData = null;
@@ -137,7 +83,6 @@ public class ChunkSectionParser {
                     if (type == NbtStream.TAG_COMPOUND) {
                         BlockData blockStates = readBlockStates(stream);
                         blockPalette = blockStates.palette;
-                        blockNames = blockStates.names;
                         blockData = blockStates.data;
                     } else {
                         stream.skip(type);
@@ -203,7 +148,7 @@ public class ChunkSectionParser {
         }
 
         return new SectionData(
-            sectionY, blockPalette, blockNames, blockData, blockBitsPerEntry,
+            sectionY, blockPalette, blockData, blockBitsPerEntry,
             biomePalette, biomeData, biomeBitsPerEntry,
             decodedBlockLight, decodedSkyLight,
             blockUVal, blockMask
@@ -212,7 +157,6 @@ public class ChunkSectionParser {
 
     private static BlockData readBlockStates(NbtStream stream) throws IOException {
         List<BlockState> palette = new ArrayList<>();
-        List<String> names = new ArrayList<>();
         long[] data = null;
 
         byte type;
@@ -227,7 +171,6 @@ public class ChunkSectionParser {
                             for (int i = 0; i < length; i++) {
                                 BlockState blockState = parseBlockState(stream);
                                 palette.add(blockState);
-                                names.add(blockState.name());
                             }
                         } else {
                             for (int i = 0; i < length; i++) {
@@ -249,7 +192,7 @@ public class ChunkSectionParser {
                     stream.skip(type);
             }
         }
-        return new BlockData(palette, names, data);
+        return new BlockData(palette, data);
     }
 
     private static BiomeData readBiomes(NbtStream stream) throws IOException {
@@ -380,14 +323,6 @@ public class ChunkSectionParser {
         return section.blockPalette.get(paletteIndex);
     }
 
-    public static String getBlockAt(SectionData section, int x, int y, int z) {
-        return getBlockStateAt(section, x, y, z).name();
-    }
-
-    public static String getBiomeAt(SectionData section, int x, int y, int z) {
-        return getBiomeAt(section, x, y, z, false);
-    }
-
     public static String getBiomeAt(SectionData section, int x, int y, int z, boolean smoothBoundary) {
 
         if (section.biomePalette.isEmpty()) {
@@ -456,15 +391,5 @@ public class ChunkSectionParser {
         byte[] d = section.skyLight();
         if (d != null && d.length == 4096) return d[(y << 8) | (z << 4) | x];
         return 0;
-    }
-
-    public static byte getLightValue(byte[] lightArray, int x, int y, int z) {
-        if (lightArray == null || lightArray.length != 2048) {
-            return 0;
-        }
-
-        int yzx = (y << 8) | (z << 4) | x;
-
-        return (byte) ((lightArray[yzx >> 1] >> (4 * (yzx & 1))) & 0xF);
     }
 }

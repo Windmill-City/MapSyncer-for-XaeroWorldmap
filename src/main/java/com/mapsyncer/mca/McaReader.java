@@ -55,7 +55,7 @@ public class McaReader implements AutoCloseable {
         }
     }
 
-    public record ChunkLocation(int offsetSectors, int sectorCount, int timestamp) {
+    public record ChunkLocation(int offsetSectors, int sectorCount) {
 
         public boolean exists() {
             return offsetSectors > 0 && sectorCount > 0;
@@ -122,7 +122,7 @@ public class McaReader implements AutoCloseable {
     public ChunkLocation getChunkLocation(int localX, int localZ) {
         int index = localX + localZ * CHUNKS_PER_REGION;
         int packed = locations[index];
-        return new ChunkLocation(packed >>> 8, packed & 0xFF, timestamps[index]);
+        return new ChunkLocation(packed >>> 8, packed & 0xFF);
     }
 
     public byte[] readChunkData(int localX, int localZ) throws IOException {

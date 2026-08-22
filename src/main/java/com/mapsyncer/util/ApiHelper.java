@@ -3,8 +3,6 @@ package com.mapsyncer.util;
 import com.mapsyncer.mca.DimensionTypeInfo;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
 
@@ -24,10 +22,6 @@ public final class ApiHelper {
             dimensionType.height(),
             dimensionType.logicalHeight()
         );
-    }
-
-    public static MinecraftServer getServer(ServerPlayer player) {
-        return player.serverLevel().getServer();
     }
 
     public static Predicate<CommandSourceStack> admin() {

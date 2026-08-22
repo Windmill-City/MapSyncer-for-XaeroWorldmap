@@ -125,12 +125,12 @@ public final class PixelColumnProcessor {
                 byte waterLight = SectionLightAccess.getBlockLightCrossSection(
                     chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
-                OverlayAccumulator.add(overlays, overlays, XaeroBinaryWriter.WATER, worldY,
+                OverlayAccumulator.add(overlays, XaeroBinaryWriter.WATER, worldY,
                     waterOpacity, waterLight, blockLookup);
                 int opacity = blockLookup.getLightBlock(blockName);
                 byte light = SectionLightAccess.getBlockLightCrossSection(
                     chunk, section, lx, ly, lz, aboveWorldY);
-                OverlayAccumulator.add(overlays, overlays, state, worldY, opacity, light, blockLookup);
+                OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
                     ctx.topPixelH[pos] = worldY;
                 }
@@ -143,7 +143,7 @@ public final class PixelColumnProcessor {
                 byte light = SectionLightAccess.getBlockLightCrossSection(
                     chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
-                OverlayAccumulator.add(overlays, overlays, state, worldY, opacity, light, blockLookup);
+                OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
                     ctx.topPixelH[pos] = worldY;
                 }
@@ -160,7 +160,7 @@ public final class PixelColumnProcessor {
                 byte light = SectionLightAccess.getBlockLightCrossSection(
                     chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
-                OverlayAccumulator.add(overlays, overlays, state, worldY, opacity, light, blockLookup);
+                OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
                 if (ctx.topPixelH[pos] < 0) {
                     ctx.topPixelH[pos] = worldY;
                 }
@@ -203,7 +203,7 @@ public final class PixelColumnProcessor {
                 heightMapValue, overlays, lightMode, worldHasSkylight, blockLookup)
             : SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
         overlays = ensureOverlayList(ctx, pos, overlays);
-        OverlayAccumulator.add(overlays, overlays, XaeroBinaryWriter.WATER, worldY, opacity, light, blockLookup);
+        OverlayAccumulator.add(overlays, XaeroBinaryWriter.WATER, worldY, opacity, light, blockLookup);
         int topBlockY = ctx.topPixelH[pos] < 0 ? worldY : ctx.topPixelH[pos];
         recordPixelScan(data, state, worldY, topBlockY, light, ctx.overlayLists[pos], relX, relZ);
         ctx.blockFound[pos] = true;
@@ -225,7 +225,7 @@ public final class PixelColumnProcessor {
         int aboveWorldY = worldY + 1;
         byte light = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
         overlays = ensureOverlayList(ctx, pos, overlays);
-        OverlayAccumulator.add(overlays, overlays, state, worldY, opacity, light, blockLookup);
+        OverlayAccumulator.add(overlays, state, worldY, opacity, light, blockLookup);
         if (ctx.topPixelH[pos] < 0) {
             ctx.topPixelH[pos] = worldY;
         }

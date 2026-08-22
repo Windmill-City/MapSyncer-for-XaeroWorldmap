@@ -219,28 +219,4 @@ public class McaTimestampCache {
         }
         return classifyUpdates(dimension, RegionScanner.listRegionFiles(regionDir));
     }
-
-    public void clearCache() {
-        timestampCache.clear();
-        try {
-            Files.deleteIfExists(cacheFilePath);
-            LOGGER.info("Cleared timestamp cache");
-        } catch (IOException e) {
-            LOGGER.warn("Failed to delete cache file: {}", e.getMessage());
-        }
-    }
-
-    public String getCacheStats() {
-        int totalDimensions = timestampCache.size();
-        int totalRegions = timestampCache.values().stream().mapToInt(Map::size).sum();
-        return String.format("Timestamp cache: %d dimensions, %d regions cached", totalDimensions, totalRegions);
-    }
-
-    public static void resetInstance() {
-        if (instance != null) {
-            instance.timestampCache.clear();
-            instance = null;
-            LOGGER.info("McaTimestampCache instance reset");
-        }
-    }
 }

@@ -19,7 +19,6 @@ public class RegionConverterStandalone {
 
     public static final int REGION_SIZE_BLOCKS = 512;
     public static final int CHUNKS_PER_REGION = 32;
-    public static final int BLOCKS_PER_TILE_CHUNK = 64;
     public static final int BLOCKS_PER_TILE = 16;
     public static final int TILES_PER_TILE_CHUNK = 4;
     public static final int TILE_CHUNKS_PER_REGION = 8;
@@ -32,10 +31,6 @@ public class RegionConverterStandalone {
 
     public record CaveModeParams(int caveStart, int caveDepth) {
         public static final CaveModeParams NONE = new CaveModeParams(Integer.MAX_VALUE, 0);
-
-        public static CaveModeParams createDefault(int worldTopY, int defaultDepth) {
-            return new CaveModeParams(worldTopY, defaultDepth);
-        }
     }
 
     public static List<LayerConvertedRegion> convertRegionMulti(

@@ -69,15 +69,6 @@ final class NbtStream implements AutoCloseable {
         return data;
     }
 
-    int[] readIntArray() throws IOException {
-        int length = readArrayLength();
-        int[] data = new int[length];
-        for (int i = 0; i < length; i++) {
-            data[i] = in.readInt();
-        }
-        return data;
-    }
-
     long[] readLongArray() throws IOException {
         int length = readArrayLength();
         long[] data = new long[length];

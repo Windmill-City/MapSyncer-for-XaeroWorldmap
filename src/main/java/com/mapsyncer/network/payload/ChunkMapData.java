@@ -20,14 +20,6 @@ public class ChunkMapData {
 
     public final int totalParts;
 
-    public ChunkMapData(int regionX, int regionZ, String dimension, byte[] data) {
-        this(regionX, regionZ, dimension, data, 0, Integer.MAX_VALUE);
-    }
-
-    public ChunkMapData(int regionX, int regionZ, String dimension, byte[] data, long timestampSeconds) {
-        this(regionX, regionZ, dimension, data, timestampSeconds, Integer.MAX_VALUE);
-    }
-
     public ChunkMapData(int regionX, int regionZ, String dimension, byte[] data,
                          long timestampSeconds, int caveLayer) {
         this(regionX, regionZ, dimension, data, timestampSeconds, caveLayer, 0, 0);

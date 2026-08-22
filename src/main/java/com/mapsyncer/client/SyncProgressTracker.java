@@ -54,10 +54,6 @@ public class SyncProgressTracker {
         }
     }
 
-    public static boolean isHashScanning() {
-        return hashScanning;
-    }
-
     public static void startTracking() {
         tracking = true;
         processed = 0;
@@ -103,10 +99,6 @@ public class SyncProgressTracker {
         refreshOverlay();
     }
 
-    public static void complete() {
-        completeWithCount(total);
-    }
-
     public static void completeWithCount(int count) {
         tracking = false;
         hashScanning = false;
@@ -133,17 +125,6 @@ public class SyncProgressTracker {
         status = Component.translatable("mapsyncer.sync.cancelled").getString();
         stopTimeoutChecker();
         setOverlayActive(false);
-    }
-
-    public static void shutdown() {
-        tracking = false;
-        hashScanning = false;
-        stopTimeoutChecker();
-        setOverlayActive(false);
-        if (timeoutChecker != null && !timeoutChecker.isShutdown()) {
-            timeoutChecker.shutdown();
-            timeoutChecker = null;
-        }
     }
 
     public static boolean isTracking() {

@@ -48,7 +48,7 @@ public class XaeroWriter {
         return count[0];
     }
 
-    public record RegionWriteResult(Path path, String crc32Hash) {}
+    public record RegionWriteResult(String crc32Hash) {}
 
     public static RegionWriteResult writeRegionFile(Path outputDir, ConvertedRegion region) throws IOException {
         Files.createDirectories(outputDir);
@@ -68,7 +68,7 @@ public class XaeroWriter {
         }
 
         Files.move(tempFile, finalFile, StandardCopyOption.REPLACE_EXISTING);
-        return new RegionWriteResult(finalFile, String.format("%08x", crc32.getValue()));
+        return new RegionWriteResult(String.format("%08x", crc32.getValue()));
     }
 
     public static boolean regionFileExists(Path outputDir, int regionX, int regionZ) {

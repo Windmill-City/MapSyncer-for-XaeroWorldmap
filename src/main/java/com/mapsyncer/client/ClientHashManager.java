@@ -95,18 +95,6 @@ public class ClientHashManager {
         return poolUsers.get() > 0;
     }
 
-    public static Map<String, ClientMeta> computeMetaForSync(Path mapDir) {
-        poolUsers.incrementAndGet();
-        try {
-            MetaScanResult result = computeMetaForSyncWorker(mapDir, false);
-            if (!result.isSuccess()) {
-                throw new IllegalStateException("Hash scan failed: " + result.failureReason());
-            }
-            return result.meta();
-        } finally {
-            poolUsers.decrementAndGet();
-        }
-    }
 
     public static void computeMetaForSyncAsync(Path mapDir, Consumer<MetaScanResult> onComplete) {
         poolUsers.incrementAndGet();

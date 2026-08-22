@@ -9,20 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class XaeroMapIntegrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapIntegrator.class);
-
-    public static Set<XaeroMapDataHandler.RegionCoord> getViewDistanceRegions() {
-        return getViewDistanceRegions(Integer.MAX_VALUE);
-    }
 
     public static Set<XaeroMapDataHandler.RegionCoord> getViewDistanceRegions(int caveLayer) {
         Minecraft mc = Minecraft.getInstance();
@@ -57,125 +51,6 @@ public class XaeroMapIntegrator {
                 minRegionX, minRegionZ, maxRegionX, maxRegionZ, viewRegions.size(), caveLayer);
 
         return viewRegions;
-    }
-
-    public static int unloadViewDistanceRegions() {
-        Set<XaeroMapDataHandler.RegionCoord> viewRegions = getViewDistanceRegions();
-        if (viewRegions.isEmpty()) {
-            LOGGER.info("No view distance regions to unload");
-            return 0;
-        }
-
-        LOGGER.info("Unloading {} view distance regions before sync", viewRegions.size());
-        return resetSpecificRegionLoadStates(viewRegions);
-    }
-
-    public static int resetSpecificRegionLoadStates(Set<XaeroMapDataHandler.RegionCoord> regionsToReset) {
-        int resetCount = 0;
-
-        if (!XaeroReflectionHelper.isInitialized()) {
-            LOGGER.warn("XaeroReflectionHelper not initialized for selective reset");
-            return 0;
-        }
-
-        java.util.Map<Integer, Set<XaeroMapDataHandler.RegionCoord>> byLayer = new java.util.HashMap<>();
-        for (XaeroMapDataHandler.RegionCoord coord : regionsToReset) {
-            byLayer.computeIfAbsent(coord.caveLayer(), k -> new java.util.HashSet<>()).add(coord);
-        }
-
-        try {
-            for (var entry : byLayer.entrySet()) {
-                int caveLayer = entry.getKey();
-                Set<XaeroMapDataHandler.RegionCoord> layerTargets = entry.getValue();
-                Object regionTextureMap = XaeroReflectionHelper.getRegionTextureMap(caveLayer);
-                if (regionTextureMap == null) {
-                    LOGGER.warn("Could not get regionTextureMap for layer {}", caveLayer);
-                    continue;
-                }
-
-                if (regionTextureMap instanceof Map<?, ?> map) {
-                    for (Object columnEntry : map.values()) {
-                        if (columnEntry instanceof Map<?, ?> column) {
-                            for (Object regionEntry : column.values()) {
-                                resetCount += selectiveResetLeafRegions(regionEntry, layerTargets, caveLayer);
-                            }
-                        }
-                    }
-                }
-            }
-
-            LOGGER.info("Selective reset completed: {} regions reset", resetCount);
-
-        } catch (Exception e) {
-            LOGGER.warn("Failed to selective reset regions: {}", e.getMessage());
-        }
-
-        return resetCount;
-    }
-
-    private static int selectiveResetLeafRegions(Object region, Set<XaeroMapDataHandler.RegionCoord> regionsToReset, int caveLayer) {
-        int count = 0;
-        try {
-            if (XaeroReflectionHelper.isMapRegion(region)) {
-                int rx = XaeroReflectionHelper.getRegionX(region);
-                int rz = XaeroReflectionHelper.getRegionZ(region);
-
-                if (rx == -1 || rz == -1) {
-                    LOGGER.warn("无法获取区域坐标 (region={})", region);
-                    return 0;
-                }
-
-                XaeroMapDataHandler.RegionCoord coord = new XaeroMapDataHandler.RegionCoord(rx, rz, caveLayer);
-
-                if (regionsToReset.contains(coord)) {
-                    byte currentLoadState = XaeroReflectionHelper.getLoadState(region);
-
-                    if (currentLoadState == -1) {
-                        LOGGER.warn("无法获取区域 ({}, {}) 的 loadState", rx, rz);
-                        return 0;
-                    }
-
-                    if (currentLoadState == XaeroReflectionHelper.LOAD_STATE_LOADED) {
-                        XaeroMapDataHandler.getPreUnloadedRegionsInternal().add(coord);
-
-                        boolean success = XaeroReflectionHelper.setLoadState(region, XaeroReflectionHelper.LOAD_STATE_UNLOADED);
-                        if (success) {
-                            count++;
-                            LOGGER.debug("Pre-unloaded region ({}, {}) layer={} was loaded, recorded for loadState=4", rx, rz, caveLayer);
-                        } else {
-                            LOGGER.warn("设置区域 ({}, {}) loadState 失败", rx, rz);
-                        }
-                    } else if (currentLoadState == XaeroReflectionHelper.LOAD_STATE_CLEARED) {
-                        XaeroMapDataHandler.getPreUnloadedRegionsInternal().add(coord);
-                        boolean success = XaeroReflectionHelper.setLoadState(region, XaeroReflectionHelper.LOAD_STATE_UNLOADED);
-                        if (success) {
-                            count++;
-                        }
-                    }
-                }
-            } else if (XaeroReflectionHelper.isBranchLeveledRegion(region)) {
-                Object childrenArray = XaeroReflectionHelper.getBranchChildren(region);
-
-                if (childrenArray != null && childrenArray.getClass().isArray()) {
-                    int outerLength = Array.getLength(childrenArray);
-                    for (int i = 0; i < outerLength; i++) {
-                        Object innerArray = Array.get(childrenArray, i);
-                        if (innerArray != null && innerArray.getClass().isArray()) {
-                            int innerLength = Array.getLength(innerArray);
-                            for (int j = 0; j < innerLength; j++) {
-                                Object child = Array.get(innerArray, j);
-                                if (child != null) {
-                                    count += selectiveResetLeafRegions(child, regionsToReset, caveLayer);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error in selective reset: {}", e.getMessage(), e);
-        }
-        return count;
     }
 
     private static String cleanServerIP(String rawIP) {
@@ -306,17 +181,5 @@ public class XaeroMapIntegrator {
             LOGGER.debug("Failed to get Xaero world map dir: {}", e.getMessage());
         }
         return null;
-    }
-
-    public static String getCurrentServerDirectoryName() {
-        try {
-            Path serverDir = getCurrentServerDirectory();
-            if (serverDir != null) {
-                return serverDir.getFileName().toString();
-            }
-        } catch (Exception e) {
-            LOGGER.debug("Failed to get server directory name: {}", e.getMessage());
-        }
-        return "Multiplayer_Server";
     }
 }

@@ -194,9 +194,6 @@ public class ClientTimestampCache {
         return SYNC_STATE_IN_PROGRESS.equals(syncState);
     }
 
-    public Set<String> getSyncDimensions() {
-        return new HashSet<>(syncDimensions);
-    }
 
     public void update(String relativePath, long timestampSeconds, String hash) {
         cache.put(relativePath, new ClientMeta(timestampSeconds, hash));
@@ -208,42 +205,14 @@ public class ClientTimestampCache {
         }
     }
 
-    public ClientMeta get(String relativePath) {
-        return cache.get(relativePath);
-    }
 
     public Map<String, ClientMeta> getAll() {
         return Collections.unmodifiableMap(cache);
     }
 
-    public void clear() {
-        cache.clear();
-        syncState = null;
-        syncDimensions.clear();
-        syncCommand = "";
-        try {
-            Files.deleteIfExists(cacheFile);
-            LOGGER.info("Cleared cache");
-        } catch (IOException e) {
-            LOGGER.warn("Failed to delete cache file: {}", e.getMessage());
-        }
-    }
 
-    public boolean hasDimensionSynced(String xaeroDim) {
-        String prefix = xaeroDim + "/";
-        for (String key : cache.keySet()) {
-            if (key.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     public boolean cacheFileExists() {
         return Files.exists(cacheFile);
-    }
-
-    public Path getCacheFile() {
-        return cacheFile;
     }
 }

@@ -475,10 +475,6 @@ public class ConversionOrchestrator {
         genCache.save();
     }
 
-    private static Path getOutputDir(Path baseOutputDir, int caveLayer) {
-        return ModConfig.outputDir(baseOutputDir, caveLayer);
-    }
-
     private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
         int total = 0;
         for (DimensionRegions dimRegions : allRegions) {
@@ -853,11 +849,7 @@ public class ConversionOrchestrator {
 
     public static int getUpdatedCount() { return convertedCountAtomic.get(); }
 
-    public static int getSkippedCount() { return skippedCount.get(); }
-
     public static String getStatus() { return currentStatus; }
-
-    public static ResourceKey<Level> getCurrentDimension() { return currentDimension; }
 
     public static List<String> getCompletedDimensions() { return completedDimensions; }
 

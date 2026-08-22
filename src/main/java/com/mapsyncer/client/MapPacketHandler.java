@@ -5,7 +5,6 @@ import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.client.ClientSyncSession;
@@ -69,25 +68,11 @@ public class MapPacketHandler {
                 || pendingWriteApplyCallbacks.get() > 0;
     }
 
-    public static boolean isBackgroundReloadPending() {
-        return session.phase() == ClientSyncSession.SyncPhase.DRAINING_RELOAD || !pendingRegionLoads.isEmpty();
-    }
-
     private static volatile boolean serverInstalled = false;
 
     private static volatile String serverVersion = "";
 
     private static volatile Path lastMwDir = null;
-
-    private static volatile long lastSyncCompleteTs = 0;
-
-    private static volatile int lastProgressProcessed = -1;
-
-    private static volatile int lastProgressTotal = -1;
-
-    private static volatile long lastProgressTime = 0;
-
-    private static final long PROGRESS_DEDUP_MS = 100;
 
     private static final Set<XaeroMapDataHandler.RegionCoord> updatedRegionCoords = ConcurrentHashMap.newKeySet();
 
@@ -261,8 +246,6 @@ public class MapPacketHandler {
         handler.registerServerInstalledHandler(MapPacketHandler::onServerInstalled);
 
         handler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
-
-        handler.registerSyncProgressHandler(MapPacketHandler::handleProgressUpdate);
 
         handler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
 
@@ -514,8 +497,6 @@ public class MapPacketHandler {
 
         int totalReceived = updatedRegionCoords.size();
         LOGGER.info("同步完成: 总计 {} 个区域已处理", totalReceived);
-
-        lastSyncCompleteTs = System.currentTimeMillis();
 
         ClientSyncSession.SyncOutcome finalOutcome = syncFailed > 0 || session.reflectionFailed()
                 ? ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS
@@ -799,41 +780,6 @@ public class MapPacketHandler {
         SyncProgressTracker.finishUptodate();
     }
 
-    private static void handleProgressUpdate(SyncProgressPayload payload, PayloadContext context) {
-        context.enqueueWork(() -> {
-            String status = payload.status();
-            if (status != null && status.startsWith("aborted")) {
-                SyncProgressTracker.cancelTracking();
-                MapPacketHandler.clearSyncData();
-                Minecraft mc = Minecraft.getInstance();
-                if (mc.player != null) {
-                    if (status.contains("timeout")) {
-                        mc.player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.server_timeout"), false);
-                    } else {
-                        mc.player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.cancelled"), false);
-                    }
-                }
-                return;
-            }
-
-            if (AutoSyncManager.isActive()) return;
-
-            int processed = payload.processed();
-            int total = payload.total();
-            long now = System.currentTimeMillis();
-            if (processed == lastProgressProcessed && total == lastProgressTotal
-                    && now - lastProgressTime < PROGRESS_DEDUP_MS) {
-                return;
-            }
-            lastProgressProcessed = processed;
-            lastProgressTotal = total;
-            lastProgressTime = now;
-            SyncProgressTracker.update(processed, total, payload.status());
-        });
-    }
-
     private static void resumeChunkUpdatesIfIdle() {
         if (!pendingRegionLoads.isEmpty()) {
             return;
@@ -1014,29 +960,6 @@ public class MapPacketHandler {
             triggerSingleRegionLoad(coord, pending.caveLayer(), false);
         }
         finishDeferredReloadCleanupIfDone();
-    }
-
-    public static boolean hasPendingLoads() {
-        return !pendingRegionLoads.isEmpty();
-    }
-
-    public static void prepareSyncForDimension(String targetDimension) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.level == null) {
-            return;
-        }
-
-        String currentXaeroDim = DimensionPathMapping.getInstance().toXaeroDimension(
-                mc.level.dimension().location().toString());
-
-        if (targetDimension.equals(currentXaeroDim)) {
-            LOGGER.info("Syncing current dimension {}, unloading view distance regions", targetDimension);
-            int unloaded = XaeroMapIntegrator.unloadViewDistanceRegions();
-            if (unloaded > 0 && mc.player != null) {
-                mc.player.displayClientMessage(
-                        ChatUtils.desc("mapsyncer.sync.unloading_regions", unloaded), false);
-            }
-        }
     }
 
     private static void finishJoinAutoSyncIfActive() {

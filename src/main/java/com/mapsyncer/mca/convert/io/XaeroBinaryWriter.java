@@ -9,7 +9,6 @@ import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,17 +41,6 @@ public final class XaeroBinaryWriter {
                 TreeMap<String, String> sorted = new TreeMap<>(s.properties());
                 return new PaletteKey(s.name(), List.copyOf(sorted.entrySet()));
             });
-        }
-
-        public BlockState toBlockState() {
-            if (properties.isEmpty()) {
-                return new BlockState(name, Map.of());
-            }
-            var map = new java.util.LinkedHashMap<String, String>();
-            for (Map.Entry<String, String> e : properties) {
-                map.put(e.getKey(), e.getValue());
-            }
-            return new BlockState(name, Collections.unmodifiableMap(map));
         }
     }
 

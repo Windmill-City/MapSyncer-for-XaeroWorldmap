@@ -11,14 +11,6 @@ public final class XaeroReflectionHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroReflectionHelper.class);
 
-    public static final byte LOAD_STATE_UNLOADED = 0;
-
-    public static final byte LOAD_STATE_LOADING = 1;
-
-    public static final byte LOAD_STATE_LOADED = 2;
-
-    public static final byte LOAD_STATE_PROCESSING = 3;
-
     public static final byte LOAD_STATE_CLEARED = 4;
 
     private static volatile boolean initialized = false;
@@ -28,12 +20,6 @@ public final class XaeroReflectionHelper {
     private static Class<?> mapSaveLoadClass;
     private static Class<?> mapRegionClass;
     private static Class<?> leveledRegionClass;
-    private static Class<?> mapWorldClass;
-    private static Class<?> mapDimensionClass;
-    private static Class<?> layeredRegionManagerClass;
-    private static Class<?> mapLayerClass;
-    private static Class<?> leveledRegionManagerClass;
-    private static Class<?> branchLeveledRegionClass;
 
     private static Method getCurrentSessionMethod;
     private static Method getMapProcessorMethod;
@@ -41,24 +27,14 @@ public final class XaeroReflectionHelper {
     private static Method getLeafMapRegionMethod;
     private static Method requestLoadMethod;
     private static Method cancelRefreshMethod;
-    private static Method isRefreshingMethod;
     private static Method setHasHadTerrainMethod;
     private static Method setRegionDetectionCompleteMethod;
-    private static Method getMapWorldMethod;
-    private static Method getCurrentDimensionMethod;
-    private static Method getLayeredMapRegionsMethod;
-    private static Method getLayerMethod;
-    private static Method getMapRegionsMethod;
 
     private static Field loadStateField;
     private static Field shouldCacheField;
     private static Field worldIdField;
     private static Field dimIdField;
     private static Field mwIdField;
-    private static Field regionXField;
-    private static Field regionZField;
-    private static Field regionTextureMapField;
-    private static Field childrenField;
 
     private static Object cachedSession;
     private static Object cachedMapProcessor;
@@ -78,13 +54,7 @@ public final class XaeroReflectionHelper {
             mapSaveLoadClass = Class.forName("xaero.map.file.MapSaveLoad");
             mapRegionClass = Class.forName("xaero.map.region.MapRegion");
             leveledRegionClass = Class.forName("xaero.map.region.LeveledRegion");
-            mapWorldClass = Class.forName("xaero.map.world.MapWorld");
-            mapDimensionClass = Class.forName("xaero.map.world.MapDimension");
-            layeredRegionManagerClass = Class.forName("xaero.map.region.LayeredRegionManager");
-            mapLayerClass = Class.forName("xaero.map.region.MapLayer");
-            leveledRegionManagerClass = Class.forName("xaero.map.region.LeveledRegionManager");
-            branchLeveledRegionClass = Class.forName("xaero.map.region.BranchLeveledRegion");
-            LOGGER.info("成功加载 {} 个 Xaero 类", 11);
+            LOGGER.info("成功加载 {} 个 Xaero 类", 5);
 
             LOGGER.debug("获取并缓存反射方法...");
             getCurrentSessionMethod = worldMapSessionClass.getMethod("getCurrentSession");
@@ -93,19 +63,9 @@ public final class XaeroReflectionHelper {
             getLeafMapRegionMethod = mapProcessorClass.getMethod("getLeafMapRegion", int.class, int.class, int.class, boolean.class);
             requestLoadMethod = mapSaveLoadClass.getMethod("requestLoad", mapRegionClass, String.class, boolean.class);
             cancelRefreshMethod = mapRegionClass.getMethod("cancelRefresh", mapProcessorClass);
-            try {
-                isRefreshingMethod = mapRegionClass.getMethod("isRefreshing");
-            } catch (NoSuchMethodException ignored) {
-                isRefreshingMethod = null;
-            }
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
             setRegionDetectionCompleteMethod = mapSaveLoadClass.getMethod("setRegionDetectionComplete", boolean.class);
-            getMapWorldMethod = mapProcessorClass.getMethod("getMapWorld");
-            getCurrentDimensionMethod = mapWorldClass.getMethod("getCurrentDimension");
-            getLayeredMapRegionsMethod = mapDimensionClass.getMethod("getLayeredMapRegions");
-            getLayerMethod = layeredRegionManagerClass.getMethod("getLayer", int.class);
-            getMapRegionsMethod = mapLayerClass.getMethod("getMapRegions");
-            LOGGER.info("成功缓存 {} 个反射方法", 13);
+            LOGGER.info("成功缓存 {} 个反射方法", 8);
 
             LOGGER.debug("获取并缓存反射字段...");
             loadStateField = mapRegionClass.getDeclaredField("loadState");
@@ -118,15 +78,7 @@ public final class XaeroReflectionHelper {
             dimIdField.setAccessible(true);
             mwIdField = leveledRegionClass.getDeclaredField("mwId");
             mwIdField.setAccessible(true);
-            regionXField = leveledRegionClass.getDeclaredField("regionX");
-            regionXField.setAccessible(true);
-            regionZField = leveledRegionClass.getDeclaredField("regionZ");
-            regionZField.setAccessible(true);
-            regionTextureMapField = leveledRegionManagerClass.getDeclaredField("regionTextureMap");
-            regionTextureMapField.setAccessible(true);
-            childrenField = branchLeveledRegionClass.getDeclaredField("children");
-            childrenField.setAccessible(true);
-            LOGGER.info("成功缓存 {} 个反射字段", 9);
+            LOGGER.info("成功缓存 {} 个反射字段", 5);
 
             initialized = true;
             LOGGER.info("Xaero reflection helper initialized successfully");
@@ -384,147 +336,5 @@ public final class XaeroReflectionHelper {
                 step1, step2, step3);
             return false;
         }
-    }
-
-    public static Object getMapWorld() {
-        if (!initialized || getMapWorldMethod == null) return null;
-
-        try {
-            Object processor = getMapProcessor();
-            if (processor == null) return null;
-            return getMapWorldMethod.invoke(processor);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get MapWorld", e);
-            return null;
-        }
-    }
-
-    public static Object getCurrentMapDimension() {
-        if (!initialized || getCurrentDimensionMethod == null) return null;
-
-        try {
-            Object mapWorld = getMapWorld();
-            if (mapWorld == null) return null;
-            return getCurrentDimensionMethod.invoke(mapWorld);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get current dimension", e);
-            return null;
-        }
-    }
-
-    public static Object getLayeredMapRegions() {
-        if (!initialized || getLayeredMapRegionsMethod == null) return null;
-
-        try {
-            Object dimension = getCurrentMapDimension();
-            if (dimension == null) return null;
-            return getLayeredMapRegionsMethod.invoke(dimension);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get LayeredRegionManager", e);
-            return null;
-        }
-    }
-
-    public static Object getMapLayer(int layer) {
-        if (!initialized || getLayerMethod == null) return null;
-
-        try {
-            Object layeredManager = getLayeredMapRegions();
-            if (layeredManager == null) return null;
-            return getLayerMethod.invoke(layeredManager, layer);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get MapLayer for layer {}", layer, e);
-            return null;
-        }
-    }
-
-    public static Object getLeveledRegionManager(int layer) {
-        if (!initialized || getMapRegionsMethod == null) return null;
-
-        try {
-            Object mapLayer = getMapLayer(layer);
-            if (mapLayer == null) return null;
-            return getMapRegionsMethod.invoke(mapLayer);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get LeveledRegionManager for layer {}", layer, e);
-            return null;
-        }
-    }
-
-    public static Object getRegionTextureMap(int layer) {
-        if (!initialized || regionTextureMapField == null) return null;
-
-        try {
-            Object leveledManager = getLeveledRegionManager(layer);
-            if (leveledManager == null) return null;
-            return regionTextureMapField.get(leveledManager);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get regionTextureMap for layer {}", layer, e);
-            return null;
-        }
-    }
-
-    public static int getRegionX(Object mapRegion) {
-        if (!initialized || regionXField == null) return -1;
-
-        try {
-            return regionXField.getInt(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get regionX", e);
-            return -1;
-        }
-    }
-
-    public static int getRegionZ(Object mapRegion) {
-        if (!initialized || regionZField == null) return -1;
-
-        try {
-            return regionZField.getInt(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get regionZ", e);
-            return -1;
-        }
-    }
-
-    public static byte getLoadState(Object mapRegion) {
-        if (!initialized || loadStateField == null) return -1;
-
-        try {
-            return loadStateField.getByte(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get loadState", e);
-            return -1;
-        }
-    }
-
-    public static boolean isRefreshing(Object mapRegion) {
-        if (!initialized || isRefreshingMethod == null || mapRegion == null) {
-            return false;
-        }
-        try {
-            return (boolean) isRefreshingMethod.invoke(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get isRefreshing", e);
-            return false;
-        }
-    }
-
-    public static Object getBranchChildren(Object branchRegion) {
-        if (!initialized || childrenField == null) return null;
-
-        try {
-            return childrenField.get(branchRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get children", e);
-            return null;
-        }
-    }
-
-    public static boolean isMapRegion(Object obj) {
-        return obj != null && obj.getClass() == mapRegionClass;
-    }
-
-    public static boolean isBranchLeveledRegion(Object obj) {
-        return obj != null && obj.getClass() == branchLeveledRegionClass;
     }
 }

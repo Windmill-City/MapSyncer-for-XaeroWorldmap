@@ -1,15 +1,12 @@
 package com.mapsyncer.network.payload;
 
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.network.NetworkHandler;
 import net.minecraft.network.FriendlyByteBuf;
 
 public record ServerInstalledPayload(
         String version,
         long lastGenerationTimestamp,
         UpdateMode updateMode) {
-
-    public static final String ID = NetworkHandler.SERVER_INSTALLED_ID;
 
     public static void write(FriendlyByteBuf buf, ServerInstalledPayload payload) {
         buf.writeUtf(payload.version());

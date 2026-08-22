@@ -7,7 +7,4 @@ public record DimensionScanConfig(
     LayerPlan layerPlan,
     DimensionTypeInfo dimTypeInfo
 ) {
-    public DimensionScanConfig(String dimension, LayerPlan layerPlan) {
-        this(dimension, layerPlan, null);
-    }
 }

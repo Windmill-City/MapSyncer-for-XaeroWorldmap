@@ -23,7 +23,6 @@ public class AutoSyncManager {
             return t;
         });
 
-    private static volatile long lastAutoSyncTimeMs = 0;
     private static volatile ScheduledFuture<?> pendingTask;
     private static volatile boolean active = false;
 
@@ -125,12 +124,8 @@ public class AutoSyncManager {
 
     public static void markStarted() {
         active = true;
-        lastAutoSyncTimeMs = System.currentTimeMillis();
     }
 
-    public static void touchSyncTime() {
-        lastAutoSyncTimeMs = System.currentTimeMillis();
-    }
 
     public static void markComplete() {
         active = false;
@@ -152,11 +147,6 @@ public class AutoSyncManager {
         }
     }
 
-    public static void shutdown() {
-        cancel();
-        resetServerPolicy();
-        EXECUTOR.shutdownNow();
-    }
 
     private static long getClientLastSyncTimestamp() {
         try {

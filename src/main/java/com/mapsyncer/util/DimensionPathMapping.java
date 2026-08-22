@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,14 +64,6 @@ public class DimensionPathMapping {
 
         LOGGER.info("DimensionPathMapping version set to: {}, use new format for vanilla: {}",
                 majorVersion, useNewFormatForVanilla);
-    }
-
-    public int getMajorVersion() {
-        return majorVersion;
-    }
-
-    public boolean isUseNewFormatForVanilla() {
-        return useNewFormatForVanilla;
     }
 
     public static DimensionPathMapping getInstance() {
@@ -173,62 +164,6 @@ public class DimensionPathMapping {
         return worldRoot.resolve(folder).resolve("region");
     }
 
-    public String getFolderName(String dimPath) {
-        String normalized = normalizeDimPath(dimPath);
-
-        String cached = pathToFolder.get(normalized);
-        if (cached != null) {
-            return cached;
-        }
-
-        if (useNewFormatForVanilla) {
-            String newFormat = buildNewFormatPath(normalized);
-            if (newFormat != null) {
-                return newFormat;
-            }
-        }
-
-        if (isVanillaDimension(normalized)) {
-            String legacyFolder = VANILLA_LEGACY_FORMAT.get(normalized);
-            return legacyFolder != null ? legacyFolder : ".";
-        }
-
-        String newFormat = buildNewFormatPath(normalized);
-        if (newFormat != null) {
-            return newFormat;
-        }
-
-        return ".";
-    }
-
-    public String getPathFromFolder(String folderName) {
-
-        for (Map.Entry<String, String> entry : pathToFolder.entrySet()) {
-            if (entry.getValue().equals(folderName)) {
-                return entry.getKey();
-            }
-        }
-
-        if (folderName.startsWith("dimensions/")) {
-            String remaining = folderName.substring("dimensions/".length());
-            String[] parts = remaining.split("/");
-            if (parts.length == 2) {
-                return parts[0] + ":" + parts[1];
-            }
-            return remaining;
-        }
-
-        if (".".equals(folderName) || "region".equals(folderName)) return "overworld";
-        if ("DIM-1".equals(folderName)) return "the_nether";
-        if ("DIM1".equals(folderName)) return "the_end";
-
-        if (folderName.contains("$")) {
-            return folderName.replace('$', ':');
-        }
-
-        return folderName;
-    }
-
     public String getXaeroFolder(String dimPath) {
         String normalized = normalizeDimPath(dimPath);
 
@@ -250,25 +185,6 @@ public class DimensionPathMapping {
         }
 
         return normalized;
-    }
-
-    public String getPathFromXaero(String xaeroFolder) {
-
-        for (Map.Entry<String, String> entry : pathToXaero.entrySet()) {
-            if (entry.getValue().equals(xaeroFolder)) {
-                return entry.getKey();
-            }
-        }
-
-        if ("null".equals(xaeroFolder)) return "overworld";
-        if ("DIM-1".equals(xaeroFolder)) return "the_nether";
-        if ("DIM1".equals(xaeroFolder)) return "the_end";
-
-        if (xaeroFolder.contains("$")) {
-            return xaeroFolder.replace('$', ':');
-        }
-
-        return xaeroFolder;
     }
 
     public String toServerDimension(String clientDim) {
@@ -334,27 +250,9 @@ public class DimensionPathMapping {
         return dimPath;
     }
 
-    public boolean isOverworld(String dimPath) {
-        String normalized = normalizeDimPath(dimPath);
-        return "overworld".equals(normalized) || ".".equals(normalized);
-    }
-
     public boolean isNether(String dimPath) {
         String normalized = normalizeDimPath(dimPath);
         return "the_nether".equals(normalized) || "DIM-1".equals(normalized);
-    }
-
-    public boolean isEnd(String dimPath) {
-        String normalized = normalizeDimPath(dimPath);
-        return "the_end".equals(normalized) || "DIM1".equals(normalized);
-    }
-
-    public String getRegionRelativePath(String dimPath) {
-        String folder = getFolderName(dimPath);
-        if (".".equals(folder)) {
-            return "region";
-        }
-        return folder + "/region";
     }
 
     public void registerMapping(String dimPath, String folderName, String xaeroFolder) {
@@ -394,32 +292,6 @@ public class DimensionPathMapping {
         }
 
         return getXaeroFolder(dimPath);
-    }
-
-    public void removeMapping(String dimPath) {
-        pathToFolder.remove(dimPath);
-        pathToXaero.remove(dimPath);
-        LOGGER.info("Removed dimension mapping for: {}", dimPath);
-    }
-
-    public void clearDetectedMappings() {
-        pathToFolder.clear();
-
-        pathToXaero.clear();
-        pathToXaero.putAll(VANILLA_XAERO_MAPPINGS);
-        LOGGER.info("Cleared all detected dimension mappings");
-    }
-
-    public Map<String, String> getAllFolderMappings() {
-        return new HashMap<>(pathToFolder);
-    }
-
-    public Map<String, String> getAllXaeroMappings() {
-        return new HashMap<>(pathToXaero);
-    }
-
-    public Path autoSearchRegionDir(Path worldRoot, String dimId) {
-        return detectRegionDir(worldRoot, dimId);
     }
 
     public int scanAndRegisterDimensions(Path worldRoot) {
@@ -493,9 +365,5 @@ public class DimensionPathMapping {
         }
 
         return pathToFolder.size();
-    }
-
-    public Map<String, String> getDetectedMappingsForConfig() {
-        return new LinkedHashMap<>(pathToFolder);
     }
 }
