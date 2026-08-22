@@ -10,10 +10,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public class MapRegionData {
+
+    public static class OverlayEntry {
+        public final BlockState blockState;
+        public final int y;
+        public int opacity;
+        public final int light;
+
+        public OverlayEntry(BlockState blockState, int y, int opacity, int light) {
+            this.blockState = blockState;
+            this.y = y;
+            this.opacity = opacity;
+            this.light = light;
+        }
+
+        public String blockName() {
+            return blockState.name();
+        }
+    }
+
     public final BlockState[][] blockStates;
     public final int[][] topBlockY;
     public final String[][] biomeNames;

@@ -1,7 +1,7 @@
 package com.mapsyncer.util;
 
-import com.mapsyncer.config.CacheConfig;
-import com.mapsyncer.server.PlaceholderBlockGetter;
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.server.BlockPropertyResolver.PlaceholderBlockGetter;
 import com.mapsyncer.platform.PlatformManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.BlockModelShaper;
@@ -42,7 +42,7 @@ public class BlockColorMapper {
 
     private static final ConcurrentHashMap<String, Boolean> buggedBlocks = new ConcurrentHashMap<>();
 
-    private static final int MAX_CACHE_SIZE = CacheConfig.MAX_BLOCK_COLOR_CACHE;
+    private static final int MAX_CACHE_SIZE = ModConfig.MAX_BLOCK_COLOR_CACHE;
 
     private static volatile boolean clearCachedColors = false;
 

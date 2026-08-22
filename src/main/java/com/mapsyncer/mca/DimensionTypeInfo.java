@@ -54,50 +54,6 @@ public record DimensionTypeInfo(
         }
     }
 
-    public byte getDefaultSkyLight() {
-        return hasSkylight ? (byte) 15 : (byte) 0;
-    }
-
-    public boolean isCaveDimension() {
-        return hasCeiling;
-    }
-
-    public int getRecommendedCaveStart() {
-        if (hasCeiling) {
-
-            return Math.max(minY + 32, (minY + height) / 2 - 32);
-        }
-
-        return Math.max(minY, 63);
-    }
-
-    public String toConfigString() {
-        return hasSkylight + "|" + hasCeiling + "|" + minY + "|" + height + "|" + logicalHeight;
-    }
-
-    public static DimensionTypeInfo fromConfigString(String configStr) {
-        if (configStr == null || configStr.isEmpty()) {
-            return overworld();
-        }
-
-        String[] parts = configStr.split("\\|");
-        if (parts.length < 4) {
-            return overworld();
-        }
-
-        try {
-            boolean hasSkylight = Boolean.parseBoolean(parts[0]);
-            boolean hasCeiling = Boolean.parseBoolean(parts[1]);
-            int minY = Integer.parseInt(parts[2]);
-            int height = Integer.parseInt(parts[3]);
-            int logicalHeight = parts.length > 4 ? Integer.parseInt(parts[4]) : height;
-
-            return new DimensionTypeInfo(hasSkylight, hasCeiling, minY, height, logicalHeight);
-        } catch (NumberFormatException e) {
-            return overworld();
-        }
-    }
-
     @Override
     public String toString() {
         return String.format("DimensionTypeInfo[hasSkylight=%s, hasCeiling=%s, minY=%d, height=%d, maxY=%d]",

@@ -3,27 +3,82 @@ package com.mapsyncer.mca.convert.io;
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.convert.io.XaeroBlockStateNbtWriter.PaletteKey;
 import com.mapsyncer.mca.convert.model.MapRegionData;
-import com.mapsyncer.mca.convert.model.OverlayEntry;
+import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.BLOCKS_PER_TILE;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.DEFAULT_BIOME;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.DEFAULT_BLOCK;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.MAJOR_VERSION;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.MINOR_VERSION;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.REGION_SIZE_BLOCKS;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.TILE_CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.TILES_PER_TILE_CHUNK;
+import static com.mapsyncer.mca.RegionConverterStandalone.BLOCKS_PER_TILE;
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BLOCK;
+import static com.mapsyncer.mca.RegionConverterStandalone.MAJOR_VERSION;
+import static com.mapsyncer.mca.RegionConverterStandalone.MINOR_VERSION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverterStandalone.TILE_CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverterStandalone.TILES_PER_TILE_CHUNK;
 
 public final class XaeroBinaryWriter {
+
+    public static final BlockState AIR = new BlockState("minecraft:air", Map.of());
+    public static final BlockState WATER = new BlockState("minecraft:water", Map.of());
+
+    private static final ConcurrentHashMap<BlockState, PaletteKey> PALETTE_KEY_CACHE = new ConcurrentHashMap<>();
+
+    public record PaletteKey(String name, List<Map.Entry<String, String>> properties) {
+
+        public static PaletteKey from(BlockState state) {
+            if (state == null) {
+                return from(AIR);
+            }
+            return PALETTE_KEY_CACHE.computeIfAbsent(state, s -> {
+                TreeMap<String, String> sorted = new TreeMap<>(s.properties());
+                return new PaletteKey(s.name(), List.copyOf(sorted.entrySet()));
+            });
+        }
+
+        public BlockState toBlockState() {
+            if (properties.isEmpty()) {
+                return new BlockState(name, Map.of());
+            }
+            var map = new java.util.LinkedHashMap<String, String>();
+            for (Map.Entry<String, String> e : properties) {
+                map.put(e.getKey(), e.getValue());
+            }
+            return new BlockState(name, Collections.unmodifiableMap(map));
+        }
+    }
+
+    private static void writeBlockState(BlockState state, DataOutputStream dos) throws IOException {
+        BlockState effective = state != null ? state : AIR;
+        dos.writeByte(10);
+        dos.writeShort(0);
+
+        dos.writeByte(8);
+        dos.writeUTF("Name");
+        dos.writeUTF(effective.name());
+
+        if (!effective.properties().isEmpty()) {
+            dos.writeByte(10);
+            dos.writeUTF("Properties");
+            TreeMap<String, String> sorted = new TreeMap<>(effective.properties());
+            for (Map.Entry<String, String> entry : sorted.entrySet()) {
+                dos.writeByte(8);
+                dos.writeUTF(entry.getKey());
+                dos.writeUTF(entry.getValue());
+            }
+            dos.writeByte(0);
+        }
+
+        dos.writeByte(0);
+    }
 
     private XaeroBinaryWriter() {}
 
@@ -89,7 +144,7 @@ public final class XaeroBinaryWriter {
                                             int minBuildHeight,
                                             Map<PaletteKey, Integer> blockPalette,
                                             Map<String, Integer> biomePalette) throws IOException {
-        BlockState air = XaeroBlockStateNbtWriter.AIR;
+        BlockState air = AIR;
         PaletteKey paletteKey = PaletteKey.from(air);
         int emptyHeight = minBuildHeight;
         String biomeName = data.biomeNames[rx][rz];
@@ -116,7 +171,7 @@ public final class XaeroBinaryWriter {
                                          int minBuildHeight,
                                          Map<PaletteKey, Integer> blockPalette,
                                          Map<String, Integer> biomePalette) throws IOException {
-        BlockState air = XaeroBlockStateNbtWriter.AIR;
+        BlockState air = AIR;
         PaletteKey paletteKey = PaletteKey.from(air);
         int emptyHeight = data.heightMap[rx][rz];
         String biomeName = data.biomeNames[rx][rz];
@@ -230,7 +285,7 @@ public final class XaeroBinaryWriter {
         if (blockPalette.containsKey(paletteKey)) {
             dos.writeInt(blockPalette.get(paletteKey));
         } else {
-            XaeroBlockStateNbtWriter.writeBlockState(blockState, dos);
+            writeBlockState(blockState, dos);
             blockPalette.put(paletteKey, blockPalette.size());
         }
     }

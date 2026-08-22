@@ -1,9 +1,9 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.CacheConfig;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.HashUtils;
 import com.mapsyncer.util.PropertiesCacheIO;
-import com.mapsyncer.util.PropertiesCacheIO.TimestampHashEntry;
+import com.mapsyncer.util.ClientMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,13 +20,13 @@ public class GenerationCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenerationCache.class);
 
-    private static final int MAX_CACHE_REGIONS = CacheConfig.MAX_REGION_META_CACHE;
+    private static final int MAX_CACHE_REGIONS = ModConfig.MAX_REGION_META_CACHE;
 
     private static volatile GenerationCache instance;
 
     private final Path cacheFile;
 
-    private final Map<String, TimestampHashEntry> cache = new ConcurrentHashMap<>();
+    private final Map<String, ClientMeta> cache = new ConcurrentHashMap<>();
 
     private GenerationCache(Path cacheDir) {
         this.cacheFile = cacheDir.resolve("generation_cache.properties");
@@ -46,17 +46,17 @@ public class GenerationCache {
     }
 
     private void load() {
-        Map<String, TimestampHashEntry> loaded = PropertiesCacheIO.load(cacheFile, PropertiesCacheIO::parseTimestampHash);
+        Map<String, ClientMeta> loaded = PropertiesCacheIO.load(cacheFile, PropertiesCacheIO::parseTimestampHash);
         cache.putAll(loaded);
     }
 
     public void save() {
-        PropertiesCacheIO.save(cacheFile, new HashMap<>(cache), TimestampHashEntry::format,
+        PropertiesCacheIO.save(cacheFile, new HashMap<>(cache), ClientMeta::format,
             "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds:hash\nHash is CRC32 of file content");
     }
 
     public void update(String relativePath, long timestampSeconds, String hash) {
-        cache.put(relativePath, new TimestampHashEntry(timestampSeconds, hash));
+        cache.put(relativePath, new ClientMeta(timestampSeconds, hash));
         trimIfOverLimit();
     }
 
@@ -80,43 +80,16 @@ public class GenerationCache {
 
     public void updateWithHash(String relativePath, Path filePath, long timestampSeconds) {
         String hash = HashUtils.computeFileHash(filePath);
-        cache.put(relativePath, new TimestampHashEntry(timestampSeconds, hash));
+        cache.put(relativePath, new ClientMeta(timestampSeconds, hash));
         LOGGER.debug("Updated cache for {}: ts={}, hash={}", relativePath, timestampSeconds, hash);
     }
 
-    public TimestampHashEntry getMeta(String relativePath) {
+    public ClientMeta getMeta(String relativePath) {
         return cache.get(relativePath);
     }
 
-    public Map<String, TimestampHashEntry> getAll() {
+    public Map<String, ClientMeta> getAll() {
         return Collections.unmodifiableMap(cache);
-    }
-
-    public boolean needsSync(String relativePath, TimestampHashEntry clientMeta) {
-        TimestampHashEntry serverMeta = cache.get(relativePath);
-
-        if (serverMeta == null) {
-            return false;
-        }
-
-        if (clientMeta == null) {
-            return true;
-        }
-
-        if (serverMeta.hash().equals(clientMeta.hash())) {
-            LOGGER.debug("Skip sync {}: hash match", relativePath);
-            return false;
-        }
-
-        if (clientMeta.timestampSeconds() >= serverMeta.timestampSeconds()) {
-            LOGGER.debug("Skip sync {}: client ts {} >= server ts {}",
-                    relativePath, clientMeta.timestampSeconds(), serverMeta.timestampSeconds());
-            return false;
-        }
-
-        LOGGER.debug("Need sync {}: hash mismatch (client={}, server={})",
-                relativePath, clientMeta.hash(), serverMeta.hash());
-        return true;
     }
 
     public void remove(String relativePath) {
@@ -189,7 +162,7 @@ public class GenerationCache {
 
     public long getLastGenerationTime() {
         return cache.values().stream()
-            .mapToLong(TimestampHashEntry::timestampSeconds)
+            .mapToLong(ClientMeta::timestampSeconds)
             .max().orElse(0);
     }
 

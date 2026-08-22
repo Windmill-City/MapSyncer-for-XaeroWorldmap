@@ -1,9 +1,30 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.sync.SyncOutcome;
-import com.mapsyncer.sync.SyncPhase;
-
 public final class ClientSyncSession {
+
+    public enum SyncPhase {
+        IDLE,
+        RECEIVING,
+        DRAINING_RELOAD
+    }
+
+    public enum SyncOutcome {
+        NONE,
+        SUCCESS,
+        PARTIAL_SUCCESS,
+        SILENT_SKIP,
+        HARD_FAIL;
+
+        public static SyncOutcome fromServerStatus(String status) {
+            return switch (status) {
+                case "no_cache", "dim_not_available" -> HARD_FAIL;
+                case "uptodate" -> SILENT_SKIP;
+                case "partial" -> PARTIAL_SUCCESS;
+                case "ok" -> SUCCESS;
+                default -> NONE;
+            };
+        }
+    }
 
     private static final ClientSyncSession INSTANCE = new ClientSyncSession();
 

@@ -2,8 +2,8 @@ package com.mapsyncer.mca.convert.overlay;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
-import com.mapsyncer.mca.convert.io.XaeroBlockStateNbtWriter;
-import com.mapsyncer.mca.convert.model.OverlayEntry;
+import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
+import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +26,8 @@ public final class OverlayAccumulator {
         }
         opacityToAdd = normalizeOpacity(blockState.name(), opacityToAdd, blockLookup);
         OverlayEntry last = list.isEmpty() ? null : list.get(list.size() - 1);
-        if (last != null && XaeroBlockStateNbtWriter.PaletteKey.from(last.blockState)
-                .equals(XaeroBlockStateNbtWriter.PaletteKey.from(blockState))) {
+        if (last != null && XaeroBinaryWriter.PaletteKey.from(last.blockState)
+                .equals(XaeroBinaryWriter.PaletteKey.from(blockState))) {
             last.opacity = Math.min(15, last.opacity + opacityToAdd);
         } else {
             list.add(new OverlayEntry(blockState, y, opacityToAdd, light));

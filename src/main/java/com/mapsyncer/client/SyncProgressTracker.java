@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.ClientMessageHelper;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -120,10 +120,10 @@ public class SyncProgressTracker {
         if (mc.player != null) {
             if (AutoSyncManager.isPeriodicSync()) {
                 AutoSyncManager.clearPeriodicSync();
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.autosync.periodic.complete", count, elapsed));
             } else if (!AutoSyncManager.isActive()) {
-                ClientMessageHelper.sendChatMessage(ChatUtils.success("mapsyncer.sync.completed", count, elapsed));
+                ChatUtils.sendChatMessage(ChatUtils.success("mapsyncer.sync.completed", count, elapsed));
             }
         }
     }
@@ -136,7 +136,7 @@ public class SyncProgressTracker {
             AutoSyncManager.clearPeriodicSync();
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null) {
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.autosync.periodic.uptodate"));
             }
         }
@@ -195,17 +195,17 @@ public class SyncProgressTracker {
             if (scanTotal > 0) {
                 int percent = (done * 100) / scanTotal;
                 if (AutoSyncManager.isPeriodicSync()) {
-                    ClientMessageHelper.sendOverlayMessage(
+                    ChatUtils.sendOverlayMessage(
                             ChatUtils.message("mapsyncer.autosync.periodic.hash_progress", done, scanTotal, percent));
                 } else {
-                    ClientMessageHelper.sendOverlayMessage(
+                    ChatUtils.sendOverlayMessage(
                             ChatUtils.message("mapsyncer.sync.hash_progress", done, scanTotal, percent));
                 }
             } else if (AutoSyncManager.isPeriodicSync()) {
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.autosync.periodic.hash_computing"));
             } else {
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.sync.hash_computing"));
             }
             return;
@@ -219,14 +219,14 @@ public class SyncProgressTracker {
         if (currentTotal > 0) {
             int percent = (currentProcessed * 100) / currentTotal;
             if (AutoSyncManager.isPeriodicSync()) {
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.autosync.periodic.progress", currentProcessed, currentTotal, percent));
             } else {
-                ClientMessageHelper.sendOverlayMessage(
+                ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.sync.progress", currentProcessed, currentTotal, percent));
             }
         } else {
-            ClientMessageHelper.sendOverlayMessage(
+            ChatUtils.sendOverlayMessage(
                     ChatUtils.prefix().append(Component.literal(currentStatus)));
         }
     }
@@ -251,8 +251,8 @@ public class SyncProgressTracker {
                         if (!tracking || receivedFirstResponse || mc.player == null) {
                             return;
                         }
-                        if (!MapPacketReceiver.isServerInstalled()) {
-                            ClientMessageHelper.sendChatMessage(ChatUtils.error("mapsyncer.sync.server_not_installed"));
+                        if (!MapPacketHandler.isServerInstalled()) {
+                            ChatUtils.sendChatMessage(ChatUtils.error("mapsyncer.sync.server_not_installed"));
                             cancelTracking();
                         }
                     });

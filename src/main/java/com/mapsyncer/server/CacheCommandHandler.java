@@ -1,17 +1,26 @@
 package com.mapsyncer.server;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.platform.UpdateMode;
 import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
 import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.DimensionApiHelper;
+import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.ModLogConfig;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +31,216 @@ import java.util.function.Consumer;
 public class CacheCommandHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CacheCommandHandler.class);
+
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher, String prefix) {
+        dispatcher.register(Commands.literal(prefix)
+                .requires(ApiHelper.admin())
+                .executes(ctx -> showHelp(ctx, prefix))
+                .then(Commands.literal("generate")
+                        .executes(CacheCommandHandler::generateAll)
+                        .then(Commands.argument("dimension", DimensionArgument.dimension())
+                                .executes(CacheCommandHandler::generateDimension)
+                                .then(Commands.literal("--force")
+                                        .executes(CacheCommandHandler::generateDimensionForce))
+                                .then(Commands.argument("x", IntegerArgumentType.integer())
+                                        .then(Commands.argument("z", IntegerArgumentType.integer())
+                                                .executes(CacheCommandHandler::generateSingleRegion)))))
+                .then(Commands.literal("status")
+                        .executes(CacheCommandHandler::showStatus))
+                .then(Commands.literal("incremental")
+                        .executes(CacheCommandHandler::showIncrementalMode)
+                        .then(Commands.literal("off")
+                                .executes(CacheCommandHandler::setIncrementalOff))
+                        .then(Commands.literal("tick")
+                                .executes(CacheCommandHandler::setIncrementalTick)
+                                .then(Commands.argument("interval", IntegerArgumentType.integer(2400, 72000))
+                                        .executes(CacheCommandHandler::setIncrementalTickInterval)))
+                        .then(Commands.literal("scheduled")
+                                .executes(CacheCommandHandler::setIncrementalScheduled)
+                                .then(Commands.argument("hour", IntegerArgumentType.integer(0, 23))
+                                        .executes(CacheCommandHandler::setScheduledTimeDefaultMinute)
+                                        .then(Commands.argument("minute", IntegerArgumentType.integer(0, 59))
+                                                .executes(CacheCommandHandler::setScheduledTime)))))
+                .then(Commands.literal("reloadconfig")
+                        .executes(CacheCommandHandler::reloadConfig))
+                .then(Commands.literal("help")
+                        .executes(ctx -> showHelp(ctx, prefix))));
+    }
+
+    private static int showHelp(CommandContext<CommandSourceStack> ctx, String prefix) {
+        showHelp(component -> ctx.getSource().sendSuccess(() -> component, false), prefix);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int showIncrementalMode(CommandContext<CommandSourceStack> ctx) {
+        showIncrementalMode(component -> ctx.getSource().sendSuccess(() -> component, false));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
+        if (reloadConfig(ctx.getSource().getServer())) {
+            ctx.getSource().sendSuccess(
+                    () -> ChatUtils.success("mapsyncer.command.config_reloaded"), false);
+        } else {
+            ctx.getSource().sendFailure(
+                    ChatUtils.error("mapsyncer.command.config_reload_failed"));
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int generateAll(CommandContext<CommandSourceStack> ctx) {
+        MinecraftServer server = ctx.getSource().getServer();
+        if (!generateAll(server, () -> {
+            String dimList = String.join(", ", getCompletedDimensions());
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.full_complete",
+                    getProcessedCount(),
+                    getTotalCount(),
+                    getCompletedDimensions().size(),
+                    dimList), false);
+        })) {
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_full"), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int generateDimension(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
+        ResourceKey<Level> dimension = level.dimension();
+        String dimensionId = getDimensionId(dimension);
+        String friendlyName = getFriendlyDimensionName(dimension);
+
+        if (!generateDimension(ctx.getSource().getServer(), dimensionId, () -> {
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.dim_complete",
+                    getProcessedCount(),
+                    getTotalCount(),
+                    getUpdatedCount()), false);
+        })) {
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_dim", friendlyName), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int generateDimensionForce(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
+        ResourceKey<Level> dimension = level.dimension();
+        String dimensionId = getDimensionId(dimension);
+        String friendlyName = getFriendlyDimensionName(dimension);
+
+        if (!generateDimensionForce(ctx.getSource().getServer(), dimensionId, () -> {
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.force_complete",
+                    getProcessedCount(),
+                    getTotalCount(),
+                    getUpdatedCount()), false);
+        })) {
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_force", friendlyName), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int generateSingleRegion(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
+        int x = IntegerArgumentType.getInteger(ctx, "x");
+        int z = IntegerArgumentType.getInteger(ctx, "z");
+        ResourceKey<Level> dimension = level.dimension();
+        MinecraftServer server = ctx.getSource().getServer();
+
+        if (!checkRegionExists(server, dimension, x, z)) {
+            String friendlyName = getFriendlyDimensionName(dimension);
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.region_not_found", x, z, friendlyName));
+            return 0;
+        }
+
+        String friendlyName = getFriendlyDimensionName(dimension);
+
+        if (!generateSingleRegion(server, dimension, x, z, result -> {
+            if (result == SingleRegionResult.SUCCESS) {
+                ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.region_converted"), false);
+            } else if (result == SingleRegionResult.CONVERSION_FAILED) {
+                ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.region_conversion_failed", x, z));
+            }
+        })) {
+            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.command.generating_region", x, z, friendlyName), false);
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int showStatus(CommandContext<CommandSourceStack> ctx) {
+        ctx.getSource().sendSuccess(CacheCommandHandler::generationStatusMessage, false);
+        ctx.getSource().sendSuccess(CacheCommandHandler::incrementalStatusMessage, false);
+
+        List<DimensionCacheStats> cacheStats = getCacheStats();
+        if (!cacheStats.isEmpty()) {
+            int totalDims = cacheStats.size();
+            int totalRegions = cacheStats.stream().mapToInt(DimensionCacheStats::regionCount).sum();
+            long totalSize = cacheStats.stream().mapToLong(DimensionCacheStats::sizeBytes).sum();
+
+            StringBuilder dims = new StringBuilder();
+            for (DimensionCacheStats stat : cacheStats) {
+                if (dims.length() > 0) dims.append("\n");
+                dims.append(String.format("  %s: %d regions, %.2f MB",
+                        stat.dimension(), stat.regionCount(), stat.sizeMB()));
+            }
+
+            ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.status.cache_detail",
+                    totalDims, totalRegions, String.format("%.2f", totalSize / (1024.0 * 1024.0)),
+                    dims.toString()), false);
+        }
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setIncrementalOff(CommandContext<CommandSourceStack> ctx) {
+        disableIncremental();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_disabled"), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setIncrementalTick(CommandContext<CommandSourceStack> ctx) {
+        setIncrementalTick(ctx.getSource().getServer());
+        int interval = getIncrementalUpdateIntervalTicks();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_tick_set", interval, interval / 20.0f), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setIncrementalTickInterval(CommandContext<CommandSourceStack> ctx) {
+        int interval = IntegerArgumentType.getInteger(ctx, "interval");
+        setIncrementalTick(ctx.getSource().getServer(), interval);
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_tick_interval", interval, interval / 20.0f), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setIncrementalScheduled(CommandContext<CommandSourceStack> ctx) {
+        setIncrementalScheduled(ctx.getSource().getServer());
+        int hour = getScheduledUpdateHour();
+        int minute = getScheduledUpdateMinute();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setScheduledTimeDefaultMinute(CommandContext<CommandSourceStack> ctx) {
+        int hour = IntegerArgumentType.getInteger(ctx, "hour");
+        setScheduledTime(ctx.getSource().getServer(), hour);
+        int minute = getScheduledUpdateMinute();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setScheduledTime(CommandContext<CommandSourceStack> ctx) {
+        int hour = IntegerArgumentType.getInteger(ctx, "hour");
+        int minute = IntegerArgumentType.getInteger(ctx, "minute");
+        setScheduledTime(ctx.getSource().getServer(), hour, minute);
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
+        return Command.SINGLE_SUCCESS;
+    }
 
     public static String serverCommandPrefix() {
         return PlatformManager.getPlatform().getServerCommandPrefix();
@@ -265,10 +484,10 @@ public class CacheCommandHandler {
     }
 
     public static String getFriendlyDimensionName(ResourceKey<Level> dimension) {
-        return DimensionPathMapping.getInstance().getFriendlyName(DimensionApiHelper.getDimId(dimension));
+        return DimensionPathMapping.getInstance().getFriendlyName(ApiHelper.getDimId(dimension));
     }
 
     public static String getDimensionId(ResourceKey<Level> dimension) {
-        return DimensionApiHelper.getDimId(dimension);
+        return ApiHelper.getDimId(dimension);
     }
 }

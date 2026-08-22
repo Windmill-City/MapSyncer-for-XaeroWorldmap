@@ -4,7 +4,7 @@ import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.convert.model.OverlayEntry;
+import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 
 import java.util.List;
 

@@ -2,20 +2,30 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.ClientMessageHelper;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 
+@EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
 public class SyncResumeHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncResumeHelper.class);
 
     private static final long POLICY_WAIT_MS = 3_000;
     private static final long POLICY_POLL_MS = 100;
+
+    @SubscribeEvent
+    public static void onPlayerLoggingInEvent(ClientPlayerNetworkEvent.LoggingIn event) {
+        onPlayerLoggingIn();
+    }
 
     public static void onPlayerLoggingIn() {
         LOGGER.info("Player logging in to server, checking sync state...");
@@ -80,7 +90,7 @@ public class SyncResumeHelper {
                 .append(ChatUtils.desc("mapsyncer.sync.interrupted"))
                 .append(Component.literal(" "))
                 .append(Component.literal(command));
-        ClientMessageHelper.sendChatMessage(message);
+        ChatUtils.sendChatMessage(message);
     }
 
     public static void clearSyncState() {
@@ -94,7 +104,7 @@ public class SyncResumeHelper {
         if (tsCache != null) {
             tsCache.clearSyncState();
             if (mc.player != null) {
-                ClientMessageHelper.sendChatMessage(ChatUtils.success("mapsyncer.sync.state_cleared"));
+                ChatUtils.sendChatMessage(ChatUtils.success("mapsyncer.sync.state_cleared"));
             }
         }
     }

@@ -1,12 +1,10 @@
 package com.mapsyncer.network;
 
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.network.payload.ClientMeta;
+import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
-import com.mapsyncer.network.payload.ServerInstalledWireCodec;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.network.payload.SyncRequestWireCodec;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import net.minecraft.network.FriendlyByteBuf;
 
@@ -29,11 +27,11 @@ public class ForgePayloadAdapters {
         }
 
         public static void encode(ForgeSyncRequestMessage msg, FriendlyByteBuf buf) {
-            SyncRequestWireCodec.write(buf, msg.data);
+            SyncRequestPayload.write(buf, msg.data);
         }
 
         public static ForgeSyncRequestMessage decode(FriendlyByteBuf buf) {
-            return new ForgeSyncRequestMessage(SyncRequestWireCodec.read(buf));
+            return new ForgeSyncRequestMessage(SyncRequestPayload.read(buf));
         }
     }
 
@@ -105,11 +103,11 @@ public class ForgePayloadAdapters {
         }
 
         public static void encode(ForgeServerInstalledMessage msg, FriendlyByteBuf buf) {
-            ServerInstalledWireCodec.write(buf, msg.data);
+            ServerInstalledPayload.write(buf, msg.data);
         }
 
         public static ForgeServerInstalledMessage decode(FriendlyByteBuf buf) {
-            return new ForgeServerInstalledMessage(ServerInstalledWireCodec.read(buf));
+            return new ForgeServerInstalledMessage(ServerInstalledPayload.read(buf));
         }
     }
 

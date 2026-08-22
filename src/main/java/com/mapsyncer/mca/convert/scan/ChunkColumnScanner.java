@@ -6,10 +6,58 @@ import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.model.MapRegionData;
+import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.REGION_SIZE_BLOCKS;
+import java.util.ArrayList;
+
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class ChunkColumnScanner {
+
+    public static final class ColumnScanContext {
+
+        public final boolean[] blockFound = new boolean[256];
+        public final boolean[] underair = new boolean[256];
+
+        public final boolean[] shouldEnterGround = new boolean[256];
+        @SuppressWarnings("unchecked")
+        public final ArrayList<OverlayEntry>[] overlayLists = new ArrayList[256];
+        public final int[] topPixelH = new int[256];
+
+        public ColumnScanContext(boolean fullCave) {
+            for (int i = 0; i < 256; i++) {
+                underair[i] = fullCave;
+                shouldEnterGround[i] = fullCave;
+                topPixelH[i] = -1;
+            }
+        }
+
+        void onAir(int pos) {
+            underair[pos] = true;
+            shouldEnterGround[pos] = false;
+        }
+
+        void onFluid(int pos, boolean isCaveMode) {
+            if (!isCaveMode || !shouldEnterGround[pos]) {
+                underair[pos] = true;
+            }
+        }
+
+        boolean canProcessCaveBlock(int pos, boolean isCaveMode) {
+            return !isCaveMode || underair[pos];
+        }
+
+        static boolean hasFluid(ChunkSectionParser.BlockState state, BlockPropertyLookup lookup) {
+            if (state.isFluid() || state.isWaterlogged()) {
+                return true;
+            }
+            return (lookup.getFlags(state.name()) & BlockPropertyLookup.FLAG_TRANSLUCENT_FLUID) != 0;
+        }
+
+        public static int pos(int lx, int lz) {
+            return (lz << 4) | lx;
+        }
+    }
 
     private ChunkColumnScanner() {}
 
@@ -22,7 +70,7 @@ public final class ChunkColumnScanner {
                             boolean worldHasSkylight,
                             BlockPropertyLookup blockLookup) {
         scan(data, chunk, minBuildHeight, worldTopY, lightMode, caveParams, worldHasSkylight,
-            blockLookup, ScanVerticalBounds.unbounded());
+            blockLookup, RegionScanPass.ScanVerticalBounds.unbounded());
     }
 
     public static void scan(MapRegionData data,
@@ -33,7 +81,7 @@ public final class ChunkColumnScanner {
                             RegionConverterStandalone.CaveModeParams caveParams,
                             boolean worldHasSkylight,
                             BlockPropertyLookup blockLookup,
-                            ScanVerticalBounds bounds) {
+                            RegionScanPass.ScanVerticalBounds bounds) {
         int chunkX = chunk.chunkX();
         int chunkZ = chunk.chunkZ();
 
@@ -126,7 +174,7 @@ public final class ChunkColumnScanner {
 
     private static int computeEffectiveStartY(int sectionIndex, int startY, int worldTopY,
                                                boolean isCaveMode, int heightMapValue, int chunkBottomY,
-                                               int sectionTopY, ScanVerticalBounds bounds) {
+                                               int sectionTopY, RegionScanPass.ScanVerticalBounds bounds) {
         int effectiveStartY = startY;
         if (sectionIndex > 0) {
             effectiveStartY = Math.min(startY + 1, worldTopY - 1);

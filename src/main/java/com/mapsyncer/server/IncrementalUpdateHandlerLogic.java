@@ -3,6 +3,10 @@ package com.mapsyncer.server;
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.platform.UpdateMode;
 import net.minecraft.server.MinecraftServer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,9 +18,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Mod.EventBusSubscriber(modid = "mapsyncer", value = {Dist.CLIENT, Dist.DEDICATED_SERVER}, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class IncrementalUpdateHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        getInstance().onServerTick();
+    }
 
     private static volatile IncrementalUpdateHandlerLogic instance;
 
@@ -192,37 +203,6 @@ public class IncrementalUpdateHandlerLogic {
                 currentServer.execute(IncrementalUpdateHandlerLogic.this::stop);
             }
         });
-    }
-
-    public String getStatusInfo() {
-        if (!running) {
-            return "Stopped";
-        }
-
-        UpdateMode mode = PlatformManager.getPlatform().getIncrementalUpdateMode();
-        switch (mode) {
-            case DISABLED:
-                return "Running but disabled";
-            case TICK:
-                int interval = PlatformManager.getPlatform().getIncrementalUpdateIntervalTicks();
-                int remaining = interval - tickCounter.get();
-                return String.format("TICK mode: next update in %d ticks (%.1f seconds)",
-                    remaining, remaining / 20.0f);
-            case SCHEDULED:
-                int targetHour = PlatformManager.getPlatform().getScheduledUpdateHour();
-                int targetMinute = PlatformManager.getPlatform().getScheduledUpdateMinute();
-                LocalDateTime now = LocalDateTime.now();
-                LocalTime targetTime = LocalTime.of(targetHour, targetMinute);
-                LocalDateTime nextUpdate = now.toLocalDate().atTime(targetTime);
-                if (now.toLocalTime().isAfter(targetTime)) {
-                    nextUpdate = nextUpdate.plusDays(1);
-                }
-                long secondsUntil = java.time.Duration.between(now, nextUpdate).getSeconds();
-                return String.format("SCHEDULED mode: next update at %02d:%02d (in %dh %dm)",
-                    targetHour, targetMinute, secondsUntil / 3600, (secondsUntil % 3600) / 60);
-            default:
-                return "Unknown mode";
-        }
     }
 
     public static void resetInstance() {

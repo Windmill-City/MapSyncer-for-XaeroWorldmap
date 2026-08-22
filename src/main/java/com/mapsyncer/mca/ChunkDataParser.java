@@ -235,43 +235,6 @@ public class ChunkDataParser {
         return 0;
     }
 
-    public static boolean hasSkyAccess(ChunkInfo chunk, int x, int worldY, int z) {
-        int surfaceY = chunk.heightmap()[x][z];
-        return worldY >= surfaceY;
-    }
-
-    public static byte getEffectiveLight(ChunkInfo chunk, int x, int worldY, int z,
-                                          LightMode lightMode, boolean hasOverlay,
-                                          boolean worldHasSkylight) {
-        byte blockLight = getBlockLightAt(chunk, x, worldY, z);
-        byte skyLight = getSkyLightAt(chunk, x, worldY, z);
-        boolean hasSkyAccess = hasSkyAccess(chunk, x, worldY, z);
-
-        return lightMode.calculateEffectiveLight(blockLight, skyLight, hasSkyAccess, hasOverlay, false, worldHasSkylight);
-    }
-
-    public static byte getEffectiveLightCave(ChunkInfo chunk, int x, int worldY, int z,
-                                              boolean hasOverlay) {
-        byte blockLight = getBlockLightAt(chunk, x, worldY, z);
-
-        if (blockLight >= 15) {
-            return blockLight;
-        }
-
-        boolean hasSkyAccess = hasSkyAccess(chunk, x, worldY, z);
-
-        if (hasSkyAccess && !hasOverlay) {
-            return 15;
-        }
-
-        if (!hasOverlay) {
-            byte skyLight = getSkyLightAt(chunk, x, worldY, z);
-            return (byte) Math.max(blockLight, skyLight);
-        }
-
-        return blockLight;
-    }
-
     public static int getHeightmapStartY(ChunkInfo chunk, int x, int z, int worldTopY) {
         int heightMapValue = chunk.heightmap()[x][z];
 

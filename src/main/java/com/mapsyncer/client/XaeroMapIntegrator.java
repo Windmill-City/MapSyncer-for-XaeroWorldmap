@@ -1,6 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.platform.XaeroReflectionHelper;
 import com.mapsyncer.util.XaeroPathResolver;
 import net.minecraft.client.Minecraft;
@@ -15,17 +14,12 @@ import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class XaeroMapIntegrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapIntegrator.class);
-
-    public static Path getWorldMapDir(Path gameDir) {
-        return XaeroPathResolver.getWorldMapDir(gameDir);
-    }
 
     public static Set<XaeroMapDataHandler.RegionCoord> getViewDistanceRegions() {
         return getViewDistanceRegions(Integer.MAX_VALUE);
@@ -236,7 +230,7 @@ public class XaeroMapIntegrator {
                 serverData, serverData != null ? serverData.ip : "N/A");
 
         Path gameDir = mc.gameDirectory.toPath();
-        Path worldMapDir = getWorldMapDir(gameDir);
+        Path worldMapDir = XaeroPathResolver.getWorldMapDir(gameDir);
 
         String serverIP = getCurrentServerIP();
         if (serverIP == null) {
@@ -292,51 +286,9 @@ public class XaeroMapIntegrator {
         }
 
         Path gameDir = mc.gameDirectory.toPath();
-        Path worldMapDir = getWorldMapDir(gameDir);
+        Path worldMapDir = XaeroPathResolver.getWorldMapDir(gameDir);
         Path serverDir = worldMapDir.resolve("Multiplayer_" + serverIP);
         LOGGER.debug("Server directory: {}", serverDir);
         return serverDir;
-    }
-
-    public static Path writeMapDataAndReturnDir(List<ChunkMapData> chunks, int serverWorldId) {
-        Minecraft mc = Minecraft.getInstance();
-        ClientPacketListener connection = mc.getConnection();
-        if (connection == null) {
-            LOGGER.error("Not connected to server");
-            return null;
-        }
-
-        ServerData serverData = connection.getServerData();
-        if (serverData == null) {
-            LOGGER.error("No server data available");
-            return null;
-        }
-
-        String serverIP = getCurrentServerIP();
-        if (serverIP == null) {
-            return null;
-        }
-
-        LOGGER.info("Using server worldId: {}", serverWorldId);
-
-        Path gameDir = mc.gameDirectory.toPath();
-        Path worldMapDir = getWorldMapDir(gameDir);
-        Path serverDir = worldMapDir.resolve("Multiplayer_" + serverIP);
-
-        return XaeroMapDataHandler.writeMapData(chunks, serverDir, serverWorldId);
-    }
-
-    public static XaeroMapDataHandler.RegionWriteResult writeChunkDataResult(ChunkMapData chunk, int worldId) {
-        Path serverDir = getCurrentServerDirectory();
-        if (serverDir == null) {
-            LOGGER.warn("无法获取服务器目录");
-            return null;
-        }
-        return XaeroMapDataHandler.writeChunkData(chunk, serverDir, worldId);
-    }
-
-    public static Path writeChunkDataAndGetMwDir(ChunkMapData chunk, int worldId) {
-        XaeroMapDataHandler.RegionWriteResult result = writeChunkDataResult(chunk, worldId);
-        return result != null ? result.mwDir() : null;
     }
 }

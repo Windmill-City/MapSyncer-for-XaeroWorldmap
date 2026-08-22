@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.CacheConfig;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.BlockPropertyLookup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -48,6 +48,7 @@ import net.minecraft.world.level.block.WeepingVinesBlock;
 import net.minecraft.world.level.block.WeepingVinesPlantBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
@@ -81,9 +82,45 @@ public class BlockPropertyResolver {
     private static final BlockGetter PLACEHOLDER_BLOCK_GETTER = PlaceholderBlockGetter.INSTANCE;
     private static final BlockPos PLACEHOLDER_BLOCKPOS = BlockPos.ZERO;
 
+    public static final class PlaceholderBlockGetter implements BlockGetter {
+
+        public static final PlaceholderBlockGetter INSTANCE = new PlaceholderBlockGetter();
+
+        private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+        private static final FluidState EMPTY = Fluids.EMPTY.defaultFluidState();
+
+        private PlaceholderBlockGetter() {}
+
+        @Override
+        public BlockEntity getBlockEntity(BlockPos pos) {
+            return null;
+        }
+
+        @Override
+        public BlockState getBlockState(BlockPos pos) {
+            return AIR;
+        }
+
+        @Override
+        public FluidState getFluidState(BlockPos pos) {
+            return EMPTY;
+        }
+
+        @Override
+        public int getHeight() {
+            return 256;
+        }
+
+        @Override
+        public int getMinBuildHeight() {
+            return -64;
+        }
+    }
+
+
     private static final ConcurrentHashMap<String, BlockProperties> propertiesCache = new ConcurrentHashMap<>();
 
-    private static final int MAX_CACHE_SIZE = CacheConfig.MAX_BLOCK_PROPERTIES_CACHE;
+    private static final int MAX_CACHE_SIZE = ModConfig.MAX_BLOCK_PROPERTIES_CACHE;
 
     private static final ConcurrentHashMap<String, Boolean> buggedBlocks = new ConcurrentHashMap<>();
 

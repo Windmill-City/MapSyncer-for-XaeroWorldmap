@@ -1,10 +1,9 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.ClientMeta;
+import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
-import com.mapsyncer.util.PropertiesCacheIO.TimestampHashEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +23,22 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ClientHashManager {
+
+    public record MetaScanResult(Map<String, ClientMeta> meta, boolean success, int failedFiles, String failureReason) {
+
+        public static MetaScanResult ok(Map<String, ClientMeta> meta) {
+            return new MetaScanResult(
+                    meta != null ? meta : Collections.emptyMap(), true, 0, null);
+        }
+
+        public static MetaScanResult failure(String reason, int failedFiles) {
+            return new MetaScanResult(Collections.emptyMap(), false, failedFiles, reason);
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientHashManager.class);
 
@@ -122,7 +138,7 @@ public class ClientHashManager {
         }
 
         ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        Map<String, TimestampHashEntry> cachedTimestamps = tsCache.getAll();
+        Map<String, ClientMeta> cachedTimestamps = tsCache.getAll();
         LOGGER.info("Loaded {} cached timestamps from previous sync", cachedTimestamps.size());
 
         java.util.List<Path> zipFiles;
@@ -155,7 +171,7 @@ public class ClientHashManager {
                                     if (!fileName.endsWith(".zip")) return;
 
                                     String relativePath = buildRelativePath(zipPath, serverDir);
-                                    TimestampHashEntry cached = cachedTimestamps.get(relativePath);
+                                    ClientMeta cached = cachedTimestamps.get(relativePath);
                                     String hash = resolveSyncHash(zipPath, cached);
 
                                     long timestampSeconds = resolveSyncTimestamp(zipPath, cached);
@@ -202,7 +218,7 @@ public class ClientHashManager {
         return MetaScanResult.ok(metaMap);
     }
 
-    private static String resolveSyncHash(Path zipPath, TimestampHashEntry cached) {
+    private static String resolveSyncHash(Path zipPath, ClientMeta cached) {
         if (zipPath == null || !Files.exists(zipPath) || !HashUtils.isValidRegionZip(zipPath)) {
             if (cached != null) {
                 LOGGER.warn("Region {} missing or invalid on disk, will request re-sync",
@@ -216,7 +232,7 @@ public class ClientHashManager {
         return HashUtils.computeFileHash(zipPath);
     }
 
-    private static long resolveSyncTimestamp(Path zipPath, TimestampHashEntry cached) {
+    private static long resolveSyncTimestamp(Path zipPath, ClientMeta cached) {
         long fileTs = getFileModificationTime(zipPath) / 1000;
         if (cached != null) {
             return Math.max(cached.timestampSeconds(), fileTs);
@@ -225,11 +241,11 @@ public class ClientHashManager {
     }
 
     private static void addMissingCacheEntries(Map<String, ClientMeta> metaMap,
-            Map<String, TimestampHashEntry> cachedTimestamps, Set<String> dimPrefixes) {
+            Map<String, ClientMeta> cachedTimestamps, Set<String> dimPrefixes) {
         if (dimPrefixes.isEmpty()) {
             return;
         }
-        for (Map.Entry<String, TimestampHashEntry> entry : cachedTimestamps.entrySet()) {
+        for (Map.Entry<String, ClientMeta> entry : cachedTimestamps.entrySet()) {
             String key = entry.getKey();
             if (metaMap.containsKey(key)) {
                 continue;

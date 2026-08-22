@@ -1,13 +1,13 @@
 package com.mapsyncer.platform.impl;
 
 import com.mapsyncer.config.DimensionScanConfig;
-import com.mapsyncer.config.ConcurrentRegionsConfig;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.platform.BlockProperties;
 import com.mapsyncer.platform.Platform;
-import com.mapsyncer.platform.PlatformType;
+
 import com.mapsyncer.platform.UpdateMode;
 import com.mapsyncer.server.BlockPropertyResolver;
 import com.mapsyncer.util.BlockColorMapper;
@@ -35,8 +35,8 @@ public class ForgeLegacyPlatform implements Platform {
     private static final Map<String, BlockProperties> blockPropertiesCache = new HashMap<>();
 
     @Override
-    public PlatformType getType() {
-        return PlatformType.FORGE_LEGACY;
+    public Platform.PlatformType getType() {
+        return Platform.PlatformType.FORGE_LEGACY;
     }
 
     @Override
@@ -153,7 +153,7 @@ public class ForgeLegacyPlatform implements Platform {
 
     @Override
     public int getMaxConcurrentRegions() {
-        return ConcurrentRegionsConfig.resolve(ModConfig.SERVER.maxConcurrentRegions.get());
+        return ModConfig.resolveConcurrentRegions(ModConfig.SERVER.maxConcurrentRegions.get());
     }
 
     @Override
@@ -319,22 +319,6 @@ public class ForgeLegacyPlatform implements Platform {
         }
 
         return props;
-    }
-
-    @Override
-    public void recordUpdatedRegions(Set<RegionCoord> regions) {
-        try {
-            Set<com.mapsyncer.client.XaeroMapDataHandler.RegionCoord> xaeroRegions = new HashSet<>();
-            for (RegionCoord coord : regions) {
-                xaeroRegions.add(new com.mapsyncer.client.XaeroMapDataHandler.RegionCoord(
-                    coord.x(), coord.z(), coord.caveLayer()
-                ));
-            }
-            com.mapsyncer.client.XaeroMapDataHandler.recordUpdatedRegionCoords(xaeroRegions);
-            LOGGER.debug("Recorded {} updated regions via XaeroMapIntegrator", regions.size());
-        } catch (Exception e) {
-            LOGGER.warn("Failed to record updated regions: {}", e.getMessage());
-        }
     }
 
     @Override

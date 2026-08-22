@@ -15,9 +15,44 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.mapsyncer.config.DimensionScanConfig;
-import com.mapsyncer.config.ScanMode;
+
 
 public class ModConfig {
+
+    public static final int MAX_REGION_META_CACHE = 50000;
+    public static final int MAX_BLOCK_COLOR_CACHE = 5000;
+    public static final int MAX_BLOCK_PROPERTIES_CACHE = 10000;
+
+    public static final long TASK_TIMEOUT_SECONDS = 60;
+
+    public static final int MAX_CONCURRENT_REGIONS = 16;
+    public static final int AUTO_CONCURRENT = 0;
+
+    public static int resolveConcurrentRegions(int configured) {
+        if (configured > 0) {
+            return Math.max(1, Math.min(MAX_CONCURRENT_REGIONS, configured));
+        }
+        int processors = Runtime.getRuntime().availableProcessors();
+        return Math.max(1, Math.min(MAX_CONCURRENT_REGIONS, processors - 2));
+    }
+
+    public static int clampConcurrentRegions(int configured) {
+        return Math.max(AUTO_CONCURRENT, Math.min(MAX_CONCURRENT_REGIONS, configured));
+    }
+
+    public static Path outputDir(Path baseOutputDir, int caveLayer) {
+        if (caveLayer == Integer.MAX_VALUE) {
+            return baseOutputDir;
+        }
+        return baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));
+    }
+
+    public static String relativePath(String xaeroDimName, int caveLayer, int regionX, int regionZ) {
+        if (caveLayer == Integer.MAX_VALUE) {
+            return xaeroDimName + "/" + regionX + "_" + regionZ;
+        }
+        return xaeroDimName + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
+    }
 
     public static final ForgeConfigSpec CLIENT_SPEC;
 
@@ -161,7 +196,7 @@ public class ModConfig {
 
         public final IntValue scheduledUpdateMinute;
 
-        public final EnumValue<ScanMode> defaultScanMode;
+        public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
 
         public final IntValue defaultCaveStart;
 
@@ -255,7 +290,7 @@ public class ModConfig {
                     .comment("未在 dimension_configs 中的维度的默认层计划（SURFACE=仅地表，CAVE=单层洞穴）",
                              "Default layer plan fallback for dimensions not in dimension_configs",
                              "SURFACE = surface only; CAVE = single cave layer at default_cave_start")
-                    .defineEnum("default_scan_mode", ScanMode.SURFACE);
+                    .defineEnum("default_scan_mode", LayerPlan.ScanMode.SURFACE);
 
             defaultCaveStart = builder
                     .comment("default_scan_mode=CAVE 时的 caveStart Y（对应 caves(Y) 层计划）",
@@ -281,10 +316,6 @@ public class ModConfig {
 
         public List<DimensionScanConfig> parseDimensionConfigs() {
                     return DimensionConfigParser.parseDimensionConfigs(dimensionConfigs.get());
-        }
-
-        private DimensionScanConfig parseConfigString(String configStr) {
-            return DimensionConfigParser.parseConfigString(configStr);
         }
 
         public DimensionScanConfig getConfigForDimension(String dimensionPath) {

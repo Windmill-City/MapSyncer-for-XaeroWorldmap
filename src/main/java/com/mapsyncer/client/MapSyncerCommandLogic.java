@@ -1,20 +1,28 @@
 package com.mapsyncer.client;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mapsyncer.network.NetworkManager;
-import com.mapsyncer.network.payload.ClientMeta;
+import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.server.CacheCommandHandler;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.ClientMessageHelper;
+
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +34,39 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+@EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
 public class MapSyncerCommandLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MapSyncerCommandLogic.class);
+
+    @SubscribeEvent
+    public static void registerClientCommands(RegisterClientCommandsEvent event) {
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+
+        dispatcher.register(
+                net.minecraft.commands.Commands.literal("mapsyncer")
+                        .executes(ctx -> { showHelp(ctx.getSource().hasPermission(4)); return Command.SINGLE_SUCCESS; })
+                        .then(net.minecraft.commands.Commands.literal("help")
+                                .executes(ctx -> { showHelp(ctx.getSource().hasPermission(4)); return Command.SINGLE_SUCCESS; }))
+                        .then(net.minecraft.commands.Commands.literal("sync")
+                                .executes(ctx -> executeSyncCurrentDim())
+                                .then(net.minecraft.commands.Commands.literal("all")
+                                        .executes(ctx -> executeSyncAll(false)))
+                                .then(net.minecraft.commands.Commands.argument("dimension", DimensionArgument.dimension())
+                                        .suggests((ctx, builder) -> { suggestDimensions(builder); return builder.buildFuture(); })
+                                        .executes(ctx -> {
+                                            ResourceLocation loc = ctx.getArgument("dimension", ResourceLocation.class);
+                                            return executeSyncDimension(loc.toString());
+                                        })))
+
+                        .then(net.minecraft.commands.Commands.literal("autosync")
+                                .executes(ctx -> executeAutoSyncStatus())
+                                .then(net.minecraft.commands.Commands.literal("on")
+                                        .executes(ctx -> setClientAutoSync(true)))
+                                .then(net.minecraft.commands.Commands.literal("off")
+                                        .executes(ctx -> setClientAutoSync(false))))
+        );
+    }
 
     public static void showHelp(boolean hasServerPermission) {
         Minecraft mc = Minecraft.getInstance();
@@ -42,7 +80,7 @@ public class MapSyncerCommandLogic {
         mc.player.displayClientMessage(ChatUtils.header("mapsyncer.command.help_dimension_note"), false);
 
         if (hasServerPermission) {
-            CacheCommandHandler.showHelp(ClientMessageHelper::sendChatMessage);
+            CacheCommandHandler.showHelp(ChatUtils::sendChatMessage);
         }
     }
 

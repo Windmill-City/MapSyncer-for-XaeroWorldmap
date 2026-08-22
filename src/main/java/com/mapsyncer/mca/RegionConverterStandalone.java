@@ -1,7 +1,6 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.convert.RegionConversionPipeline;
-import com.mapsyncer.mca.convert.model.ConvertConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,14 +15,17 @@ public class RegionConverterStandalone {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverterStandalone.class);
 
-    public static final int REGION_SIZE_BLOCKS = ConvertConstants.REGION_SIZE_BLOCKS;
-    public static final int CHUNKS_PER_REGION = ConvertConstants.CHUNKS_PER_REGION;
-    public static final int BLOCKS_PER_TILE_CHUNK = ConvertConstants.BLOCKS_PER_TILE_CHUNK;
-    public static final int BLOCKS_PER_TILE = ConvertConstants.BLOCKS_PER_TILE;
-    public static final int TILES_PER_TILE_CHUNK = ConvertConstants.TILES_PER_TILE_CHUNK;
-    public static final int TILE_CHUNKS_PER_REGION = ConvertConstants.TILE_CHUNKS_PER_REGION;
-    public static final int MAJOR_VERSION = ConvertConstants.MAJOR_VERSION;
-    public static final int MINOR_VERSION = ConvertConstants.MINOR_VERSION;
+    public static final String DEFAULT_BLOCK = "minecraft:air";
+    public static final String DEFAULT_BIOME = "minecraft:the_void";
+
+    public static final int REGION_SIZE_BLOCKS = 512;
+    public static final int CHUNKS_PER_REGION = 32;
+    public static final int BLOCKS_PER_TILE_CHUNK = 64;
+    public static final int BLOCKS_PER_TILE = 16;
+    public static final int TILES_PER_TILE_CHUNK = 4;
+    public static final int TILE_CHUNKS_PER_REGION = 8;
+    public static final int MAJOR_VERSION = 6;
+    public static final int MINOR_VERSION = 8;
 
     public record ConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
 

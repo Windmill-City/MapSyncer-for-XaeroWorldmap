@@ -9,6 +9,13 @@ import java.util.Set;
 
 public interface Platform {
 
+    enum PlatformType {
+        FORGE_LEGACY,
+        FORGE_MODERN,
+        NEO_FORGE,
+        FABRIC
+    }
+
     PlatformType getType();
 
     String getServerCommandPrefix();
@@ -90,8 +97,6 @@ public interface Platform {
     java.util.Map<String, String> parseBlockProperties(String blockStateString);
 
     void clearBlockPropertiesCache();
-
-    void recordUpdatedRegions(Set<RegionCoord> regions);
 
     record RegionCoord(int x, int z, int caveLayer) {
         public RegionCoord(int x, int z) {

@@ -6,7 +6,7 @@ import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
-import com.mapsyncer.mca.convert.model.ConvertConstants;
+import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
@@ -38,8 +38,8 @@ public final class McaRegionLoader {
         try (McaReader reader = McaReader.open(mcaPath.toString())) {
             int worldHeightRange = worldTopY - minBuildHeight;
             ChunkDataParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange);
-            for (int localX = 0; localX < ConvertConstants.CHUNKS_PER_REGION; localX++) {
-                for (int localZ = 0; localZ < ConvertConstants.CHUNKS_PER_REGION; localZ++) {
+            for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
+                for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
                     ChunkDataParser.ChunkInfo chunkInfo = chunks[localX][localZ];
                     if (chunkInfo == null) {
                         continue;
@@ -71,8 +71,8 @@ public final class McaRegionLoader {
             int worldHeightRange = worldTopY - minBuildHeight;
             ChunkDataParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange);
 
-            for (int localX = 0; localX < ConvertConstants.CHUNKS_PER_REGION; localX++) {
-                for (int localZ = 0; localZ < ConvertConstants.CHUNKS_PER_REGION; localZ++) {
+            for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
+                for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
                     ChunkDataParser.ChunkInfo chunkInfo = chunks[localX][localZ];
                     if (chunkInfo == null) {
                         continue;
@@ -97,10 +97,10 @@ public final class McaRegionLoader {
     private static ChunkDataParser.ChunkInfo[][] readAllChunks(McaReader reader, int worldHeightRange)
             throws IOException {
         ChunkDataParser.ChunkInfo[][] grid =
-            new ChunkDataParser.ChunkInfo[ConvertConstants.CHUNKS_PER_REGION][ConvertConstants.CHUNKS_PER_REGION];
+            new ChunkDataParser.ChunkInfo[RegionConverterStandalone.CHUNKS_PER_REGION][RegionConverterStandalone.CHUNKS_PER_REGION];
 
-        for (int localX = 0; localX < ConvertConstants.CHUNKS_PER_REGION; localX++) {
-            for (int localZ = 0; localZ < ConvertConstants.CHUNKS_PER_REGION; localZ++) {
+        for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
+            for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
                 Tag.Compound nbt;
                 try {
                     nbt = reader.readChunkNbt(localX, localZ);

@@ -11,6 +11,11 @@ public record LayerPlan(
 ) {
     public static final int DEFAULT_CAVE_START = 63;
 
+    public enum ScanMode {
+        SURFACE,
+        CAVE
+    }
+
     public LayerPlan {
         caveStarts = caveStarts == null || caveStarts.isEmpty()
             ? List.of()
@@ -114,9 +119,9 @@ public record LayerPlan(
         return new LayerPlan(surface, allCaves, Collections.unmodifiableList(starts));
     }
 
-    public static LayerPlan fromLegacy(ScanMode scanMode, String caveField) {
+    public static LayerPlan fromLegacy(LayerPlan.ScanMode scanMode, String caveField) {
         LayerPlan parsed = parse(caveField);
-        if (scanMode == ScanMode.SURFACE) {
+        if (scanMode == LayerPlan.ScanMode.SURFACE) {
             if (!parsed.includeAllCaves() && parsed.caveStarts().isEmpty()) {
                 return surfaceOnly();
             }

@@ -1,7 +1,6 @@
 package com.mapsyncer;
 
 import com.mapsyncer.client.MapPacketHandler;
-import com.mapsyncer.client.MapPacketReceiver;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
@@ -9,10 +8,9 @@ import com.mapsyncer.platform.Platform;
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.platform.UpdateMode;
 import com.mapsyncer.platform.impl.ForgeLegacyPlatform;
-import com.mapsyncer.server.CacheGenerateCommand;
+import com.mapsyncer.server.CacheCommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.DimensionRegistry;
-import com.mapsyncer.server.IncrementalUpdateHandler;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
 import com.mapsyncer.util.DimensionPathMapping;
@@ -66,7 +64,8 @@ public class MapSyncer {
         networkHandler.registerHandlers(null);
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            MapPacketReceiver.register(null);
+            NetworkManager.registerHandlers(null);
+            MapPacketHandler.registerHandlers();
             MinecraftForge.EVENT_BUS.register(ClientEventHandler.class);
             LOGGER.info("MapSyncer initialized (client mode, Forge 1.20.1)");
         }
@@ -80,7 +79,7 @@ public class MapSyncer {
     public static class ClientEventHandler {
         @SubscribeEvent
         public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-            MapPacketReceiver.onDisconnect();
+            MapPacketHandler.onDisconnect();
         }
 
         @SubscribeEvent
@@ -115,6 +114,6 @@ public class MapSyncer {
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
-        CacheGenerateCommand.register(event.getDispatcher(), "mapsyncer");
+        CacheCommandHandler.register(event.getDispatcher(), "mapsyncer");
     }
 }

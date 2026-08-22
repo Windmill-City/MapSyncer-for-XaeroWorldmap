@@ -1,10 +1,11 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ConversionOutputPaths;
+
 import com.mapsyncer.config.DimensionScanConfig;
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
 import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.config.TimeoutConfig;
+
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
@@ -13,8 +14,7 @@ import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.DimensionRegions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.util.DimensionPathMapping;
-import com.mapsyncer.util.DimensionTypeHelper;
-import com.mapsyncer.util.NamedThreadFactory;
+import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.XaeroPathResolver;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -101,6 +101,23 @@ public class ConversionOrchestrator {
         CONVERSION_FAILED,
 
         ALREADY_RUNNING
+    }
+
+    private static final class NamedThreadFactory implements java.util.concurrent.ThreadFactory {
+        private final java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(0);
+        private final String baseName;
+
+        NamedThreadFactory(String baseName) {
+            this.baseName = baseName;
+        }
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r, baseName + "-" + counter.incrementAndGet());
+            thread.setDaemon(false);
+            thread.setPriority(Thread.MIN_PRIORITY);
+            return thread;
+        }
     }
 
     private static ExecutorService getOrCreateExecutor() {
@@ -310,7 +327,7 @@ public class ConversionOrchestrator {
             return SingleRegionResult.CONVERSION_FAILED;
         }
 
-        DimensionTypeInfo dimTypeInfo = DimensionTypeHelper.fromDimensionType(level.dimensionType());
+        DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
         List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
         Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
 
@@ -321,7 +338,7 @@ public class ConversionOrchestrator {
         SingleRegionResult result = SingleRegionResult.SUCCESS;
         try {
             for (RegionScanPass pass : passes) {
-                Files.createDirectories(ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer()));
+                Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
             }
             totalCount = passes.size();
             List<LayerConvertedRegion> converted = RegionConverterStandalone.convertRegionMulti(
@@ -332,10 +349,10 @@ public class ConversionOrchestrator {
                 LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
                 ConvertedRegion single = layer == null ? null
                     : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
-                if (EmptyRegionSupport.isEmptyConverted(single)) {
+                if (isEmptyConverted(single)) {
                     continue;
                 }
-                Path outputDir = ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer());
+                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
                 XaeroWriter.writeRegionFile(outputDir, single);
                 written++;
             }
@@ -376,12 +393,12 @@ public class ConversionOrchestrator {
             return;
         }
 
-        DimensionTypeInfo dimTypeInfo = DimensionTypeHelper.fromDimensionType(level.dimensionType());
+        DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
         List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
         try {
             for (RegionScanPass pass : passes) {
-                Files.createDirectories(ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer()));
+                Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
             }
         } catch (IOException e) {
             LOGGER.error("Failed to create output directories under: {}", baseOutputDir, e);
@@ -448,7 +465,7 @@ public class ConversionOrchestrator {
     }
 
     private static Path getOutputDir(Path baseOutputDir, int caveLayer) {
-        return ConversionOutputPaths.outputDir(baseOutputDir, caveLayer);
+        return ModConfig.outputDir(baseOutputDir, caveLayer);
     }
 
     private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
@@ -460,7 +477,7 @@ public class ConversionOrchestrator {
             }
             String dimPath = dimRegions.dimension().location().getPath();
             DimensionScanConfig scanConfig = PlatformManager.getPlatform().getConfigForDimension(dimPath);
-            DimensionTypeInfo dimTypeInfo = DimensionTypeHelper.fromDimensionType(level.dimensionType());
+            DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = RegionGenerationPlanner.countPasses(scanConfig, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
         }
@@ -505,7 +522,7 @@ public class ConversionOrchestrator {
 
             boolean allExist = true;
             for (RegionScanPass pass : passes) {
-                Path outputDir = ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer());
+                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
                 if (!XaeroWriter.regionFileExists(outputDir, coords.x(), coords.z())) {
                     allExist = false;
                     break;
@@ -537,12 +554,12 @@ public class ConversionOrchestrator {
 
         Path mcaPath = regionDir.resolve("r." + coords.x() + "." + coords.z() + ".mca");
 
-        if (!com.mapsyncer.mca.McaContentProbe.hasAnyChunk(mcaPath)) {
+        if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
             for (RegionScanPass pass : passes) {
-                Path outputDir = ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer());
-                String relativePath = ConversionOutputPaths.relativePath(
+                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
+                String relativePath = ModConfig.relativePath(
                     xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
-                EmptyRegionSupport.purgeGeneratedArtifacts(
+                purgeGeneratedArtifacts(
                     outputDir, coords.x(), coords.z(), relativePath, genCache);
             }
             skippedEmptyContentCount.incrementAndGet();
@@ -565,15 +582,15 @@ public class ConversionOrchestrator {
         for (int i = 0; i < passes.size(); i++) {
             RegionScanPass pass = passes.get(i);
             LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
-            Path outputDir = ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer());
-            String relativePath = ConversionOutputPaths.relativePath(
+            Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
+            String relativePath = ModConfig.relativePath(
                 xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
 
             ConvertedRegion single = layer == null ? null
                 : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
 
-            if (EmptyRegionSupport.isEmptyConverted(single)) {
-                EmptyRegionSupport.purgeGeneratedArtifacts(
+            if (isEmptyConverted(single)) {
+                purgeGeneratedArtifacts(
                     outputDir, coords.x(), coords.z(), relativePath, genCache);
                 if (logProgress) {
                     processedCountAtomic.incrementAndGet();
@@ -611,7 +628,7 @@ public class ConversionOrchestrator {
     private static void waitForCompletion(List<java.util.concurrent.Future<?>> futures, String taskName) {
         for (java.util.concurrent.Future<?> future : futures) {
             try {
-                future.get(TimeoutConfig.TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                future.get(ModConfig.TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (java.util.concurrent.TimeoutException e) {
                 LOGGER.warn("{} task timeout", taskName);
             } catch (ExecutionException e) {
@@ -685,7 +702,7 @@ public class ConversionOrchestrator {
             }
 
             Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
-            DimensionTypeInfo dimTypeInfo = DimensionTypeHelper.fromDimensionType(level.dimensionType());
+            DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
             snapshots.add(new IncrementalScanSnapshot(
@@ -748,7 +765,7 @@ public class ConversionOrchestrator {
 
             try {
                 for (RegionScanPass pass : passes) {
-                    Files.createDirectories(ConversionOutputPaths.outputDir(baseOutputDir, pass.caveLayer()));
+                    Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
                 }
             } catch (IOException e) {
                 LOGGER.error("Failed to create output directories: {}", baseOutputDir, e);
@@ -842,5 +859,25 @@ public class ConversionOrchestrator {
         }
 
         return stats;
+    }
+
+    private static boolean isEmptyConverted(ConvertedRegion converted) {
+        return converted == null || converted.xaeroData() == null || converted.xaeroData().length == 0;
+    }
+
+    private static void purgeGeneratedArtifacts(Path outputDir, int regionX, int regionZ,
+            String relativePath, GenerationCache genCache) {
+        Path zip = outputDir.resolve(regionX + "_" + regionZ + ".zip");
+        Path temp = outputDir.resolve(regionX + "_" + regionZ + ".zip.temp");
+        try {
+            Files.deleteIfExists(zip);
+            Files.deleteIfExists(temp);
+        } catch (IOException e) {
+            LOGGER.warn("Failed to delete empty region zip {}: {}", zip, e.getMessage());
+        }
+        if (genCache != null && relativePath != null) {
+            genCache.remove(relativePath);
+        }
+        LOGGER.debug("Purged empty region artifacts for {}", relativePath);
     }
 }

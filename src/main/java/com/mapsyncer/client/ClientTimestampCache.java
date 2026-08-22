@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.util.PropertiesCacheIO;
-import com.mapsyncer.util.PropertiesCacheIO.TimestampHashEntry;
+import com.mapsyncer.util.ClientMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class ClientTimestampCache {
 
     private final Path cacheFile;
 
-    private final Map<String, TimestampHashEntry> cache = new ConcurrentHashMap<>();
+    private final Map<String, ClientMeta> cache = new ConcurrentHashMap<>();
 
     private volatile String syncState = null;
 
@@ -103,7 +103,7 @@ public class ClientTimestampCache {
 
             for (String key : props.stringPropertyNames()) {
                 if (!key.startsWith("_")) {
-                    TimestampHashEntry entry = PropertiesCacheIO.parseTimestampHash(props.getProperty(key));
+                    ClientMeta entry = PropertiesCacheIO.parseTimestampHash(props.getProperty(key));
                     if (entry != null) {
                         cache.put(key, entry);
                     }
@@ -129,7 +129,7 @@ public class ClientTimestampCache {
             props.setProperty(KEY_DIMENSIONS, String.join(",", syncDimensions));
             props.setProperty(KEY_COMMAND, syncCommand);
 
-            for (Map.Entry<String, TimestampHashEntry> entry : cache.entrySet()) {
+            for (Map.Entry<String, ClientMeta> entry : cache.entrySet()) {
                 props.setProperty(entry.getKey(), entry.getValue().format());
             }
 
@@ -147,7 +147,7 @@ public class ClientTimestampCache {
                 content.append("# ==================== TIMESTAMP CACHE ====================\n");
                 content.append("# Format: dimension/region_x_z = timestamp_seconds:hash\n");
 
-                for (Map.Entry<String, TimestampHashEntry> entry : cache.entrySet()) {
+                for (Map.Entry<String, ClientMeta> entry : cache.entrySet()) {
                     content.append(entry.getKey()).append("=").append(entry.getValue().format()).append("\n");
                 }
 
@@ -199,7 +199,7 @@ public class ClientTimestampCache {
     }
 
     public void update(String relativePath, long timestampSeconds, String hash) {
-        cache.put(relativePath, new TimestampHashEntry(timestampSeconds, hash));
+        cache.put(relativePath, new ClientMeta(timestampSeconds, hash));
     }
 
     public void remove(String relativePath) {
@@ -208,11 +208,11 @@ public class ClientTimestampCache {
         }
     }
 
-    public TimestampHashEntry get(String relativePath) {
+    public ClientMeta get(String relativePath) {
         return cache.get(relativePath);
     }
 
-    public Map<String, TimestampHashEntry> getAll() {
+    public Map<String, ClientMeta> getAll() {
         return Collections.unmodifiableMap(cache);
     }
 

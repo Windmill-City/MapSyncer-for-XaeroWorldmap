@@ -37,19 +37,4 @@ public enum LightMode {
                 return blockLight;
         }
     }
-
-    public byte getDefaultSkyLight(boolean worldHasSkylight) {
-        switch (this) {
-            case SURFACE:
-                return (byte) 0;
-            case CAVE:
-                return worldHasSkylight ? (byte) 15 : (byte) 0;
-            default:
-                return (byte) 0;
-        }
-    }
-
-    public boolean needsSkyLightData() {
-        return this == CAVE;
-    }
 }

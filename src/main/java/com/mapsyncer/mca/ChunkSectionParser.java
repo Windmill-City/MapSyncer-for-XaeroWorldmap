@@ -63,17 +63,6 @@ public class ChunkSectionParser {
             return isWater() || isLava();
         }
 
-        public boolean isGrassBlock() {
-            return name.equals("minecraft:grass_block");
-        }
-
-        public boolean isTransparentOverlay() {
-            return isWater() || name.equals("minecraft:glass") ||
-                   name.endsWith("_stained_glass") || name.equals("minecraft:glass_pane") ||
-                   name.endsWith("_stained_glass_pane") || name.equals("minecraft:ice") ||
-                   name.endsWith("_ice") || name.equals("minecraft:tinted_glass");
-        }
-
         public boolean isInvisible() {
 
             if (name.equals("minecraft:torch") || name.endsWith("_torch")) return true;
@@ -367,92 +356,5 @@ public class ChunkSectionParser {
         int yzx = (y << 8) | (z << 4) | x;
 
         return (byte) ((lightArray[yzx >> 1] >> (4 * (yzx & 1))) & 0xF);
-    }
-
-    public static LightData parseLightData(SectionData section) {
-        byte[] blockLight = new byte[4096];
-        byte[] skyLight = new byte[4096];
-
-        if (section.blockLight() != null && section.blockLight().length == 2048) {
-            for (int y = 0; y < 16; y++) {
-                for (int z = 0; z < 16; z++) {
-                    for (int x = 0; x < 16; x++) {
-                        int idx = (y << 8) | (z << 4) | x;
-                        blockLight[idx] = getLightValue(section.blockLight(), x, y, z);
-                    }
-                }
-            }
-        }
-
-        if (section.skyLight() != null && section.skyLight().length == 2048) {
-            for (int y = 0; y < 16; y++) {
-                for (int z = 0; z < 16; z++) {
-                    for (int x = 0; x < 16; x++) {
-                        int idx = (y << 8) | (z << 4) | x;
-                        skyLight[idx] = getLightValue(section.skyLight(), x, y, z);
-                    }
-                }
-            }
-        }
-
-        return new LightData(section.sectionY(), blockLight, skyLight);
-    }
-
-    public record LightData(
-        int sectionY,
-        byte[] blockLight,
-        byte[] skyLight
-    ) {
-
-        public boolean hasLightData() {
-            return blockLight != null || skyLight != null;
-        }
-
-        public byte getBlockLightAt(int x, int localY, int z) {
-            if (blockLight == null) return 0;
-            int idx = (localY << 8) | (z << 4) | x;
-            return idx < blockLight.length ? blockLight[idx] : 0;
-        }
-
-        public byte getSkyLightAt(int x, int localY, int z) {
-            if (skyLight == null) return 0;
-            int idx = (localY << 8) | (z << 4) | x;
-            return idx < skyLight.length ? skyLight[idx] : 0;
-        }
-
-        public byte getEffectiveLightSurface(int x, int localY, int z) {
-            return getBlockLightAt(x, localY, z);
-        }
-
-        public byte getEffectiveLightCave(int x, int localY, int z,
-                                          boolean hasSkyAccess, boolean hasOverlay) {
-            byte blockLight = getBlockLightAt(x, localY, z);
-
-            if (blockLight >= 15) {
-                return blockLight;
-            }
-
-            if (hasSkyAccess && !hasOverlay) {
-                return 15;
-            }
-
-            if (!hasOverlay) {
-                byte skyLight = getSkyLightAt(x, localY, z);
-                return (byte) Math.max(blockLight, skyLight);
-            }
-
-            return blockLight;
-        }
-
-        public byte getEffectiveLight(int x, int localY, int z,
-                                       LightMode lightMode,
-                                       boolean hasSkyAccess, boolean hasOverlay,
-                                       boolean worldHasSkylight) {
-            return lightMode.calculateEffectiveLight(
-                getBlockLightAt(x, localY, z),
-                getSkyLightAt(x, localY, z),
-                hasSkyAccess, hasOverlay, false, worldHasSkylight
-            );
-        }
     }
 }

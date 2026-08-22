@@ -6,8 +6,8 @@ import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.client.ClientSyncSession;
-import com.mapsyncer.sync.SyncOutcome;
-import com.mapsyncer.sync.SyncPhase;
+
+
 import com.mapsyncer.platform.PlatformManager;
 import com.mapsyncer.platform.XaeroReflectionHelper;
 import com.mapsyncer.util.ChatUtils;
@@ -29,14 +29,41 @@ public class MapPacketHandler {
 
     private static final ClientSyncSession session = ClientSyncSession.get();
 
+    private static int ticksUntilNextLoad = 0;
+
+    private static boolean isViewOnly(int intervalTicks) {
+        return intervalTicks == 0;
+    }
+
+    private static boolean isUnlimited(int intervalTicks) {
+        return intervalTicks == -1;
+    }
+
+    private static boolean shouldDrainOne(int intervalTicks) {
+        if (intervalTicks <= 0) {
+            return false;
+        }
+        if (ticksUntilNextLoad > 0) {
+            ticksUntilNextLoad--;
+            return false;
+        }
+        ticksUntilNextLoad = intervalTicks - 1;
+        return true;
+    }
+
+    private static void resetThrottle() {
+        ticksUntilNextLoad = 0;
+    }
+
+
     public static boolean isSyncInProgress() {
-        return session.phase() == SyncPhase.RECEIVING
+        return session.phase() == ClientSyncSession.SyncPhase.RECEIVING
                 || ClientSyncWriteQueue.hasPendingWrites()
                 || pendingWriteApplyCallbacks.get() > 0;
     }
 
     public static boolean isBackgroundReloadPending() {
-        return session.phase() == SyncPhase.DRAINING_RELOAD || !pendingRegionLoads.isEmpty();
+        return session.phase() == ClientSyncSession.SyncPhase.DRAINING_RELOAD || !pendingRegionLoads.isEmpty();
     }
 
     private static volatile boolean serverInstalled = false;
@@ -72,7 +99,7 @@ public class MapPacketHandler {
 
     private static volatile boolean syncFinishRequested = false;
     private static volatile int syncFinishGeneration = -1;
-    private static volatile SyncOutcome syncFinishOutcome = SyncOutcome.NONE;
+    private static volatile ClientSyncSession.SyncOutcome syncFinishOutcome = ClientSyncSession.SyncOutcome.NONE;
     private static volatile ClientTimestampCache syncFinishTsCache = null;
 
     private static final AtomicInteger pendingWriteApplyCallbacks = new AtomicInteger(0);
@@ -167,7 +194,7 @@ public class MapPacketHandler {
         lastMwDir = null;
         syncFinishRequested = false;
         syncFinishGeneration = -1;
-        syncFinishOutcome = SyncOutcome.NONE;
+        syncFinishOutcome = ClientSyncSession.SyncOutcome.NONE;
         syncFinishTsCache = null;
         pendingWriteApplyCallbacks.set(0);
         LOGGER.info("Cleared sync data to prevent memory leak");
@@ -180,7 +207,15 @@ public class MapPacketHandler {
     }
 
     public static void onDisconnect() {
-        ClientLifecycleBridge.onClientDisconnect();
+        AutoSyncManager.cancel();
+        resetServerStatus();
+        clearSyncData();
+        XaeroReflectionHelper.clearCache();
+        XaeroMapDataHandler.clearRegionTracking();
+        ClientHashManager.shutdown();
+        ClientSyncWriteQueue.shutdown();
+        ClientTimestampCache.resetInstance();
+        LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
     public static void registerHandlers() {
@@ -276,11 +311,11 @@ public class MapPacketHandler {
             String status = payload.status();
             List<ChunkMapData> chunks = payload.chunks();
             int serverWorldId = payload.worldId();
-            SyncOutcome serverOutcome = SyncOutcome.fromServerStatus(status);
+            ClientSyncSession.SyncOutcome serverOutcome = ClientSyncSession.SyncOutcome.fromServerStatus(status);
 
             LOGGER.debug("Received sync response: status={}, chunks={}, isComplete={}", status, chunks.size(), payload.isComplete());
 
-            boolean receiving = session.phase() == SyncPhase.RECEIVING;
+            boolean receiving = session.phase() == ClientSyncSession.SyncPhase.RECEIVING;
 
             if (("ok".equals(status) || "partial".equals(status)) && !payload.isComplete() && !receiving) {
                 long elapsed = System.currentTimeMillis() - lastSyncCompleteTs;
@@ -290,7 +325,7 @@ public class MapPacketHandler {
                 }
             }
 
-            if (payload.isComplete() && session.phase() == SyncPhase.IDLE) {
+            if (payload.isComplete() && session.phase() == ClientSyncSession.SyncPhase.IDLE) {
                 long elapsed = System.currentTimeMillis() - lastSyncCompleteTs;
                 if (elapsed < SYNC_COMPLETE_DEBOUNCE_MS) {
                     LOGGER.debug("Debouncing duplicate completion packet ({}ms after complete)", elapsed);
@@ -308,9 +343,9 @@ public class MapPacketHandler {
             }
             SyncProgressTracker.onServerResponded();
 
-            if (serverOutcome == SyncOutcome.HARD_FAIL) {
+            if (serverOutcome == ClientSyncSession.SyncOutcome.HARD_FAIL) {
                 LOGGER.info("Server returned error status: {}, aborting sync", status);
-                session.setOutcome(SyncOutcome.HARD_FAIL);
+                session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
                 clearSyncData();
                 clearReflectionCache();
                 SyncProgressTracker.cancelTracking();
@@ -320,9 +355,9 @@ public class MapPacketHandler {
                 return;
             }
 
-            if (serverOutcome == SyncOutcome.SILENT_SKIP) {
+            if (serverOutcome == ClientSyncSession.SyncOutcome.SILENT_SKIP) {
                 LOGGER.info("Map is up-to-date, no sync needed");
-                session.setOutcome(SyncOutcome.SILENT_SKIP);
+                session.setOutcome(ClientSyncSession.SyncOutcome.SILENT_SKIP);
                 clearSyncData();
                 clearReflectionCache();
                 SyncProgressTracker.finishUptodate();
@@ -334,7 +369,7 @@ public class MapPacketHandler {
             }
 
             if (isSyncStale()) {
-                session.setOutcome(SyncOutcome.HARD_FAIL);
+                session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
                 clearSyncData();
                 clearReflectionCache();
                 LOGGER.warn("Sync was stale, cleared accumulated data");
@@ -344,9 +379,8 @@ public class MapPacketHandler {
                 return;
             }
 
-            if (session.phase() == SyncPhase.IDLE || session.phase() == SyncPhase.DRAINING_RELOAD) {
+            if (session.phase() == ClientSyncSession.SyncPhase.IDLE || session.phase() == ClientSyncSession.SyncPhase.DRAINING_RELOAD) {
                 session.beginReceiving();
-                RegionPipelineTracker.beginSession();
                 LOGGER.info("Starting sync (streaming mode)");
                 if (!initializeReflectionCache()) {
                     session.markReflectionFailed();
@@ -392,10 +426,6 @@ public class MapPacketHandler {
                 final int gen = generationAtEnqueue;
                 final ClientTimestampCache batchTsCache = tsCache;
 
-                RegionPipelineTracker.onPacketReceived(
-                        assembled.regionX, assembled.regionZ, assembled.caveLayer, assembled.data.length);
-                RegionPipelineTracker.onWriteSubmitted(
-                        assembled.regionX, assembled.regionZ, assembled.caveLayer);
 
                 pendingWriteApplyCallbacks.incrementAndGet();
                 ClientSyncWriteQueue.submit(assembled, serverDir, serverWorldId, tsCache, writeResult -> {
@@ -408,8 +438,6 @@ public class MapPacketHandler {
                             if (writeResult == null) {
                                 LOGGER.error("Region ({}, {}) 写入失败，跳过加载（{} bytes）",
                                         assembled.regionX, assembled.regionZ, assembled.data.length);
-                                RegionPipelineTracker.onWriteComplete(
-                                        assembled.regionX, assembled.regionZ, assembled.caveLayer, false);
                                 if (batchTsCache != null) {
                                     batchTsCache.remove(
                                             XaeroMapDataHandler.buildRelativePathForCache(assembled));
@@ -421,24 +449,15 @@ public class MapPacketHandler {
                                     if (inViewDistance) {
                                         triggerSingleRegionLoad(coord, assembled.caveLayer, true);
                                     } else {
-                                        RegionPipelineTracker.onDeferredLoadQueued(
-                                                coord.x(), coord.z(), assembled.caveLayer);
                                         pendingRegionLoads.add(new PendingRegionLoad(
                                                 coord.x(), coord.z(), assembled.caveLayer));
                                     }
                                     LOGGER.debug("区域 ({}, {}) layer={} inView={} 已写入并触发加载",
                                             coord.x(), coord.z(), assembled.caveLayer, inViewDistance);
                                 } else if (shouldProcess) {
-                                    RegionPipelineTracker.onWriteOnlyComplete(
-                                            assembled.regionX, assembled.regionZ, assembled.caveLayer);
                                     LOGGER.debug("区域 ({}, {}) 已写入磁盘，反射不可用跳过运行时重载",
                                             coord.x(), coord.z());
-                                } else {
-                                    RegionPipelineTracker.onWriteOnlyComplete(
-                                            assembled.regionX, assembled.regionZ, assembled.caveLayer);
                                 }
-                                RegionPipelineTracker.onWriteComplete(
-                                        assembled.regionX, assembled.regionZ, assembled.caveLayer, true);
                             }
 
                             if (batchPending.decrementAndGet() == 0 && batchTsCache != null
@@ -462,7 +481,7 @@ public class MapPacketHandler {
         });
     }
 
-    private static void requestSyncFinish(int generation, SyncOutcome serverOutcome, ClientTimestampCache tsCache) {
+    private static void requestSyncFinish(int generation, ClientSyncSession.SyncOutcome serverOutcome, ClientTimestampCache tsCache) {
         syncFinishRequested = true;
         syncFinishGeneration = generation;
         syncFinishOutcome = serverOutcome;
@@ -480,7 +499,7 @@ public class MapPacketHandler {
         }
 
         syncFinishRequested = false;
-        SyncOutcome serverOutcome = syncFinishOutcome;
+        ClientSyncSession.SyncOutcome serverOutcome = syncFinishOutcome;
         ClientTimestampCache tsCache = syncFinishTsCache;
 
         int totalReceived = updatedRegionCoords.size();
@@ -488,9 +507,9 @@ public class MapPacketHandler {
 
         lastSyncCompleteTs = System.currentTimeMillis();
 
-        SyncOutcome finalOutcome = serverOutcome == SyncOutcome.PARTIAL_SUCCESS || session.reflectionFailed()
-                ? SyncOutcome.PARTIAL_SUCCESS
-                : SyncOutcome.SUCCESS;
+        ClientSyncSession.SyncOutcome finalOutcome = serverOutcome == ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS || session.reflectionFailed()
+                ? ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS
+                : ClientSyncSession.SyncOutcome.SUCCESS;
         session.setOutcome(finalOutcome);
 
         if (!updatedRegionCoords.isEmpty()) {
@@ -519,16 +538,15 @@ public class MapPacketHandler {
             }
         }
 
-        RegionPipelineTracker.markSyncPipelineComplete();
         clearSyncStateAfterComplete();
         scheduleDeferredReloadCleanup();
     }
 
-    private static void notifySyncOutcome(SyncOutcome outcome) {
+    private static void notifySyncOutcome(ClientSyncSession.SyncOutcome outcome) {
         if (Minecraft.getInstance().player == null) {
             return;
         }
-        if (outcome == SyncOutcome.PARTIAL_SUCCESS) {
+        if (outcome == ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS) {
             if (session.reflectionFailed()) {
                 Minecraft.getInstance().player.displayClientMessage(
                         ChatUtils.error("mapsyncer.sync.reflection_failed"), false);
@@ -578,7 +596,7 @@ public class MapPacketHandler {
         if (!pendingRegionLoads.isEmpty()) {
             return;
         }
-        if (session.phase() == SyncPhase.DRAINING_RELOAD) {
+        if (session.phase() == ClientSyncSession.SyncPhase.DRAINING_RELOAD) {
             session.completeSession();
             LOGGER.info("Deferred reload queue drained, sync session idle");
         }
@@ -598,7 +616,7 @@ public class MapPacketHandler {
         } catch (IllegalStateException e) {
             intervalTicks = 1;
         }
-        if (RegionLoadThrottle.isViewOnly(intervalTicks) || pendingRegionLoads.isEmpty()) {
+        if (isViewOnly(intervalTicks) || pendingRegionLoads.isEmpty()) {
             pendingRegionLoads.clear();
             clearReflectionCache();
             resumeChunkUpdatesIfIdle();
@@ -610,7 +628,7 @@ public class MapPacketHandler {
     }
 
     private static void finishDeferredReloadCleanupIfDone() {
-        if (session.phase() != SyncPhase.DRAINING_RELOAD || !pendingRegionLoads.isEmpty()) {
+        if (session.phase() != ClientSyncSession.SyncPhase.DRAINING_RELOAD || !pendingRegionLoads.isEmpty()) {
             return;
         }
         clearReflectionCache();
@@ -624,7 +642,7 @@ public class MapPacketHandler {
         partBuffer.clear();
         pendingRegionLoads.clear();
         lastMwDir = null;
-        RegionLoadThrottle.reset();
+        resetThrottle();
     }
 
     private static void clearReflectionCache() {
@@ -661,7 +679,6 @@ public class MapPacketHandler {
     }
 
     private static void triggerSingleRegionLoad(XaeroMapDataHandler.RegionCoord coord, int caveLayer, boolean inViewDistance) {
-        RegionPipelineTracker.onReflectionLoadStart(coord.x(), coord.z(), caveLayer);
         boolean success = false;
         try {
             if (!XaeroReflectionHelper.isInitialized()) {
@@ -714,39 +731,37 @@ public class MapPacketHandler {
         } catch (Exception e) {
             LOGGER.error("立即加载区域 ({}, {}) layer={} 失败: {}", coord.x(), coord.z(), caveLayer, e.getMessage(), e);
         } finally {
-            RegionPipelineTracker.onReflectionLoadDone(coord.x(), coord.z(), caveLayer, success);
         }
     }
 
     public static void drainPendingLoadQueue() {
         SyncProgressTracker.onClientTick();
-        RegionPipelineTracker.onClientTick();
         int intervalTicks;
         try {
             intervalTicks = PlatformManager.getPlatform().getMapRegionLoadIntervalTicks();
         } catch (IllegalStateException e) {
             return;
         }
-        if (RegionLoadThrottle.isViewOnly(intervalTicks)) {
+        if (isViewOnly(intervalTicks)) {
             return;
         }
         if (pendingRegionLoads.isEmpty()) {
             return;
         }
 
-        if (RegionLoadThrottle.isUnlimited(intervalTicks)) {
+        if (isUnlimited(intervalTicks)) {
             PendingRegionLoad pending;
             while ((pending = pendingRegionLoads.poll()) != null) {
                 XaeroMapDataHandler.RegionCoord coord = new XaeroMapDataHandler.RegionCoord(
                     pending.regionX(), pending.regionZ(), pending.caveLayer());
                 triggerSingleRegionLoad(coord, pending.caveLayer(), false);
             }
-            RegionLoadThrottle.reset();
+            resetThrottle();
             finishDeferredReloadCleanupIfDone();
             return;
         }
 
-        if (!RegionLoadThrottle.shouldDrainOne(intervalTicks)) {
+        if (!shouldDrainOne(intervalTicks)) {
             return;
         }
 

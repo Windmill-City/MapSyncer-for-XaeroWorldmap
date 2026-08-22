@@ -21,7 +21,7 @@ public final class ServerLifecycleBridge {
 
         GenerationCache.resetInstance();
         McaTimestampCache.resetInstance();
-        IncrementalUpdateHandler.resetInstance();
+        IncrementalUpdateHandlerLogic.resetInstance();
 
         MapPacketHandler.clearReceivedChunks();
         XaeroMapDataHandler.clearRegionTracking();

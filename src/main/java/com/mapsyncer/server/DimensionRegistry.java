@@ -4,9 +4,8 @@ import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.LayerPlan;
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.util.DimensionApiHelper;
+import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
-import com.mapsyncer.util.DimensionTypeHelper;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -50,7 +49,7 @@ public class DimensionRegistry {
         Set<String> newDimensions = new LinkedHashSet<>();
         for (ServerLevel level : server.getAllLevels()) {
             ResourceKey<Level> dimKey = level.dimension();
-            String dimId = DimensionApiHelper.getDimId(dimKey);
+            String dimId = ApiHelper.getDimId(dimKey);
 
             String normalizedId = normalizeDimensionId(dimId);
 
@@ -74,7 +73,7 @@ public class DimensionRegistry {
             ServerLevel level = getLevelForDimension(server, dimId);
             DimensionTypeInfo dimTypeInfo;
             if (level != null) {
-                dimTypeInfo = DimensionTypeHelper.fromDimensionType(level.dimensionType());
+                dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
                 LOGGER.info("Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, height={}",
                     dimId, dimTypeInfo.hasSkylight(), dimTypeInfo.hasCeiling(),
                     dimTypeInfo.minY(), dimTypeInfo.height());
@@ -116,7 +115,7 @@ public class DimensionRegistry {
 
     private static ServerLevel getLevelForDimension(MinecraftServer server, String dimId) {
         for (ServerLevel level : server.getAllLevels()) {
-            if (DimensionApiHelper.getDimId(level.dimension()).equals(dimId)) {
+            if (ApiHelper.getDimId(level.dimension()).equals(dimId)) {
                 return level;
             }
         }

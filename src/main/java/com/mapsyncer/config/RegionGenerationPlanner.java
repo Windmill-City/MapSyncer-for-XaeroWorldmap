@@ -4,7 +4,7 @@ import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.RegionConverterStandalone.CaveModeParams;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-import com.mapsyncer.mca.convert.scan.ScanVerticalBounds;
+
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -53,9 +53,9 @@ public final class RegionGenerationPlanner {
         if (!seenLayers.add(Integer.MAX_VALUE)) {
             return;
         }
-        ScanVerticalBounds bounds = info.hasUpperZone()
-            ? ScanVerticalBounds.aboveY(info.logicalTopY(), info.maxY())
-            : ScanVerticalBounds.fullColumn(info.minY(), info.maxY());
+        RegionScanPass.ScanVerticalBounds bounds = info.hasUpperZone()
+            ? RegionScanPass.ScanVerticalBounds.aboveY(info.logicalTopY(), info.maxY())
+            : RegionScanPass.ScanVerticalBounds.fullColumn(info.minY(), info.maxY());
         passes.add(new RegionScanPass(
             Integer.MAX_VALUE,
             LightMode.SURFACE,
@@ -92,7 +92,7 @@ public final class RegionGenerationPlanner {
             layer,
             LightMode.CAVE,
             new CaveModeParams(caveStart, depth),
-            ScanVerticalBounds.unbounded()
+            RegionScanPass.ScanVerticalBounds.unbounded()
         ));
     }
 

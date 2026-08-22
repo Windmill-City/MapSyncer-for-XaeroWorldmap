@@ -109,9 +109,9 @@ public final class DimensionConfigParser {
 
         int dimTypeStartIndex;
         if (parts.length > 2 && isLegacyScanModeToken(parts[1]) && !looksLikeDimTypeField(parts[2])) {
-            ScanMode legacyMode;
+            LayerPlan.ScanMode legacyMode;
             try {
-                legacyMode = ScanMode.valueOf(parts[1].trim().toUpperCase());
+                legacyMode = LayerPlan.ScanMode.valueOf(parts[1].trim().toUpperCase());
             } catch (IllegalArgumentException e) {
                 LOGGER.warn("Invalid legacy scan_mode '{}' in [{}], treating as layer plan",
                     parts[1], configStr);
@@ -369,8 +369,8 @@ public final class DimensionConfigParser {
     }
 
     public static DimensionScanConfig getConfigForDimension(String dimensionPath,
-            List<? extends String> dimensionConfigs, ScanMode defaultMode, int defaultCave) {
-        LayerPlan defaultPlan = defaultMode == ScanMode.SURFACE
+            List<? extends String> dimensionConfigs, LayerPlan.ScanMode defaultMode, int defaultCave) {
+        LayerPlan defaultPlan = defaultMode == LayerPlan.ScanMode.SURFACE
             ? LayerPlan.surfaceOnly()
             : LayerPlan.caves(defaultCave);
 

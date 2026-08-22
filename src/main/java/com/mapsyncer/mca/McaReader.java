@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 
@@ -26,6 +28,45 @@ public class McaReader implements AutoCloseable {
     private static final int COMPRESS_NONE = 3;
 
     private static final int COMPRESS_LZ4 = 4;
+
+    private static final long HEADER_ONLY_SIZE = (long) SECTOR_SIZE * 2;
+
+    public static boolean hasAnyChunk(Path mcaPath) {
+        if (mcaPath == null || !Files.exists(mcaPath)) {
+            return false;
+        }
+        try {
+            long size = Files.size(mcaPath);
+            if (size == 0 || size <= HEADER_ONLY_SIZE) {
+                return false;
+            }
+        } catch (IOException e) {
+            LOGGER.debug("Cannot stat MCA {}: {}", mcaPath, e.getMessage());
+            return false;
+        }
+
+        try (RandomAccessFile raf = new RandomAccessFile(mcaPath.toFile(), "r")) {
+            for (int localX = 0; localX < CHUNKS_PER_REGION; localX++) {
+                for (int localZ = 0; localZ < CHUNKS_PER_REGION; localZ++) {
+                    int index = (localX + localZ * CHUNKS_PER_REGION) * 4;
+                    raf.seek(index);
+                    int b0 = raf.readUnsignedByte();
+                    int b1 = raf.readUnsignedByte();
+                    int b2 = raf.readUnsignedByte();
+                    int offsetSectors = (b0 << 16) | (b1 << 8) | b2;
+                    int sectorCount = raf.readUnsignedByte();
+                    if (offsetSectors > 0 && sectorCount > 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            LOGGER.debug("MCA chunk probe failed for {}: {}", mcaPath, e.getMessage());
+            return false;
+        }
+    }
+
 
     public record ChunkLocation(int offsetSectors, int sectorCount, int timestamp) {
 
@@ -130,13 +171,6 @@ public class McaReader implements AutoCloseable {
                 }
             }
         }
-    }
-
-    @Deprecated
-    public Iterable<ChunkData> readAllChunks() throws IOException {
-        java.util.List<ChunkData> chunks = new java.util.ArrayList<>();
-        forEachChunk(chunks::add);
-        return chunks;
     }
 
     private byte[] decompress(byte[] data, int compressionType) throws IOException {

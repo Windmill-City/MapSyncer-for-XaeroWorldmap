@@ -3,17 +3,15 @@ package com.mapsyncer.server;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.network.payload.ClientMeta;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.platform.PlatformManager;
-import com.mapsyncer.util.PropertiesCacheIO.TimestampHashEntry;
+import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.DimensionApiHelper;
+import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
-import com.mapsyncer.util.PlayerLevelApiHelper;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -151,6 +149,54 @@ public class ServerSyncHandlerLogic {
 
     private static final Map<UUID, Integer> requestTotalParts = new ConcurrentHashMap<>();
 
+    private static final Map<UUID, Integer> playerSyncVersions = new ConcurrentHashMap<>();
+
+    private static int currentVersion(UUID playerId) {
+        return playerSyncVersions.getOrDefault(playerId, 0);
+    }
+
+    private static boolean isCurrent(UUID playerId, int syncVersion) {
+        return playerSyncVersions.getOrDefault(playerId, 0) == syncVersion;
+    }
+
+    private static void assignVersion(UUID playerId, int syncVersion) {
+        playerSyncVersions.put(playerId, syncVersion);
+    }
+
+    private static void clearAllVersions() {
+        playerSyncVersions.clear();
+    }
+
+    private static void interruptOldSyncThread(UUID playerId, Runnable clearSpeedLimit) {
+        Thread oldThread = syncThreads.get(playerId);
+        if (oldThread != null && oldThread.isAlive()) {
+            oldThread.interrupt();
+            syncThreads.remove(playerId);
+            clearSpeedLimit.run();
+        }
+    }
+
+    private static void finalizeSession(UUID playerId) {
+        playerSyncVersions.remove(playerId);
+    }
+
+    private static boolean shouldTransfer(String serverHash, long serverTs, ClientMeta clientMeta) {
+        if (clientMeta == null) {
+            return true;
+        }
+        String clientHash = clientMeta.hash();
+        if (!HashUtils.isValidHash(clientHash)) {
+            return true;
+        }
+        if (serverHash.equals(clientHash)) {
+            return false;
+        }
+        if (clientMeta.timestampSeconds() >= serverTs) {
+            return false;
+        }
+        return true;
+    }
+
     private record RegionSyncInfo(Path zipPath, String normalizedPath, long timestampSeconds,
                                    int regionX, int regionZ, String dimension, int caveLayer) {
 
@@ -173,7 +219,7 @@ public class ServerSyncHandlerLogic {
 
         requestPartBuffer.remove(playerId);
         requestTotalParts.remove(playerId);
-        ServerSyncSession.finalizeSession(playerId);
+        finalizeSession(playerId);
 
         Thread syncThread = syncThreads.remove(playerId);
         if (syncThread != null && syncThread.isAlive()) {
@@ -186,7 +232,7 @@ public class ServerSyncHandlerLogic {
         if (syncThreads.get(playerId) != Thread.currentThread()) {
             return false;
         }
-        if (!ServerSyncSession.isCurrent(playerId, syncVersion)) {
+        if (!isCurrent(playerId, syncVersion)) {
             return false;
         }
         return syncingPlayers.contains(playerId);
@@ -204,7 +250,7 @@ public class ServerSyncHandlerLogic {
         for (int attempt = 1; attempt <= PLAYER_VALIDATION_MAX_ATTEMPTS; attempt++) {
             try {
                 boolean valid = server.submit(() -> {
-                    if (!ServerSyncSession.isCurrent(playerId, syncVersion)) {
+                    if (!isCurrent(playerId, syncVersion)) {
                         return false;
                     }
                     if (!syncingPlayers.contains(playerId)) {
@@ -216,8 +262,8 @@ public class ServerSyncHandlerLogic {
                     }
                     if (startDimension != null && !player.level().dimension().equals(startDimension)) {
                         LOGGER.info("Player {} changed dimension from {} to {}, aborting sync",
-                                playerId, DimensionApiHelper.getDimId(startDimension),
-                                DimensionApiHelper.getDimId(player.level().dimension()));
+                                playerId, ApiHelper.getDimId(startDimension),
+                                ApiHelper.getDimId(player.level().dimension()));
                         syncingPlayers.remove(playerId);
                         playerSyncDimensions.remove(playerId);
                         return false;
@@ -373,7 +419,7 @@ public class ServerSyncHandlerLogic {
     private static void finalizePlayerSync(UUID playerId) {
         syncingPlayers.remove(playerId);
         playerSyncDimensions.remove(playerId);
-        ServerSyncSession.finalizeSession(playerId);
+        finalizeSession(playerId);
 
         requestPartBuffer.remove(playerId);
         requestTotalParts.remove(playerId);
@@ -438,19 +484,19 @@ public class ServerSyncHandlerLogic {
 
         int syncVersion = globalSyncVersion.incrementAndGet();
 
-        ServerSyncSession.interruptOldSyncThread(playerId, syncThreads, () -> clearSpeedLimitState(playerId));
+        interruptOldSyncThread(playerId, () -> clearSpeedLimitState(playerId));
 
-        ServerSyncSession.assignVersion(playerId, syncVersion);
+        assignVersion(playerId, syncVersion);
 
         ResourceKey<Level> startDimension = serverPlayer.level().dimension();
-        MinecraftServer server = PlayerLevelApiHelper.getServer(serverPlayer);
+        MinecraftServer server = ApiHelper.getServer(serverPlayer);
 
         syncingPlayers.add(playerId);
         playerSyncDimensions.put(playerId, startDimension);
 
         int startBlockX = serverPlayer.getBlockX();
         int startBlockZ = serverPlayer.getBlockZ();
-        int viewDistanceChunks = PlayerLevelApiHelper.getServer(serverPlayer).getPlayerList().getViewDistance() + 2;
+        int viewDistanceChunks = ApiHelper.getServer(serverPlayer).getPlayerList().getViewDistance() + 2;
         int viewDistanceRegions = (viewDistanceChunks >> 5) + 1;
         int worldId = readWorldIdFromXaeroMap(serverPlayer);
 
@@ -470,7 +516,7 @@ public class ServerSyncHandlerLogic {
 
     private static void enqueueIfCurrent(MinecraftServer server, UUID playerId, int version, Consumer<ServerPlayer> task) {
         server.execute(() -> {
-            if (!ServerSyncSession.isCurrent(playerId, version)) {
+            if (!isCurrent(playerId, version)) {
                 return;
             }
             ServerPlayer player = server.getPlayerList().getPlayer(playerId);
@@ -521,7 +567,7 @@ public class ServerSyncHandlerLogic {
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         GenerationCache genCache = GenerationCache.getInstance(cacheDir);
         genCache.pruneInvalidEntries(cacheDir);
-        Map<String, TimestampHashEntry> serverCache = genCache.getAll();
+        Map<String, ClientMeta> serverCache = genCache.getAll();
 
         if (!Files.exists(cacheDir)) {
             enqueueIfCurrent(server, playerId, syncVersion, player -> {
@@ -644,7 +690,7 @@ public class ServerSyncHandlerLogic {
                             return;
                         }
 
-                        TimestampHashEntry serverMeta = serverCache.get(normalizedPath);
+                        ClientMeta serverMeta = serverCache.get(normalizedPath);
                         ClientMeta clientMetaEntry = clientMeta.get(normalizedPath);
 
                         if (!HashUtils.isValidRegionZip(zipPath)) {
@@ -664,7 +710,7 @@ public class ServerSyncHandlerLogic {
                             timestamp = serverMeta.timestampSeconds();
                         }
 
-                        if (RegionSyncPolicy.shouldTransfer(serverHash, timestamp, clientMetaEntry)) {
+                        if (shouldTransfer(serverHash, timestamp, clientMetaEntry)) {
                             RegionSyncInfo info = parseRegionInfo(zipPath, normalizedPath, timestamp);
                             if (info != null) {
                                 regionsToSync.add(info);
@@ -674,7 +720,7 @@ public class ServerSyncHandlerLogic {
 
         genCache.save();
 
-        for (Map.Entry<String, TimestampHashEntry> entry : serverCache.entrySet()) {
+        for (Map.Entry<String, ClientMeta> entry : serverCache.entrySet()) {
             ClientMeta cm = clientMeta.get(entry.getKey());
             if (cm != null && entry.getValue().hash().equals(cm.hash())) {
                 hashMatchCount++;
@@ -891,7 +937,7 @@ public class ServerSyncHandlerLogic {
         }
         syncingPlayers.clear();
         playerSyncDimensions.clear();
-        ServerSyncSession.clearAllVersions();
+        clearAllVersions();
         syncThreads.clear();
         speedLimitBytesSent.clear();
         speedLimitCycleStart.clear();
@@ -937,7 +983,7 @@ public class ServerSyncHandlerLogic {
             syncThreads.remove(playerId);
             syncingPlayers.remove(playerId);
             playerSyncDimensions.remove(playerId);
-            ServerSyncSession.finalizeSession(playerId);
+            finalizeSession(playerId);
             clearSpeedLimitState(playerId);
         }
 

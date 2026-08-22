@@ -5,15 +5,15 @@ import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.convert.io.XaeroBlockStateNbtWriter;
+import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
-import com.mapsyncer.mca.convert.model.OverlayEntry;
+import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import com.mapsyncer.mca.convert.overlay.OverlayAccumulator;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class PixelColumnProcessor {
 
@@ -33,11 +33,11 @@ public final class PixelColumnProcessor {
             LightMode lightMode,
             boolean singlePalette,
             ChunkSectionParser.BlockState singleState,
-            ColumnScanContext ctx,
+            ChunkColumnScanner.ColumnScanContext ctx,
             MapRegionData data,
             BlockPropertyLookup blockLookup) {
 
-        int pos = ColumnScanContext.pos(lx, lz);
+        int pos = ChunkColumnScanner.ColumnScanContext.pos(lx, lz);
         if (ctx.blockFound[pos]) {
             return false;
         }
@@ -49,7 +49,7 @@ public final class PixelColumnProcessor {
                 }
                 return false;
             }
-            if (isCaveMode && ColumnScanContext.hasFluid(singleState, blockLookup)) {
+            if (isCaveMode && ChunkColumnScanner.ColumnScanContext.hasFluid(singleState, blockLookup)) {
                 ctx.onFluid(pos, true);
             }
             if (!ctx.canProcessCaveBlock(pos, isCaveMode)) {
@@ -88,7 +88,7 @@ public final class PixelColumnProcessor {
                 continue;
             }
 
-            if (isCaveMode && ColumnScanContext.hasFluid(state, blockLookup)) {
+            if (isCaveMode && ChunkColumnScanner.ColumnScanContext.hasFluid(state, blockLookup)) {
                 ctx.onFluid(pos, true);
             }
 
@@ -125,7 +125,7 @@ public final class PixelColumnProcessor {
                 byte waterLight = SectionLightAccess.getBlockLightCrossSection(
                     chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
-                OverlayAccumulator.add(overlays, overlays, XaeroBlockStateNbtWriter.WATER, worldY,
+                OverlayAccumulator.add(overlays, overlays, XaeroBinaryWriter.WATER, worldY,
                     waterOpacity, waterLight, blockLookup);
                 int opacity = blockLookup.getLightBlock(blockName);
                 byte light = SectionLightAccess.getBlockLightCrossSection(
@@ -188,14 +188,14 @@ public final class PixelColumnProcessor {
             ChunkSectionParser.BlockState state,
             int heightMapValue,
             ArrayList<OverlayEntry> overlays,
-            ColumnScanContext ctx,
+            ChunkColumnScanner.ColumnScanContext ctx,
             MapRegionData data,
             BlockPropertyLookup blockLookup,
             LightMode lightMode,
             boolean worldHasSkylight,
             boolean useCalculateLight) {
 
-        int pos = ColumnScanContext.pos(lx, lz);
+        int pos = ChunkColumnScanner.ColumnScanContext.pos(lx, lz);
         int opacity = blockLookup.getLightBlock("minecraft:water");
         int aboveWorldY = worldY + 1;
         byte light = useCalculateLight
@@ -203,7 +203,7 @@ public final class PixelColumnProcessor {
                 heightMapValue, overlays, lightMode, worldHasSkylight, blockLookup)
             : SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
         overlays = ensureOverlayList(ctx, pos, overlays);
-        OverlayAccumulator.add(overlays, overlays, XaeroBlockStateNbtWriter.WATER, worldY, opacity, light, blockLookup);
+        OverlayAccumulator.add(overlays, overlays, XaeroBinaryWriter.WATER, worldY, opacity, light, blockLookup);
         int topBlockY = ctx.topPixelH[pos] < 0 ? worldY : ctx.topPixelH[pos];
         recordPixelScan(data, state, worldY, topBlockY, light, ctx.overlayLists[pos], relX, relZ);
         ctx.blockFound[pos] = true;
@@ -217,7 +217,7 @@ public final class PixelColumnProcessor {
             int worldY,
             ChunkSectionParser.BlockState state,
             ArrayList<OverlayEntry> overlays,
-            ColumnScanContext ctx,
+            ChunkColumnScanner.ColumnScanContext ctx,
             int pos,
             BlockPropertyLookup blockLookup) {
 
@@ -232,7 +232,7 @@ public final class PixelColumnProcessor {
     }
 
     private static ArrayList<OverlayEntry> ensureOverlayList(
-            ColumnScanContext ctx, int pos, ArrayList<OverlayEntry> overlays) {
+            ChunkColumnScanner.ColumnScanContext ctx, int pos, ArrayList<OverlayEntry> overlays) {
         if (overlays == null) {
             overlays = new ArrayList<>();
             ctx.overlayLists[pos] = overlays;
@@ -247,7 +247,7 @@ public final class PixelColumnProcessor {
             return;
         }
         data.hasData[relX][relZ] = true;
-        BlockState stored = surfaceState != null ? surfaceState : XaeroBlockStateNbtWriter.AIR;
+        BlockState stored = surfaceState != null ? surfaceState : XaeroBinaryWriter.AIR;
         data.blockStates[relX][relZ] = stored;
         data.topBlockY[relX][relZ] = highestBlockY;
         data.heightMap[relX][relZ] = topY;

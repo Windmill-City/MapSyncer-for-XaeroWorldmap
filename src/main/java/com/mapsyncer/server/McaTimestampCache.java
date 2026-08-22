@@ -120,41 +120,6 @@ public class McaTimestampCache {
         }
     }
 
-    public boolean needsRegeneration(String dimension, int regionX, int regionZ, Path mcaPath) {
-        if (!Files.exists(mcaPath)) {
-            return false;
-        }
-
-        String regionKey = regionX + "_" + regionZ;
-        long currentTimestamp = getFileTimestamp(mcaPath);
-
-        if (currentTimestamp < 0) {
-            return true;
-        }
-
-        Map<String, Long> dimCache = timestampCache.get(dimension);
-        if (dimCache == null) {
-            LOGGER.debug("No cached timestamp for dimension {}, will regenerate", dimension);
-            return true;
-        }
-
-        Long cachedTimestamp = dimCache.get(regionKey);
-        if (cachedTimestamp == null) {
-            LOGGER.debug("No cached timestamp for region {} in {}, will generate", regionKey, dimension);
-            return true;
-        }
-
-        long currentSeconds = currentTimestamp / 1000;
-        long cachedSeconds = cachedTimestamp / 1000;
-        if (currentSeconds > cachedSeconds) {
-            LOGGER.info("Region {} in {} has been updated (cached={}s, current={}s), will regenerate",
-                regionKey, dimension, cachedSeconds, currentSeconds);
-            return true;
-        }
-
-        return false;
-    }
-
     public void updateTimestamp(String dimension, int regionX, int regionZ, Path mcaPath) {
         long timestamp = getFileTimestamp(mcaPath);
         if (timestamp < 0) {

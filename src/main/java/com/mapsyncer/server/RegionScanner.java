@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.mca.McaContentProbe;
-import com.mapsyncer.util.DimensionApiHelper;
+import com.mapsyncer.mca.McaReader;
+import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -40,7 +40,7 @@ public class RegionScanner {
     public static List<DimensionRegions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = DimensionApiHelper.getDimId(level.dimension());
+            String dimId = ApiHelper.getDimId(level.dimension());
             final String finalDimId = dimId;
             if (!dimNames.stream().anyMatch(d -> d.name().equals(finalDimId))) {
                 dimNames.add(new DimensionNames(dimId, level.dimension()));
@@ -67,7 +67,7 @@ public class RegionScanner {
             worldRoot = worldRoot.toRealPath();
 
             DimensionPathMapping mapping = DimensionPathMapping.getInstance();
-            String dimId = DimensionApiHelper.getDimId(level.dimension());
+            String dimId = ApiHelper.getDimId(level.dimension());
 
             Path regionDir = mapping.detectRegionDir(worldRoot, dimId);
 
@@ -85,7 +85,7 @@ public class RegionScanner {
 
     private static RegionScanResult scanRegionDir(Path worldRoot, net.minecraft.resources.ResourceKey<Level> dimensionKey) {
         DimensionPathMapping mapping = DimensionPathMapping.getInstance();
-        String dimId = DimensionApiHelper.getDimId(dimensionKey);
+        String dimId = ApiHelper.getDimId(dimensionKey);
 
         Path regionDir = mapping.detectRegionDir(worldRoot, dimId);
 
@@ -113,7 +113,7 @@ public class RegionScanner {
                 try {
                     BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
                     long size = attrs.size();
-                    if (size == 0 || !McaContentProbe.hasAnyChunk(file)) {
+                    if (size == 0 || !McaReader.hasAnyChunk(file)) {
                         continue;
                     }
                     int regionX = Integer.parseInt(matcher.group(1));
@@ -155,7 +155,7 @@ public class RegionScanner {
                             LOGGER.debug("Skipping empty MCA file: {} (0 bytes)", fileName);
                             continue;
                         }
-                        if (!McaContentProbe.hasAnyChunk(file)) {
+                        if (!McaReader.hasAnyChunk(file)) {
                             skippedEmpty++;
                             LOGGER.debug("Skipping header-only MCA file: {} ({} bytes)", fileName, fileSize);
                             continue;

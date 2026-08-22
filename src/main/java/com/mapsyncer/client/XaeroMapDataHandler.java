@@ -13,7 +13,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.CheckedOutputStream;
@@ -44,31 +43,14 @@ public final class XaeroMapDataHandler {
         return Set.copyOf(updatedRegions);
     }
 
-    public static Set<RegionCoord> getPreUnloadedRegions() {
-        return Set.copyOf(preUnloadedRegions);
-    }
-
     static Set<RegionCoord> getPreUnloadedRegionsInternal() {
         return preUnloadedRegions;
-    }
-
-    public static void clearPreUnloadedRegions() {
-        preUnloadedRegions.clear();
     }
 
     public static void clearRegionTracking() {
         updatedRegions.clear();
         preUnloadedRegions.clear();
         LOGGER.debug("Cleared region tracking sets");
-    }
-
-    public static void recordUpdatedRegions(List<ChunkMapData> chunks) {
-        updatedRegions.clear();
-
-        for (ChunkMapData chunk : chunks) {
-            updatedRegions.add(new RegionCoord(chunk.regionX, chunk.regionZ, chunk.caveLayer));
-        }
-        LOGGER.debug("Recorded {} updated regions for selective reset", updatedRegions.size());
     }
 
     public static void recordUpdatedRegionCoords(Set<RegionCoord> coords) {
@@ -116,33 +98,6 @@ public final class XaeroMapDataHandler {
         }
 
         return new RegionWriteResult(mwDir, outputFile, String.format("%08x", crc32.getValue()));
-    }
-
-    public static Path writeMapData(List<ChunkMapData> chunks, Path serverDir, int worldId) {
-        ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-
-        Path lastMwDir = null;
-        for (ChunkMapData chunk : chunks) {
-            RegionWriteResult result = writeChunkData(chunk, serverDir, worldId);
-            if (result == null) {
-                continue;
-            }
-            lastMwDir = result.mwDir();
-
-            if (tsCache != null) {
-                String relativePath = buildRelativePathForCache(chunk);
-                tsCache.update(relativePath, chunk.timestampSeconds, result.crc32Hash());
-                LOGGER.debug("Updated timestamp cache for {}: ts={}s, hash={}",
-                        relativePath, chunk.timestampSeconds, result.crc32Hash());
-            }
-        }
-
-        if (tsCache != null) {
-            tsCache.save();
-        }
-        LOGGER.info("Saved timestamp cache for {} regions", chunks.size());
-
-        return lastMwDir;
     }
 
     public static String buildRelativePathForCache(ChunkMapData chunk) {

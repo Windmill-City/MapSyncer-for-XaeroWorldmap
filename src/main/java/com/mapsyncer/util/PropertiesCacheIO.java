@@ -74,7 +74,7 @@ public final class PropertiesCacheIO {
         }
     }
 
-    public static TimestampHashEntry parseTimestampHash(String value) {
+    public static ClientMeta parseTimestampHash(String value) {
         if (value == null || value.isEmpty()) {
             return null;
         }
@@ -83,18 +83,11 @@ public final class PropertiesCacheIO {
         if (parts.length == 2) {
             try {
                 long ts = Long.parseLong(parts[0]);
-                return new TimestampHashEntry(ts, parts[1]);
+                return new ClientMeta(ts, parts[1]);
             } catch (NumberFormatException e) {
                 return null;
             }
         }
         return null;
-    }
-
-    public record TimestampHashEntry(long timestampSeconds, String hash) {
-
-        public String format() {
-            return timestampSeconds + ":" + hash;
-        }
     }
 }

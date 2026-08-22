@@ -3,7 +3,7 @@ package com.mapsyncer.mca.convert.biome;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.DEFAULT_BIOME;
+import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
 
 public final class BiomeQuartResolver {
 

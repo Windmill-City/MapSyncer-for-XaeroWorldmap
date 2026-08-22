@@ -4,8 +4,8 @@ import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 
-import static com.mapsyncer.mca.convert.model.ConvertConstants.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.convert.model.ConvertConstants.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
 
 public final class BiomeFillPass {
 
