@@ -63,8 +63,6 @@ public class ConversionOrchestrator {
 
     private static volatile String currentStatus = "idle";
 
-    private static volatile ResourceKey<Level> currentDimension = null;
-
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
     private static final Path DEFAULT_CACHE_DIR = Path.of("server_map_cache");
@@ -257,7 +255,6 @@ public class ConversionOrchestrator {
         RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
         List<RegionCoords> regions = scanResult.regions();
         totalCount = regions.size();
-        currentDimension = dimKey;
         try {
             convertDimension(
                     server,
@@ -303,7 +300,6 @@ public class ConversionOrchestrator {
         RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
         List<RegionCoords> regions = scanResult.regions();
         totalCount = regions.size();
-        currentDimension = dimKey;
         try {
             convertDimension(
                     server,
@@ -351,7 +347,6 @@ public class ConversionOrchestrator {
 
         totalCount = 1;
         processedCount = 0;
-        currentDimension = dimension;
         ServerLevel level = server.getLevel(dimension);
         if (level == null) {
             LOGGER.error("Level not loaded for dimension: {}", dimension);
@@ -433,7 +428,6 @@ public class ConversionOrchestrator {
             return;
         }
 
-        currentDimension = dimRegions.dimension();
         String fullDimId = dimRegions.dimension().location().toString();
         String dimPath = dimRegions.dimension().location().getPath();
 

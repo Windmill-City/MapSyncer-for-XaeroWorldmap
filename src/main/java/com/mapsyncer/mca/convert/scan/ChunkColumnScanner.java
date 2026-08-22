@@ -20,7 +20,7 @@ public final class ChunkColumnScanner {
 
         public final boolean[] shouldEnterGround = new boolean[256];
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public final ArrayList<OverlayEntry>[] overlayLists = new ArrayList[256];
 
         public final int[] topPixelH = new int[256];

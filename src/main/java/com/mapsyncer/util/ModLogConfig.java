@@ -27,7 +27,6 @@ public final class ModLogConfig {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static void setLoggerLevel(String packageName, String level) {
         try {
 
