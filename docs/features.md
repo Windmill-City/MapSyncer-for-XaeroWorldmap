@@ -12,28 +12,21 @@
 
 ### 平台支持
 
-| MC 版本 | Forge | NeoForge | Fabric | Java |
-|---------|:-----:|:--------:|:------:|:----:|
-| 1.20.1 | ✅ | — | ✅ | 17 |
-| 1.21.1 | ✅ | ✅ | ✅ | 21 |
-| 1.21.11 | ✅ | ✅ | ✅ | 21 |
-| 26.1 | — | ✅ | ✅ | 25 |
-| 26.2 | — | ✅ | ✅ | 25 |
+| MC 版本 | Forge | Java |
+|---------|:-----:|:----:|
+| 1.20.1 | ✅ | 17 |
 
-> 1.20.4 前 NeoForge、26.x Forge 不做适配。客户端依赖 Xaero's World Map **1.40.11+**。服务端无需安装 Xaero。
+> 客户端依赖 Xaero's World Map **1.40.11+**。服务端无需安装 Xaero。
 
 ### 架构分层
 
 ```
-libs/common/        全版本业务逻辑（同步、缓存、命令逻辑、配置解析）
+libs/common/        业务逻辑（同步、缓存、命令逻辑、配置解析）
 libs/core/          纯 Java（MCA/NBT、MapPackager）
 libs/platform-api/  Platform 接口、网络 Payload、常量
 libs/mc-1.20/       G1 锚点（1.20.1 API）
-libs/mc-1.21/       G2 锚点（1.21.1 API）
-libs/mc-1.21.11/    G3 锚点（1.21.11 API）
-libs/mc-26/         G4 锚点（26.x API）
 
-mc-{精确版本}/{fabric|forge|neoforge}/   Loader 胶水（Platform 实现、网络注册）
+mc-1.20.1/forge/    Forge 胶水（Platform 实现、网络注册）
 ```
 
 ---

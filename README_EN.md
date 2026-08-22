@@ -26,15 +26,9 @@ This release centers on **multi-layer cave rendering + auto-sync system + multi-
 
 ## Platform Support
 
-> NeoForge before 1.20.4 and Forge on 26.x are not supported.
-
-| MC Version | Forge | NeoForge | Fabric |
-|------------|:-----:|:--------:|:------:|
-| 1.20.1 | ✅ | — | ✅ |
-| 1.21.1 | ✅ | ✅ | ✅ |
-| 1.21.11 | ✅ | ✅ | ✅ |
-| 26.1 | — | ✅ | ✅ |
-| 26.2 | — | ✅ | ✅ |
+| MC Version | Forge |
+|------------|:-----:|
+| 1.20.1 | ✅ |
 
 ### Client Dependencies
 
@@ -88,8 +82,6 @@ Supports dedicated and integrated servers (LAN). On integrated servers, the host
 
 ### Server (OP level 4)
 
-> Forge/NeoForge: `/mapsyncer` · Fabric: `/mapsyncerserver`
-
 | Command | Description |
 |---------|-------------|
 | `generate` / `generate <dim>` / `generate <dim> <x> <z>` | All / one dim / one region |
@@ -114,14 +106,13 @@ Supports dedicated and integrated servers (LAN). On integrated servers, the host
 | `mapRegionLoadIntervalTicks` | 1 | -1–100 | Out-of-view drain into Xaero: -1=all at once, 0=view only, N=one every N ticks |
 | `autoSyncEnabled` | true | — | Join auto-sync (TICK/SCHEDULED); TICK also online periodic; manual sync always OK |
 
-Fabric: `config/mapsyncer-client.properties` (optional Cloth for **client** options only) · Forge/NeoForge: `[client]` in `config/mapsyncer-client.toml`
+Forge: `config/mapsyncer-client.toml` → `[client]`
 
 ### Server
 
-Server settings are **file-only** (plus `/mapsyncer reloadconfig`; Fabric: `/mapsyncerserver reloadconfig`). No Cloth UI for server config.
+Server settings are **file-only** (plus `/mapsyncer reloadconfig`). No Cloth UI for server config.
 
-Forge: `world/serverconfig/mapsyncer-server.toml` (per world)  
-NeoForge: `config/mapsyncer-server.toml` · Fabric: `config/mapsyncer-server.properties` (camelCase / snake_case keys)
+Forge: `world/serverconfig/mapsyncer-server.toml` (per world)
 
 **General**
 
@@ -165,7 +156,7 @@ dimension_configs = [
 | `63` / `63,127` | Explicit cave layers only |
 | `SURFACE,63` / … | Combinations; layer index = `caveStart >> 4` → `caves/<n>/` |
 
-Compatible: `dimension|layerPlan`, legacy multi-field pipes, Fabric legacy keys. Dimension type info comes from the server API at runtime (not stored in config).
+Compatible: `dimension|layerPlan`, legacy multi-field pipes, legacy keys. Dimension type info comes from the server API at runtime (not stored in config).
 
 ---
 
@@ -200,9 +191,9 @@ Packs all dimensions (including cave layers) into `Multiplayer_<name>/<dim>/mw$<
 libs/common/          Shared business logic
 libs/core/            Pure Java MCA/NBT + MapPackager
 libs/platform-api/    Platform API + payloads
-libs/mc-1.20/ … mc-26/   G1–G4 MC API anchors
+libs/mc-1.20/         G1 MC API anchor (1.20.1)
 
-mc-{version}/{fabric|forge|neoforge}/   Loader glue
+mc-1.20.1/forge/      Forge glue
 ```
 
 ### Pipeline
@@ -223,14 +214,17 @@ Same layout as the Chinese README (`server_map_cache/`, `xaero/world-map/` with 
 ## Build
 
 ```bash
-./gradlew build -x test --parallel
-./gradlew :mc-1.21.1:forge:build -x test
+# Build the Forge 1.20.1 mod (ForgeGradle needs Gradle 8.x; wrapper pinned to 8.9)
+./gradlew build -x test
+
+# Build a single subproject
+./gradlew :mc-1.20.1:forge:build -x test
+
+# Build the MapPackager standalone tool
 ./gradlew buildPackager
-scripts/fastbuild/build-all.bat
-scripts/fastbuild/build-target.ps1 all -NoTest
 ```
 
-Mod JARs: each module `build/libs/` · collected under root `output/` for packager / `buildAll`.
+Mod JARs: `mc-1.20.1/forge/build/libs/` · collected under root `output/` for packager / `buildAll`.
 
 ---
 

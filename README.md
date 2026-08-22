@@ -15,8 +15,8 @@
 1. **多层洞穴 / 地狱地图** — LayerPlan 分层扫描（SURFACE / ALL / 显式 Y），单次 MCA 输出多层洞穴，对齐 Xaero 的 underair 状态机
 2. **自动同步增强** — 客户端 `autoSyncEnabled` 开关、TICK 周期同步（默认 5 分钟）、SCHEDULED 时间戳比对
 3. **性能优化** — 增量扫描并行转换、流式读取降内存、客户端同步异步化、多处热点消除
-4. **多版本工程重组** — G1-G4 锚点 + 胶水层，新增 mc-26.2（协议 776），恢复 Forge 与 26.x Fabric 构建
-5. **生态适配与工具** — Fabric / Forge / NeoForge 权限适配、接入 Fabric Mod Menu、增强 MapPackager
+4. **工程简化** — 项目仅保留 Forge 1.20.1 单版本构建（G1 锚点 + 胶水层）
+5. **生态适配与工具** — Forge 权限适配、增强 MapPackager
 
 > 完整更新日志见 [`CHANGELOG.md`](CHANGELOG.md)
 
@@ -26,17 +26,9 @@
 
 ### 平台支持
 
-> 优先适配现代版本。1.20.4 前 NeoForge 尚未正式独立不做适配；26.1 后 Forge 未提供开发文档不做适配。
-
-| MC 版本 | Forge | NeoForge | Fabric |
-|---------|:-----:|:--------:|:------:|
-| 1.20.1 | ✅ | — | ✅ |
-| 1.21.1 | ✅ | ✅ | ✅ |
-| 1.21.11 | ✅ | ✅ | ✅ |
-| 26.1 | — | ✅ | ✅ |
-| 26.2 | — | ✅ | ✅ |
-
-> 详细平台兼容性信息见 [`docs/features.md`](docs/features.md)
+| MC 版本 | Forge |
+|---------|:-----:|
+| 1.20.1 | ✅ |
 
 ### 客户端依赖
 
@@ -68,7 +60,7 @@
 | **增量更新** | 服务端 DISABLED / TICK / SCHEDULED 自动更新地图缓存 |
 | **自动同步** | 按服务端模式进服或在线自动拉取（可关）；手动 sync 始终可用 |
 | **并发转换** | `maxConcurrentRegions`：0=自动（逻辑核−2，上限 16） |
-| **配置热重载** | `/mapsyncer reloadconfig`（Fabric 为 `/mapsyncerserver`） |
+| **配置热重载** | `/mapsyncer reloadconfig` |
 | **内置服务器** | 局域网共享时复用主机 Xaero 存档，免二次转换 |
 | **MapPackager** | 离线将 `server_map_cache` 打成客户端可用 zip |
 | **握手保护** | 未安装本模组的客户端不发送自定义包 |
@@ -93,8 +85,6 @@
 - Mod 维度：完整 ID，如 `twilightforest:twilight_forest`
 
 ### 服务端命令（需 OP 权限）
-
-> Forge/NeoForge 服务端命令前缀为 `/mapsyncer`，Fabric 为 `/mapsyncerserver`（避免与客户端 `/mapsyncer` 冲突）
 
 | 命令 | 说明 |
 |------|------|
@@ -121,16 +111,13 @@
 | `mapRegionLoadIntervalTicks` | 1 | -1~100 | 视距外 region 传入 Xaero 的 tick 间隔：-1=一次排空，0=仅视距内，N=每 N tick 加载 1 个 |
 | `autoSyncEnabled` | true | - | 进服自动同步（TICK/SCHEDULED）；TICK 模式另启在线周期同步；关闭后仍可手动 `/mapsyncer sync` |
 
-Fabric 配置文件：`config/mapsyncer-client.properties`（可选 Cloth 仅编辑客户端项）；Forge/NeoForge：`config/mapsyncer-client.toml` 的 `[client]` 段。
-
-Fabric 服务端 `.properties` 同时接受 camelCase 与 snake_case 键名（如 `defaultScanMode` / `default_scan_mode`），便于从 TOML 复制配置。
+Forge 配置文件：`config/mapsyncer-client.toml` 的 `[client]` 段。
 
 ### 服务端配置
 
-服务端配置**只通过配置文件**（及 `/mapsyncer reloadconfig` / Fabric `/mapsyncerserver reloadconfig`）管理，不使用 Cloth。
+服务端配置**只通过配置文件**（及 `/mapsyncer reloadconfig`）管理，不使用 Cloth。
 
 Forge 配置文件位于 `world/serverconfig/mapsyncer-server.toml`（每个世界独立配置）
-NeoForge / Fabric 配置文件位于 `config/` 目录下（NeoForge 为 `.toml`，Fabric 为 `.properties`）
 
 **通用设置 `[general]`**
 
@@ -157,7 +144,7 @@ NeoForge / Fabric 配置文件位于 `config/` 目录下（NeoForge 为 `.toml`�
 | `default_scan_mode` | SURFACE | 未配置维度的默认层计划回退（SURFACE=仅地表；CAVE=单层洞穴，见 `default_cave_start`） |
 | `default_cave_start` | 63 | `default_scan_mode=CAVE` 时未配置维度的 caveStart Y |
 
-**维度配置**（推荐 `维度 = layerPlan`，Fabric / Forge / NeoForge 均为列表）：
+**维度配置**（`维度 = layerPlan`，Forge 为列表）：
 
 ```toml
 dimension_configs = [
@@ -178,7 +165,7 @@ dimension_configs = [
 
 - 仅写 `SURFACE` **不会**自动生成洞穴；需洞穴须写 Y 或 `ALL`
 - 地狱默认 `SURFACE,63`：逻辑顶以上地表 + 洞穴 Y=63（Xaero 层号 3 → `caves/3/`）
-- 兼容：`维度|layerPlan`、旧多字段管道、Fabric 旧键；维度类型信息运行时从 API 获取，不写进配置
+- 兼容：`维度|layerPlan`、旧多字段管道、旧键；维度类型信息运行时从 API 获取，不写进配置
 
 **洞穴层号**：`caveStart >> 4`（Y=63 → 层 3 → `caves/3/`）。
 
@@ -271,32 +258,10 @@ libs/                   抽象库层（平台无关，编译为独立 JAR）
 ├── core/               纯 Java 核心：MCA/NBT 解析、工具类、MapPackager
 ├── platform-api/       平台抽象接口、网络 Payload 定义
 ├── common/             客户端/服务端共享逻辑（同步、缓存、自动同步管理器）
-├── mc-1.20/            G1 锚点源码（1.20.1 API）
-├── mc-1.21/            G2 锚点源码（1.21.1 API）
-├── mc-1.21.11/         G3 锚点源码（1.21.11 API）
-└── mc-26/              G4 锚点源码（26.x API）
+└── mc-1.20/            G1 锚点源码（1.20.1 API）
 
 mc-1.20.1/              1.20.1 胶水层（Loader + Platform 实现）
-├── fabric/
 └── forge/
-
-mc-1.21.1/              1.21.1 胶水层
-├── fabric/
-├── forge/
-└── neoforge/
-
-mc-1.21.11/             1.21.11 胶水层
-├── fabric/
-├── forge/
-└── neoforge/
-
-mc-26.1/                26.1 胶水层（协议 775）
-├── fabric/
-└── neoforge/
-
-mc-26.2/                26.2 胶水层（协议 776，复用 libs/mc-26）
-├── fabric/
-└── neoforge/
 ```
 
 ### 工作流
@@ -368,24 +333,17 @@ mc-26.2/                26.2 胶水层（协议 776，复用 libs/mc-26）
 ## 构建
 
 ```bash
-# 构建所有活跃平台（并行）
-./gradlew build -x test --parallel
+# 构建 Forge 1.20.1 模组（ForgeGradle 需要 Gradle 8.x，wrapper 已锁定 8.9）
+./gradlew build -x test
 
-# 构建单个平台
-./gradlew :mc-1.21.1:forge:build -x test
-./gradlew :mc-1.21.1:fabric:build -x test
+# 构建指定子项目
+./gradlew :mc-1.20.1:forge:build -x test
 
 # 构建 MapPackager 独立工具
 ./gradlew buildPackager
-
-# 快捷脚本
-scripts/fastbuild/build-all.bat              # 构建全部活跃平台
-scripts/fastbuild/build-forge-1.20.1.bat     # 构建指定平台
-scripts/fastbuild/build-packager.bat         # 构建 MapPackager
-scripts/fastbuild/build-target.ps1 all -NoTest  # PowerShell 构建全部
 ```
 
-产物输出：mod JAR 到各平台模块的 `build/libs/` 目录，`buildPackager` 和 `buildAll` 额外收集到根目录 `output/`。
+产物输出：mod JAR 到 `mc-1.20.1/forge/build/libs/` 目录，`buildPackager` 和 `buildAll` 额外收集到根目录 `output/`。
 
 ---
 
