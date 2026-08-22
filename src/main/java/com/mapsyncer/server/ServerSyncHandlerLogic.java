@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 public class ServerSyncHandlerLogic {
@@ -47,10 +46,6 @@ public class ServerSyncHandlerLogic {
 
     private record RegionSyncInfo(Path zipPath, String normalizedPath, long timestampSeconds,
                                    int regionX, int regionZ, String dimension, int caveLayer) {
-
-        boolean isSurfaceLayer() {
-            return caveLayer == Integer.MAX_VALUE;
-        }
     }
 
     public static void registerHandlers() {

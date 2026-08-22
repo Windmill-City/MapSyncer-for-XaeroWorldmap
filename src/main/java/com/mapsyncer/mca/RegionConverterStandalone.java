@@ -27,7 +27,7 @@ public class RegionConverterStandalone {
 
     public record ConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
 
-    public record LayerConvertedRegion(int regionX, int regionZ, int caveLayer, byte[] xaeroData) {}
+    public record LayerConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
 
     public record CaveModeParams(int caveStart, int caveDepth) {
         public static final CaveModeParams NONE = new CaveModeParams(Integer.MAX_VALUE, 0);

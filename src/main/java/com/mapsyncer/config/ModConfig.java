@@ -1,6 +1,5 @@
 package com.mapsyncer.config;
 
-import com.mapsyncer.mca.DimensionTypeInfo;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
@@ -19,7 +18,6 @@ import com.mapsyncer.config.DimensionScanConfig;
 public class ModConfig {
 
     public static final int MAX_REGION_META_CACHE = 50000;
-    public static final int MAX_BLOCK_COLOR_CACHE = 5000;
     public static final int MAX_BLOCK_PROPERTIES_CACHE = 10000;
 
     public static final long TASK_TIMEOUT_SECONDS = 60;

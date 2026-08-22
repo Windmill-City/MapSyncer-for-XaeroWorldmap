@@ -70,12 +70,9 @@ public class McaReader implements AutoCloseable {
 
     private final int[] locations;
 
-    private final int[] timestamps;
-
-    private McaReader(RandomAccessFile raf, int[] locations, int[] timestamps) {
+    private McaReader(RandomAccessFile raf, int[] locations) {
         this.raf = raf;
         this.locations = locations;
-        this.timestamps = timestamps;
     }
 
     public static McaReader open(String path) throws IOException {
@@ -85,8 +82,7 @@ public class McaReader implements AutoCloseable {
                 throw new IOException("MCA文件太小: " + raf.length() + " bytes");
             }
             int[] locations = readLocationTable(raf);
-            int[] timestamps = readTimestampTable(raf);
-            return new McaReader(raf, locations, timestamps);
+            return new McaReader(raf, locations);
         } catch (IOException e) {
             raf.close();
             throw e;
@@ -104,19 +100,6 @@ public class McaReader implements AutoCloseable {
             locations[i] = (offset << 8) | (raw[idx + 3] & 0xFF);
         }
         return locations;
-    }
-
-    private static int[] readTimestampTable(RandomAccessFile raf) throws IOException {
-        raf.seek(SECTOR_SIZE);
-        byte[] raw = new byte[SECTOR_SIZE];
-        raf.readFully(raw);
-        int[] timestamps = new int[LOCATION_COUNT];
-        for (int i = 0; i < LOCATION_COUNT; i++) {
-            int idx = i * 4;
-            timestamps[i] = ((raw[idx] & 0xFF) << 24) | ((raw[idx + 1] & 0xFF) << 16)
-                    | ((raw[idx + 2] & 0xFF) << 8) | (raw[idx + 3] & 0xFF);
-        }
-        return timestamps;
     }
 
     public ChunkLocation getChunkLocation(int localX, int localZ) {

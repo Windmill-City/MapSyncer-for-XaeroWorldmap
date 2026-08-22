@@ -29,8 +29,6 @@ public class DimensionPathMapping {
 
     private static final Map<String, String> VANILLA_LEGACY_FORMAT = new LinkedHashMap<>();
 
-    private static final Map<String, String> VANILLA_NEW_FORMAT = new LinkedHashMap<>();
-
     private static final Map<String, String> VANILLA_XAERO_MAPPINGS = new LinkedHashMap<>();
 
     static {
@@ -38,10 +36,6 @@ public class DimensionPathMapping {
         VANILLA_LEGACY_FORMAT.put("overworld", ".");
         VANILLA_LEGACY_FORMAT.put("the_nether", "DIM-1");
         VANILLA_LEGACY_FORMAT.put("the_end", "DIM1");
-
-        VANILLA_NEW_FORMAT.put("overworld", "dimensions/minecraft/overworld");
-        VANILLA_NEW_FORMAT.put("the_nether", "dimensions/minecraft/the_nether");
-        VANILLA_NEW_FORMAT.put("the_end", "dimensions/minecraft/the_end");
 
         VANILLA_XAERO_MAPPINGS.put("overworld", "null");
         VANILLA_XAERO_MAPPINGS.put("the_nether", "DIM-1");

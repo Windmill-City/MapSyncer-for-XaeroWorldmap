@@ -25,10 +25,6 @@ public final class NetworkManager {
         return instance;
     }
 
-    public static boolean isInitialized() {
-        return instance != null;
-    }
-
     public static void sendToServer(SyncRequestPayload payload) {
         getHandler().sendToServer(payload);
     }

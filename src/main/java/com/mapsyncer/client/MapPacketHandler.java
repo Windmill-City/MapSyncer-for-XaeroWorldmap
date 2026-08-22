@@ -7,7 +7,6 @@ import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
-import com.mapsyncer.client.ClientSyncSession;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.util.ChatUtils;
@@ -822,15 +821,6 @@ public class MapPacketHandler {
         clearReflectionCache();
         resumeChunkUpdatesIfIdle();
         LOGGER.debug("视距外 region 重载队列已排空，反射缓存已释放");
-    }
-
-    private static void clearSyncState() {
-        updatedRegionCoords.clear();
-        loadedRegions.clear();
-        partBuffer.clear();
-        pendingRegionLoads.clear();
-        lastMwDir = null;
-        resetThrottle();
     }
 
     private static void clearReflectionCache() {

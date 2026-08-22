@@ -14,12 +14,6 @@ public final class DimensionConfigParser {
 
     public static final int DEFAULT_CAVE_START = LayerPlan.DEFAULT_CAVE_START;
 
-    public static final String LIST_KEY = "dimension_configs";
-
-    public static final String PROPERTIES_ENTRY_PREFIX = "dimensionConfig.";
-
-    public static final String PROPERTIES_LEGACY_JOINED_KEY = "dimensionConfigs";
-
     private static volatile String cachedKey;
     private static volatile List<DimensionScanConfig> cachedResult;
 

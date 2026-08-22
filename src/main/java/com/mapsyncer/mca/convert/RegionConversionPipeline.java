@@ -38,12 +38,12 @@ public final class RegionConversionPipeline {
             MapRegionData regionData = passData.data();
             if (!regionData.hasAnyMapData()) {
                 results.add(new RegionConverterStandalone.LayerConvertedRegion(
-                    regionX, regionZ, passData.pass().caveLayer(), new byte[0]));
+                    regionX, regionZ, new byte[0]));
                 continue;
             }
             byte[] xaeroData = XaeroBinaryWriter.serialize(regionData, dimTypeInfo.minY(), blockLookup);
             results.add(new RegionConverterStandalone.LayerConvertedRegion(
-                regionX, regionZ, passData.pass().caveLayer(), xaeroData));
+                regionX, regionZ, xaeroData));
         }
         return results;
     }

@@ -184,11 +184,6 @@ public class BlockPropertyResolver {
         }
     }
 
-    public static BlockProperties getProperties(BlockState state) {
-        String blockName = getKey(state);
-        return getProperties(blockName);
-    }
-
     private static BlockProperties resolveProperties(String blockName) {
         try {
             ResourceLocation location = new ResourceLocation(blockName);
@@ -593,41 +588,13 @@ public class BlockPropertyResolver {
         );
     }
 
-    public static String getKey(BlockState state) {
-        return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-    }
-
-    public static String getKey(Block block) {
-        return BuiltInRegistries.BLOCK.getKey(block).toString();
-    }
-
     public static void clearCache() {
         propertiesCache.clear();
         buggedBlocks.clear();
     }
 
-    public static int getCacheSize() {
-        return propertiesCache.size();
-    }
-
-    public static int getBuggedBlocksCount() {
-        return buggedBlocks.size();
-    }
-
-    public static boolean isAir(String blockName) {
-        return getProperties(blockName).isAir();
-    }
-
     public static boolean isWater(String blockName) {
         return getProperties(blockName).isWater();
-    }
-
-    public static boolean isLava(String blockName) {
-        return getProperties(blockName).isLava();
-    }
-
-    public static boolean isFluid(String blockName) {
-        return getProperties(blockName).isFluid();
     }
 
     public static boolean isTransparent(String blockName) {
@@ -636,14 +603,6 @@ public class BlockPropertyResolver {
 
     public static boolean isInvisible(String blockName) {
         return getProperties(blockName).isInvisible();
-    }
-
-    public static boolean isFlower(String blockName) {
-        return getProperties(blockName).isFlower();
-    }
-
-    public static boolean isPlant(String blockName) {
-        return getProperties(blockName).isPlant();
     }
 
     public static boolean isGrassBlock(String blockName) {
@@ -658,20 +617,8 @@ public class BlockPropertyResolver {
         return getProperties(blockName).lightBlock();
     }
 
-    public static int getLightEmission(String blockName) {
-        return getProperties(blockName).lightEmission();
-    }
-
-    public static boolean canBeWaterlogged(String blockName) {
-        return getProperties(blockName).canBeWaterlogged();
-    }
-
     public static boolean hasVanillaColor(String blockName) {
         return getProperties(blockName).hasVanillaColor();
-    }
-
-    public static boolean hasMapColor(String blockName) {
-        return getProperties(blockName).hasMapColor();
     }
 
     public static boolean shouldOverlay(String blockName) {

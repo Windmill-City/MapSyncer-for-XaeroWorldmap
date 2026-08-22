@@ -1,7 +1,6 @@
 package com.mapsyncer.network;
 
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
@@ -9,9 +8,7 @@ import com.mapsyncer.network.payload.SyncResponsePayload;
 import net.minecraft.network.FriendlyByteBuf;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ForgePayloadAdapters {
 
