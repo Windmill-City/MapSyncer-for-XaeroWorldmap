@@ -31,9 +31,9 @@ public class MapPacketHandler {
 
     private static final ClientSyncSession session = ClientSyncSession.get();
 
-    private static final long PART_STALE_TIMEOUT_MS = 2 * 60 * 1000L;
+    private static final long PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
 
-    private static final long MANIFEST_PART_STALE_TIMEOUT_MS = 2 * 60 * 1000L;
+    private static final long MANIFEST_PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
 
     private static final Set<XaeroMapDataHandler.RegionCoord> updatedRegionCoords = ConcurrentHashMap.newKeySet();
 

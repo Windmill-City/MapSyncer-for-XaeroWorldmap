@@ -46,7 +46,7 @@
   "mapsyncer.generate.dim_complete": "维度生成完成：%d/%d 个区域，本次更新 %d 个",
   "mapsyncer.generate.start_force": "开始强制生成维度地图：%s（忽略缓存）",
   "mapsyncer.generate.force_complete": "强制维度生成完成：%d/%d 个区域，本次更新 %d 个",
-  "mapsyncer.generate.in_progress": "转换进行中：%d/%d 个区域 - %s",
+  "mapsyncer.generate.in_progress": "转换进行中：%d/%d 个区域",
   "mapsyncer.generate.no_progress": "当前无转换任务",
   "mapsyncer.command.conversion_busy": "已有地图生成任务正在进行中，请等待当前任务完成后再执行新任务。",
   "mapsyncer.command.conversion_stopped": "已请求停止生成任务，正在取消剩余区域...",

@@ -258,8 +258,7 @@ public class CacheCommandHandler {
             return ChatUtils.message(
                     "mapsyncer.generate.in_progress",
                     ConversionOrchestrator.getProcessedCount(),
-                    ConversionOrchestrator.getTotalCount(),
-                    ConversionOrchestrator.getStatus());
+                    ConversionOrchestrator.getTotalCount());
         }
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }

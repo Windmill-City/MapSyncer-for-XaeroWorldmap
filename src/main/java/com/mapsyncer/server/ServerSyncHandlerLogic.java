@@ -1,11 +1,9 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ClientMeta;
@@ -33,14 +31,7 @@ public class ServerSyncHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerSyncHandlerLogic.class);
 
-    private static final int MAX_PACKET_SIZE_LIMIT = 1_000_000;
-
     private static boolean warnedXaeromapFallback;
-
-    private static int getMaxPacketSize() {
-        int configValue = ModConfig.SERVER.maxSyncPacketSize.get();
-        return Math.min(configValue, MAX_PACKET_SIZE_LIMIT);
-    }
 
     private static boolean isManifestRequest(Map<String, ClientMeta> clientMeta) {
         return clientMeta == null || clientMeta.isEmpty();
@@ -92,7 +83,7 @@ public class ServerSyncHandlerLogic {
         ForgeNetworkHandler.confirmPlayer(player.getUUID());
         int worldId = readWorldIdFromXaeroMap(player);
         for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId, "ok")) {
-            ForgeNetworkHandler.get().sendToPlayer(player, part);
+            SyncTransferScheduler.enqueueManifest(player, part);
         }
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
@@ -186,7 +177,7 @@ public class ServerSyncHandlerLogic {
             player.sendSystemMessage(ChatUtils.message("mapsyncer.server.manifest_ready", manifest.size()));
         }
         for (SyncManifestPayload part : parts) {
-            ForgeNetworkHandler.get().sendToPlayer(player, part);
+            SyncTransferScheduler.enqueueManifest(player, part);
         }
         LOGGER.info("Sync manifest sent to player {}: {} regions", player.getUUID(), manifest.size());
     }
@@ -196,7 +187,7 @@ public class ServerSyncHandlerLogic {
         ManifestCache manifestCache = ManifestCache.getInstance();
         int worldId = readWorldIdFromXaeroMap(player);
 
-        List<ChunkMapData> chunks = new ArrayList<>();
+        List<ChunkMapData> parts = new ArrayList<>();
         int failed = 0;
 
         for (String path : requested.keySet()) {
@@ -218,35 +209,12 @@ public class ServerSyncHandlerLogic {
                 continue;
             }
             for (ChunkMapData part : ChunkMapData.split(chunk)) {
-                chunks.add(part);
+                parts.add(part);
             }
         }
 
-        sendChunks(player, worldId, chunks, failed > 0 ? "partial" : "ok");
-    }
-
-    private static void sendChunks(ServerPlayer player, int worldId, List<ChunkMapData> chunks, String status) {
-        int maxPacketSize = getMaxPacketSize();
-        List<ChunkMapData> batch = new ArrayList<>();
-        int batchBytes = 0;
-
-        for (ChunkMapData chunk : chunks) {
-            if (batchBytes + chunk.data.length > maxPacketSize && !batch.isEmpty()) {
-                ForgeNetworkHandler.get()
-                        .sendToPlayer(player, new SyncResponsePayload(new ArrayList<>(batch), false, worldId, "ok"));
-                batch.clear();
-                batchBytes = 0;
-            }
-            batch.add(chunk);
-            batchBytes += chunk.data.length;
-        }
-
-        if (!batch.isEmpty()) {
-            ForgeNetworkHandler.get()
-                    .sendToPlayer(player, new SyncResponsePayload(new ArrayList<>(batch), true, worldId, status));
-        } else {
-            ForgeNetworkHandler.get().sendToPlayer(player, new SyncResponsePayload(List.of(), true, worldId, status));
-        }
+        SyncTransferScheduler.enqueueRegionResponse(player, parts, worldId, failed > 0 ? "partial" : "ok");
+        SyncTransferScheduler.onRequestReceived(player);
     }
 
     private static Set<String> discoverDimensionsFromCache(Path cacheDir) {
@@ -304,9 +272,8 @@ public class ServerSyncHandlerLogic {
     private static int fallbackWorldId() {
         if (!warnedXaeromapFallback) {
             warnedXaeromapFallback = true;
-            LOGGER.warn(
-                    "xaeromap.txt not found; falling back to worldId 0. "
-                            + "Install Xaero's World Map on the server to generate a proper xaeromap.txt");
+            LOGGER.warn("xaeromap.txt not found; falling back to worldId 0. "
+                    + "Install Xaero's World Map on the server to generate a proper xaeromap.txt");
         }
         return 0;
     }

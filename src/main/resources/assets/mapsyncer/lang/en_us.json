@@ -46,7 +46,7 @@
   "mapsyncer.generate.dim_complete": "Dimension generation completed: %d/%d regions, %d updated",
   "mapsyncer.generate.start_force": "Starting forced map generation for dimension: %s (ignoring cache)",
   "mapsyncer.generate.force_complete": "Forced dimension generation completed: %d/%d regions, %d updated",
-  "mapsyncer.generate.in_progress": "Conversion in progress: %d/%d regions - %s",
+  "mapsyncer.generate.in_progress": "Conversion in progress: %d/%d regions",
   "mapsyncer.generate.no_progress": "No conversion in progress",
   "mapsyncer.command.conversion_busy": "A map generation task is already in progress. Please wait for it to complete before starting a new one.",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",

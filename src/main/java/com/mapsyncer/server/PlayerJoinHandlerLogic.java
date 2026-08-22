@@ -33,6 +33,7 @@ public class PlayerJoinHandlerLogic {
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ForgeNetworkHandler.onPlayerDisconnect(event.getEntity().getUUID());
+        SyncTransferScheduler.onPlayerDisconnect(event.getEntity().getUUID());
         IncrementalUpdateHandlerLogic.getInstance().onPlayerLoggedOut();
     }
 
@@ -63,6 +64,8 @@ public class PlayerJoinHandlerLogic {
         ConversionOrchestrator.shutdownExecutor();
 
         IncrementalUpdateHandlerLogic.resetInstance();
+
+        SyncTransferScheduler.onServerStopped();
 
         MapPacketHandler.clearReceivedChunks();
         XaeroMapDataHandler.clearRegionTracking();

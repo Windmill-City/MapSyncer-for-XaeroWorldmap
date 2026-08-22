@@ -133,6 +133,12 @@ public class ModConfig {
 
         public final IntValue maxSyncPacketSize;
 
+        public final IntValue syncSendRateInitialBytes;
+
+        public final IntValue syncSendRateMinBytes;
+
+        public final IntValue syncSendRateMaxBytes;
+
         public final EnumValue<UpdateMode> incrementalUpdateMode;
 
         public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
@@ -171,6 +177,37 @@ public class ModConfig {
                             "  1048576 = 1MB  (maximum, 1 packet/s at 1024KB/s)",
                             "Default: 256KB (recommended), Range: 64KB - 1MB")
                     .defineInRange("maxSyncPacketSize", 262144, 65536, 1048576);
+
+            syncSendRateInitialBytes = builder.comment(
+                            "服务器向单个客户端发送地图数据的初始限速（字节/秒）",
+                            "Initial per-client send rate limit for map data, in bytes/second",
+                            "",
+                            "服务器会根据玩家 Ping 自动调整限速（Ping 低提速、Ping 高降速），范围在下面的最小/最大限速之间",
+                            "The server adapts this rate to the player's ping automatically (low ping = faster, high ping = slower), clamped to the min/max below",
+                            "",
+                            "参考值（推荐 256KB/s）：",
+                            "  65536   = 64KB/s  （极保守，极弱网/低配客户端）",
+                            "  262144  = 256KB/s （推荐默认，弱网/低配客户端）",
+                            "Reference values (256KB/s recommended):",
+                            "  65536   = 64KB/s  (very conservative, very weak networks / low-end clients)",
+                            "  262144  = 256KB/s (recommended default, weak networks / low-end clients)",
+                            "默认：262144（256KB/s），范围：64KB/s - 8MB/s",
+                            "Default: 262144 (256KB/s), Range: 64KB/s - 8MB/s")
+                    .defineInRange("syncSendRateInitialBytes", 262144, 65536, 8388608);
+
+            syncSendRateMinBytes = builder.comment(
+                            "限速下限（字节/秒），Ping 很高或客户端卡顿时允许降到的最低速率",
+                            "Minimum adaptive send rate floor in bytes/second; the lowest rate used when ping is high or the client is struggling",
+                            "默认：65536（64KB/s），范围：64KB/s - 8MB/s",
+                            "Default: 65536 (64KB/s), Range: 64KB/s - 8MB/s")
+                    .defineInRange("syncSendRateMinBytes", 65536, 65536, 8388608);
+
+            syncSendRateMaxBytes = builder.comment(
+                            "限速上限（字节/秒），即使 Ping 极低也不会超过该速率",
+                            "Maximum adaptive send rate ceiling in bytes/second; the rate never exceeds this even at very low ping",
+                            "默认：1048576（1024KB/s），范围：64KB/s - 8MB/s",
+                            "Default: 1048576 (1024KB/s), Range: 64KB/s - 8MB/s")
+                    .defineInRange("syncSendRateMaxBytes", 1048576, 65536, 8388608);
 
             builder.pop();
 

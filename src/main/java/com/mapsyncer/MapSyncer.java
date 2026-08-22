@@ -9,10 +9,12 @@ import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.DimensionRegistry;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
+import com.mapsyncer.server.SyncTransferScheduler;
 import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -106,6 +108,15 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
             IncrementalUpdateHandlerLogic.getInstance().stop();
+            SyncTransferScheduler.onServerStopped();
+        }
+
+        @SubscribeEvent
+        public static void onServerTick(TickEvent.ServerTickEvent event) {
+            if (event.phase != TickEvent.Phase.END) {
+                return;
+            }
+            SyncTransferScheduler.tick(event.getServer());
         }
 
         @SubscribeEvent

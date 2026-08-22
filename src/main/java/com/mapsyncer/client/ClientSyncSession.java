@@ -4,7 +4,7 @@ public final class ClientSyncSession {
 
     private static final ClientSyncSession INSTANCE = new ClientSyncSession();
 
-    public static final long STALE_TIMEOUT_MS = 10 * 60 * 1000L;
+    public static final long STALE_TIMEOUT_MS = 30 * 60 * 1000L;
 
     private volatile int generation = 0;
     private volatile boolean receiving = false;

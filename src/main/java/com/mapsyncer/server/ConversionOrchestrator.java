@@ -51,8 +51,6 @@ public class ConversionOrchestrator {
 
     private static final AtomicInteger processedCountAtomic = new AtomicInteger(0);
 
-    private static volatile int processedCount = 0;
-
     private static final AtomicInteger skippedCount = new AtomicInteger(0);
 
     private static final AtomicInteger convertedCountAtomic = new AtomicInteger(0);
@@ -60,8 +58,6 @@ public class ConversionOrchestrator {
     private static final AtomicInteger skippedEmptyContentCount = new AtomicInteger(0);
 
     private static volatile int totalCount = 0;
-
-    private static volatile String currentStatus = "idle";
 
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
@@ -191,7 +187,7 @@ public class ConversionOrchestrator {
             return false;
         }
         cancelRequested.set(false);
-        processedCount = 0;
+        processedCountAtomic.set(0);
         skippedCount.set(0);
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
@@ -218,7 +214,6 @@ public class ConversionOrchestrator {
             }
         } finally {
             isRunning.set(false);
-            markRunFinished();
             shutdownExecutor();
             LOGGER.info(
                     "Conversion completed: {}/{} regions converted, {} skipped (empty MCA at scan)",
@@ -235,7 +230,7 @@ public class ConversionOrchestrator {
             return false;
         }
         cancelRequested.set(false);
-        processedCount = 0;
+        processedCountAtomic.set(0);
         skippedCount.set(0);
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
@@ -262,7 +257,6 @@ public class ConversionOrchestrator {
                     false);
         } finally {
             isRunning.set(false);
-            markRunFinished();
             shutdownExecutor();
         }
         return true;
@@ -274,7 +268,7 @@ public class ConversionOrchestrator {
             return false;
         }
         cancelRequested.set(false);
-        processedCount = 0;
+        processedCountAtomic.set(0);
         skippedCount.set(0);
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
@@ -307,7 +301,6 @@ public class ConversionOrchestrator {
                     true);
         } finally {
             isRunning.set(false);
-            markRunFinished();
             shutdownExecutor();
         }
         return true;
@@ -346,7 +339,7 @@ public class ConversionOrchestrator {
         }
 
         totalCount = 1;
-        processedCount = 0;
+        processedCountAtomic.set(0);
         ServerLevel level = server.getLevel(dimension);
         if (level == null) {
             LOGGER.error("Level not loaded for dimension: {}", dimension);
@@ -403,7 +396,7 @@ public class ConversionOrchestrator {
                 XaeroWriter.writeRegionFile(outputDir, single);
                 written++;
             }
-            processedCount = written;
+            processedCountAtomic.set(written);
             if (written == 0) {
                 LOGGER.warn("Could not convert region ({}, {}): all passes empty", regionX, regionZ);
                 result = SingleRegionResult.CONVERSION_FAILED;
@@ -416,7 +409,6 @@ public class ConversionOrchestrator {
             result = SingleRegionResult.CONVERSION_FAILED;
         } finally {
             isRunning.set(false);
-            markRunFinished();
         }
         return result;
     }
@@ -524,8 +516,6 @@ public class ConversionOrchestrator {
                     failedRegions);
             waitForCompletion(futures, "New region conversion");
         }
-
-        processedCount = processedCountAtomic.get();
 
         if (!failedRegions.isEmpty()) {
             LOGGER.warn("Failed to convert {} regions", failedRegions.size());
@@ -890,6 +880,7 @@ public class ConversionOrchestrator {
             GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
             int totalUpdated = 0;
             totalCount = 0;
+            processedCountAtomic.set(0);
             long generationTimeSeconds = System.currentTimeMillis() / 1000;
             ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
             ExecutorService executor = getOrCreateExecutor();
@@ -944,7 +935,7 @@ public class ConversionOrchestrator {
                         genCache,
                         generationTimeSeconds,
                         failedRegions,
-                        false);
+                        true);
                 waitForCompletion(futures, "Incremental update");
                 totalUpdated += needsUpdate.size() - (failedRegions.size() - failuresBefore);
             }
@@ -956,7 +947,6 @@ public class ConversionOrchestrator {
             }
         } finally {
             isRunning.set(false);
-            markRunFinished();
         }
     }
 
@@ -978,12 +968,8 @@ public class ConversionOrchestrator {
         return cancelRequested.get();
     }
 
-    private static void markRunFinished() {
-        currentStatus = isCancelRequested() ? "cancelled" : "completed";
-    }
-
     public static int getProcessedCount() {
-        return processedCount;
+        return processedCountAtomic.get();
     }
 
     public static int getTotalCount() {
@@ -992,10 +978,6 @@ public class ConversionOrchestrator {
 
     public static int getUpdatedCount() {
         return convertedCountAtomic.get();
-    }
-
-    public static String getStatus() {
-        return currentStatus;
     }
 
     public static List<String> getCompletedDimensions() {
