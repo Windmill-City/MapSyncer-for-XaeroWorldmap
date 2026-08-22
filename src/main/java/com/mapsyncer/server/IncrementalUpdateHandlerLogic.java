@@ -1,17 +1,14 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
-
-import net.minecraft.server.MinecraftServer;
 
 public class IncrementalUpdateHandlerLogic {
 
@@ -29,8 +26,7 @@ public class IncrementalUpdateHandlerLogic {
 
     private volatile boolean emptyModeTriggered = false;
 
-    private IncrementalUpdateHandlerLogic() {
-    }
+    private IncrementalUpdateHandlerLogic() {}
 
     public static IncrementalUpdateHandlerLogic getInstance() {
         if (instance == null) {
@@ -59,18 +55,14 @@ public class IncrementalUpdateHandlerLogic {
     }
 
     public void triggerStartupUpdate() {
-        if (!running || server == null)
-            return;
+        if (!running || server == null) return;
 
-        if (server.isStopped())
-            return;
+        if (server.isStopped()) return;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.DISABLED)
-            return;
+        if (mode == UpdateMode.DISABLED) return;
 
-        if (updateInProgress.get())
-            return;
+        if (updateInProgress.get()) return;
 
         emptyModeTriggered = false;
         server.execute(() -> performUpdate("Server started, performing initial update"));
@@ -117,26 +109,21 @@ public class IncrementalUpdateHandlerLogic {
     }
 
     public void onPlayerLoggedOut() {
-        if (!running || server == null)
-            return;
+        if (!running || server == null) return;
 
-        if (server.isStopped())
-            return;
+        if (server.isStopped()) return;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.DISABLED)
-            return;
+        if (mode == UpdateMode.DISABLED) return;
 
-        if (updateInProgress.get())
-            return;
+        if (updateInProgress.get()) return;
 
         emptyModeTriggered = false;
         server.execute(this::checkEmptyMode);
     }
 
     private void checkEmptyMode() {
-        if (updateInProgress.get())
-            return;
+        if (updateInProgress.get()) return;
 
         int playerCount = server.getPlayerList().getPlayerCount();
         if (playerCount > 0) {
@@ -144,8 +131,7 @@ public class IncrementalUpdateHandlerLogic {
             return;
         }
 
-        if (emptyModeTriggered)
-            return;
+        if (emptyModeTriggered) return;
 
         emptyModeTriggered = true;
         performUpdate("ON_EMPTY mode: no players online");
