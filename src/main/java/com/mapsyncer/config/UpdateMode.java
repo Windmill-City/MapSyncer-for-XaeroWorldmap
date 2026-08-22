@@ -4,5 +4,5 @@ public enum UpdateMode {
 
     DISABLED,
 
-    SCHEDULED
+    ON_EMPTY
 }

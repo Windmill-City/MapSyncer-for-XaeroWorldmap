@@ -151,8 +151,8 @@ public class ModConfig {
                     .defineInRange("mapRegionLoadIntervalTicks", 1, -1, 100);
 
             autoSyncEnabled = builder
-                    .comment("服务端 SCHEDULED 模式下启用进服自动同步",
-                             "Enable join auto-sync when server uses SCHEDULED mode",
+                    .comment("服务端启用增量更新时启用进服自动同步",
+                             "Enable join auto-sync when server has incremental updates enabled",
                              "手动 /mapsyncer sync 始终可用",
                              "Manual /mapsyncer sync is always available")
                     .define("autoSyncEnabled", true);
@@ -188,10 +188,6 @@ public class ModConfig {
         public final IntValue syncSpeedLimitKBps;
 
         public final EnumValue<UpdateMode> incrementalUpdateMode;
-
-        public final IntValue scheduledUpdateHour;
-
-        public final IntValue scheduledUpdateMinute;
 
         public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
 
@@ -259,19 +255,9 @@ public class ModConfig {
             builder.comment("增量更新设置 / Incremental update settings");
 
             incrementalUpdateMode = builder
-                    .comment("增量更新模式：DISABLED（禁用），SCHEDULED（每日定时更新）",
-                             "Incremental update mode: DISABLED (off), SCHEDULED (daily at specific time)")
+                    .comment("增量更新模式：DISABLED（禁用），ON_EMPTY（无人在线时更新）",
+                             "Incremental update mode: DISABLED (off), ON_EMPTY (run when no players are online)")
                     .defineEnum("incrementalUpdateMode", UpdateMode.DISABLED);
-
-            scheduledUpdateHour = builder
-                    .comment("SCHEDULED 模式的更新时间（小时，0-23，使用服务器本地时区）",
-                             "Hour of day for SCHEDULED mode (0-23, uses server's local timezone)")
-                    .defineInRange("scheduledUpdateHour", 4, 0, 23);
-
-            scheduledUpdateMinute = builder
-                    .comment("SCHEDULED 模式的更新时间（分钟，0-59）",
-                             "Minute of hour for SCHEDULED mode (0-59)")
-                    .defineInRange("scheduledUpdateMinute", 0, 0, 59);
 
             builder.pop();
 

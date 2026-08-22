@@ -10,8 +10,6 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,11 +32,11 @@ public class IncrementalUpdateHandlerLogic {
 
     private volatile boolean running = false;
 
-    private volatile LocalDateTime lastScheduledUpdate = null;
-
     private volatile ExecutorService updateExecutor = null;
 
     private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
+
+    private volatile boolean emptyModeTriggered = false;
 
     private IncrementalUpdateHandlerLogic() {
 
@@ -62,13 +60,11 @@ public class IncrementalUpdateHandlerLogic {
         }
         this.server = server;
         this.running = true;
-        this.lastScheduledUpdate = null;
+        this.emptyModeTriggered = false;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.SCHEDULED) {
-            LOGGER.info("Incremental update handler started (SCHEDULED mode, daily at {}:{})",
-                ModConfig.SERVER.scheduledUpdateHour.get(),
-                ModConfig.SERVER.scheduledUpdateMinute.get());
+        if (mode == UpdateMode.ON_EMPTY) {
+            LOGGER.info("Incremental update handler started (ON_EMPTY mode, runs when no players are online)");
         }
     }
 
@@ -77,7 +73,7 @@ public class IncrementalUpdateHandlerLogic {
         updateInProgress.set(false);
         shutdownExecutor();
         server = null;
-        lastScheduledUpdate = null;
+        emptyModeTriggered = false;
         LOGGER.info("Incremental update handler stopped");
     }
 
@@ -121,29 +117,29 @@ public class IncrementalUpdateHandlerLogic {
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode == UpdateMode.DISABLED) return;
 
-        if (mode == UpdateMode.SCHEDULED) {
-            checkScheduledMode();
+        if (mode == UpdateMode.ON_EMPTY) {
+            checkEmptyMode();
         }
     }
 
-    private void checkScheduledMode() {
-        LocalDateTime now = LocalDateTime.now();
-        int targetHour = ModConfig.SERVER.scheduledUpdateHour.get();
-        int targetMinute = ModConfig.SERVER.scheduledUpdateMinute.get();
-        LocalTime targetTime = LocalTime.of(targetHour, targetMinute);
-        LocalTime currentTime = now.toLocalTime();
+    private void checkEmptyMode() {
+        if (updateInProgress.get()) return;
 
-        if (currentTime.isAfter(targetTime) && currentTime.isBefore(targetTime.plusMinutes(1))) {
-            if (lastScheduledUpdate == null || !lastScheduledUpdate.toLocalDate().equals(now.toLocalDate())) {
-                lastScheduledUpdate = now;
-                performScheduledUpdate("SCHEDULED mode daily update at " + targetHour + ":" + targetMinute);
-            }
+        int playerCount = server.getPlayerList().getPlayerCount();
+        if (playerCount > 0) {
+            emptyModeTriggered = false;
+            return;
         }
+
+        if (emptyModeTriggered) return;
+
+        emptyModeTriggered = true;
+        performUpdate("ON_EMPTY mode: no players online");
     }
 
-    private void performScheduledUpdate(String reason) {
+    private void performUpdate(String reason) {
         if (!updateInProgress.compareAndSet(false, true)) {
-            LOGGER.debug("Scheduled update already in progress, skipping");
+            LOGGER.debug("Incremental update already in progress, skipping");
             return;
         }
 
@@ -162,7 +158,7 @@ public class IncrementalUpdateHandlerLogic {
             try {
                 ConversionOrchestrator.performIncrementalScan(currentServer);
             } catch (RuntimeException e) {
-                LOGGER.error("Error during scheduled incremental update", e);
+                LOGGER.error("Error during incremental update", e);
             } finally {
                 updateInProgress.set(false);
             }

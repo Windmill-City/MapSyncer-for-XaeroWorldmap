@@ -39,6 +39,7 @@ public class AutoSyncManager {
 
         }
         if (serverUpdateMode == UpdateMode.DISABLED) return "mapsyncer.autosync.status.disabled";
+        if (serverUpdateMode == UpdateMode.ON_EMPTY) return "mapsyncer.autosync.status.on_empty";
         return "mapsyncer.autosync.status.daily";
     }
 
@@ -63,18 +64,18 @@ public class AutoSyncManager {
         return serverUpdateMode != UpdateMode.DISABLED;
     }
 
-    public static boolean shouldSyncScheduledOnJoin(long serverGenTime) {
+    public static boolean shouldSyncOnJoin(long serverGenTime) {
         if (serverGenTime <= 0) {
-            LOGGER.debug("Scheduled join auto-sync skipped: server has no generation data");
+            LOGGER.debug("Join auto-sync skipped: server has no generation data");
             return false;
         }
         long clientLastSync = getClientLastSyncTimestamp();
         if (clientLastSync >= serverGenTime) {
-            LOGGER.debug("Scheduled join auto-sync skipped: client up-to-date (client={}, server={})",
+            LOGGER.debug("Join auto-sync skipped: client up-to-date (client={}, server={})",
                     clientLastSync, serverGenTime);
             return false;
         }
-        LOGGER.info("Scheduled join auto-sync: client behind server (client={}, server={})",
+        LOGGER.info("Join auto-sync: client behind server (client={}, server={})",
                 clientLastSync, serverGenTime);
         return true;
     }
@@ -93,12 +94,8 @@ public class AutoSyncManager {
             LOGGER.debug("Join auto-sync skipped: server incremental updates disabled");
             return false;
         }
-        if (serverUpdateMode == UpdateMode.SCHEDULED) {
-            LOGGER.debug("Join auto-sync: SCHEDULED mode, checking timestamps...");
-            return shouldSyncScheduledOnJoin(serverGenTime);
-        }
-        LOGGER.debug("Join auto-sync skipped: unknown update mode {}", serverUpdateMode);
-        return false;
+        LOGGER.debug("Join auto-sync: {} mode, checking timestamps...", serverUpdateMode);
+        return shouldSyncOnJoin(serverGenTime);
     }
 
     public static boolean hasPendingResume() {

@@ -53,12 +53,8 @@ public class CacheCommandHandler {
                         .executes(CacheCommandHandler::showIncrementalMode)
                         .then(Commands.literal("off")
                                 .executes(CacheCommandHandler::setIncrementalOff))
-                        .then(Commands.literal("scheduled")
-                                .executes(CacheCommandHandler::setIncrementalScheduled)
-                                .then(Commands.argument("hour", IntegerArgumentType.integer(0, 23))
-                                        .executes(CacheCommandHandler::setScheduledTimeDefaultMinute)
-                                        .then(Commands.argument("minute", IntegerArgumentType.integer(0, 59))
-                                                .executes(CacheCommandHandler::setScheduledTime)))))
+                        .then(Commands.literal("onempty")
+                                .executes(CacheCommandHandler::setIncrementalOnEmpty)))
                 .then(Commands.literal("reloadconfig")
                         .executes(CacheCommandHandler::reloadConfig))
                 .then(Commands.literal("help")
@@ -213,27 +209,9 @@ public class CacheCommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setIncrementalScheduled(CommandContext<CommandSourceStack> ctx) {
-        setIncrementalScheduled(ctx.getSource().getServer());
-        int hour = getScheduledUpdateHour();
-        int minute = getScheduledUpdateMinute();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int setScheduledTimeDefaultMinute(CommandContext<CommandSourceStack> ctx) {
-        int hour = IntegerArgumentType.getInteger(ctx, "hour");
-        setScheduledTime(ctx.getSource().getServer(), hour);
-        int minute = getScheduledUpdateMinute();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int setScheduledTime(CommandContext<CommandSourceStack> ctx) {
-        int hour = IntegerArgumentType.getInteger(ctx, "hour");
-        int minute = IntegerArgumentType.getInteger(ctx, "minute");
-        setScheduledTime(ctx.getSource().getServer(), hour, minute);
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_scheduled_set", hour, minute), false);
+    private static int setIncrementalOnEmpty(CommandContext<CommandSourceStack> ctx) {
+        setIncrementalOnEmpty(ctx.getSource().getServer());
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_on_empty_set"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -255,7 +233,7 @@ public class CacheCommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.status", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_scheduled", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_onempty", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
@@ -278,11 +256,8 @@ public class CacheCommandHandler {
     public static MutableComponent incrementalStatusMessage() {
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
 
-        if (mode == UpdateMode.SCHEDULED) {
-            int hour = ModConfig.SERVER.scheduledUpdateHour.get();
-            int minute = ModConfig.SERVER.scheduledUpdateMinute.get();
-            return ChatUtils.message(
-                    "mapsyncer.command.incremental_status_scheduled", hour, minute);
+        if (mode == UpdateMode.ON_EMPTY) {
+            return ChatUtils.message("mapsyncer.command.incremental_status_on_empty");
         }
         return ChatUtils.message("mapsyncer.command.incremental_status_disabled");
     }
@@ -382,37 +357,14 @@ public class CacheCommandHandler {
         IncrementalUpdateHandlerLogic.getInstance().stop();
     }
 
-    public static void setIncrementalScheduled(MinecraftServer server) {
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
-        ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().start(server);
-    }
-
-    public static void setScheduledTime(MinecraftServer server, int hour) {
-        ModConfig.SERVER.scheduledUpdateHour.set(hour);
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
-        ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().start(server);
-    }
-
-    public static void setScheduledTime(MinecraftServer server, int hour, int minute) {
-        ModConfig.SERVER.scheduledUpdateHour.set(hour);
-        ModConfig.SERVER.scheduledUpdateMinute.set(minute);
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
+    public static void setIncrementalOnEmpty(MinecraftServer server) {
+        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.ON_EMPTY);
         ModConfig.SERVER_SPEC.save();
         IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
     public static UpdateMode getIncrementalUpdateMode() {
         return ModConfig.SERVER.incrementalUpdateMode.get();
-    }
-
-    public static int getScheduledUpdateHour() {
-        return ModConfig.SERVER.scheduledUpdateHour.get();
-    }
-
-    public static int getScheduledUpdateMinute() {
-        return ModConfig.SERVER.scheduledUpdateMinute.get();
     }
 
     public static boolean reloadConfig(MinecraftServer server) {
