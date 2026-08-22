@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -39,59 +38,11 @@ public class RegionConverterStandalone {
         }
     }
 
-    public static ConvertedRegion convertRegion(Path mcaPath, int regionX, int regionZ,
-                                                  int minBuildHeight, int worldTopY,
-                                                  BlockPropertyLookup blockLookup) {
-        return convertRegion(mcaPath, regionX, regionZ, minBuildHeight, worldTopY,
-                             LightMode.SURFACE, CaveModeParams.NONE, true, blockLookup);
-    }
-
-    public static ConvertedRegion convertRegion(Path mcaPath, int regionX, int regionZ,
-                                                  int minBuildHeight, int worldTopY,
-                                                  LightMode lightMode,
-                                                  CaveModeParams caveParams,
-                                                  boolean worldHasSkylight,
-                                                  BlockPropertyLookup blockLookup) {
-        if (!Files.exists(mcaPath)) {
-            return null;
-        }
-
-        try {
-            return RegionConversionPipeline.convert(
-                mcaPath, regionX, regionZ, minBuildHeight, worldTopY,
-                lightMode, caveParams, worldHasSkylight, blockLookup);
-        } catch (IOException e) {
-            LOGGER.warn("Failed to convert region ({}, {})", regionX, regionZ, e);
-            return null;
-        }
-    }
-
-    public static ConvertedRegion convertRegion(Path mcaPath, int regionX, int regionZ,
-                                                  DimensionTypeInfo dimTypeInfo,
-                                                  LightMode lightMode,
-                                                  CaveModeParams caveParams,
-                                                  BlockPropertyLookup blockLookup) {
-        if (!Files.exists(mcaPath)) {
-            return null;
-        }
-
-        try {
-            return RegionConversionPipeline.convert(
-                mcaPath, regionX, regionZ, dimTypeInfo, lightMode, caveParams, blockLookup);
-        } catch (IOException e) {
-            LOGGER.warn("Failed to convert region ({}, {})", regionX, regionZ, e);
-            return null;
-        }
-    }
-
     public static List<LayerConvertedRegion> convertRegionMulti(
             Path mcaPath, int regionX, int regionZ,
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
             BlockPropertyLookup blockLookup) {
-        if (!Files.exists(mcaPath)) {
-            return List.of();
-        }
         try {
             return RegionConversionPipeline.convertMulti(
                 mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);

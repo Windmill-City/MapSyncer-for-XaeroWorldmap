@@ -68,18 +68,6 @@ public final class ChunkColumnScanner {
                             LightMode lightMode,
                             RegionConverterStandalone.CaveModeParams caveParams,
                             boolean worldHasSkylight,
-                            BlockPropertyLookup blockLookup) {
-        scan(data, chunk, minBuildHeight, worldTopY, lightMode, caveParams, worldHasSkylight,
-            blockLookup, RegionScanPass.ScanVerticalBounds.unbounded());
-    }
-
-    public static void scan(MapRegionData data,
-                            ChunkDataParser.ChunkInfo chunk,
-                            int minBuildHeight,
-                            int worldTopY,
-                            LightMode lightMode,
-                            RegionConverterStandalone.CaveModeParams caveParams,
-                            boolean worldHasSkylight,
                             BlockPropertyLookup blockLookup,
                             RegionScanPass.ScanVerticalBounds bounds) {
         int chunkX = chunk.chunkX();

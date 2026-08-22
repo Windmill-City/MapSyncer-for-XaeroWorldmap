@@ -2,7 +2,6 @@ package com.mapsyncer.mca.convert.io;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
-import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
@@ -25,32 +24,6 @@ public final class McaRegionLoader {
     private McaRegionLoader() {}
 
     public record PassMapData(RegionScanPass pass, MapRegionData data) {}
-
-    public static MapRegionData load(Path mcaPath, int minBuildHeight, int worldTopY,
-                                      LightMode lightMode,
-                                      RegionConverterStandalone.CaveModeParams caveParams,
-                                      boolean worldHasSkylight,
-                                      BlockPropertyLookup blockLookup) throws IOException {
-        MapRegionData data = new MapRegionData(minBuildHeight, lightMode, caveParams);
-
-        try (McaReader reader = McaReader.open(mcaPath.toString())) {
-            int worldHeightRange = worldTopY - minBuildHeight;
-            ChunkDataParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange);
-            for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
-                for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
-                    ChunkDataParser.ChunkInfo chunkInfo = chunks[localX][localZ];
-                    if (chunkInfo == null) {
-                        continue;
-                    }
-                    ChunkColumnScanner.scan(data, chunkInfo, minBuildHeight, worldTopY,
-                        lightMode, caveParams, worldHasSkylight, blockLookup);
-                }
-            }
-        }
-
-        BiomeFillPass.fill(data);
-        return data;
-    }
 
     public static List<PassMapData> loadMulti(Path mcaPath, int minBuildHeight, int worldTopY,
                                                boolean worldHasSkylight,
