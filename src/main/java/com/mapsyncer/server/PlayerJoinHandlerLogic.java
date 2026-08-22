@@ -6,7 +6,6 @@ import com.mapsyncer.client.XaeroMapDataHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
-import com.mapsyncer.network.payload.ServerInstalledPayload;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -42,14 +41,13 @@ public class PlayerJoinHandlerLogic {
     public static void onPlayerJoin(ServerPlayer player, MinecraftServer server) {
         if (server == null) return;
 
-        long lastGenTime = GenerationCache.getInstance(ConversionOrchestrator.getCacheDir()).getLastGenerationTime();
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        ForgeNetworkHandler.get().sendToPlayer(player,
-            new ServerInstalledPayload(getModVersion(), lastGenTime, mode));
 
         if (!ConversionOrchestrator.isRunning() && mode != UpdateMode.DISABLED) {
             IncrementalUpdateHandlerLogic.getInstance().start(server);
         }
+
+        ServerSyncHandlerLogic.pushManifestOnJoin(player);
     }
 
     private static void cleanupSingletons() {
@@ -65,13 +63,5 @@ public class PlayerJoinHandlerLogic {
         ClientHashManager.shutdown();
 
         LOGGER.info("Singleton cache cleanup completed");
-    }
-
-    private static String getModVersion() {
-        try {
-            return com.mapsyncer.MapSyncer.VERSION;
-        } catch (Exception e) {
-            return "unknown";
-        }
     }
 }

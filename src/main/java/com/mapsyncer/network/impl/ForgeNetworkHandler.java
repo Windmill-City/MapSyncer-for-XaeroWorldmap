@@ -2,7 +2,6 @@ package com.mapsyncer.network.impl;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -33,7 +32,6 @@ public class ForgeNetworkHandler {
 
     private BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
     private BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
-    private BiConsumer<ServerInstalledPayload, Supplier<NetworkEvent.Context>> serverInstalledHandler;
     private BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
 
     private boolean registered = false;
@@ -72,11 +70,6 @@ public class ForgeNetworkHandler {
                 ForgeSyncResponseMessage::decode,
                 this::handleSyncResponse);
 
-        CHANNEL.registerMessage(3, ForgeServerInstalledMessage.class,
-                ForgeServerInstalledMessage::encode,
-                ForgeServerInstalledMessage::decode,
-                this::handleServerInstalled);
-
         CHANNEL.registerMessage(4, ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
                 ForgeSyncManifestMessage::decode,
@@ -105,12 +98,6 @@ public class ForgeNetworkHandler {
         }
     }
 
-    private void handleServerInstalled(ForgeServerInstalledMessage msg, Supplier<NetworkEvent.Context> ctx) {
-        if (serverInstalledHandler != null) {
-            serverInstalledHandler.accept(msg.getData(), ctx);
-        }
-    }
-
     public void registerHandlers() {
         if (registered) return;
         registered = true;
@@ -131,20 +118,12 @@ public class ForgeNetworkHandler {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
     }
 
-    public void sendToPlayer(ServerPlayer player, ServerInstalledPayload payload) {
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeServerInstalledMessage(payload));
-    }
-
     public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
         this.syncResponseHandler = handler;
     }
 
     public void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
         this.syncManifestHandler = handler;
-    }
-
-    public void registerServerInstalledHandler(BiConsumer<ServerInstalledPayload, Supplier<NetworkEvent.Context>> handler) {
-        this.serverInstalledHandler = handler;
     }
 
     public void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
@@ -159,7 +138,7 @@ public class ForgeNetworkHandler {
         return ctx.get().getSender();
     }
 
-    private static void confirmPlayer(UUID playerId) {
+    public static void confirmPlayer(UUID playerId) {
         confirmedPlayers.add(playerId);
     }
 
@@ -238,26 +217,6 @@ public class ForgeNetworkHandler {
 
         public static ForgeSyncManifestMessage decode(FriendlyByteBuf buf) {
             return new ForgeSyncManifestMessage(SyncManifestPayload.read(buf));
-        }
-    }
-
-    public static class ForgeServerInstalledMessage {
-        private final ServerInstalledPayload data;
-
-        public ForgeServerInstalledMessage(ServerInstalledPayload data) {
-            this.data = data;
-        }
-
-        public ServerInstalledPayload getData() {
-            return data;
-        }
-
-        public static void encode(ForgeServerInstalledMessage msg, FriendlyByteBuf buf) {
-            ServerInstalledPayload.write(buf, msg.data);
-        }
-
-        public static ForgeServerInstalledMessage decode(FriendlyByteBuf buf) {
-            return new ForgeServerInstalledMessage(ServerInstalledPayload.read(buf));
         }
     }
 

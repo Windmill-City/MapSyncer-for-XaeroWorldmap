@@ -55,6 +55,39 @@ public class ServerSyncHandlerLogic {
         );
     }
 
+    public static void pushManifestOnJoin(ServerPlayer player) {
+        Path cacheDir = ConversionOrchestrator.getCacheDir();
+        if (!Files.exists(cacheDir)) {
+            LOGGER.debug("No cache dir, skipping proactive manifest push for player {}", player.getUUID());
+            return;
+        }
+
+        Path absCacheDir = cacheDir.toAbsolutePath().normalize();
+        DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
+        GenerationCache genCache = GenerationCache.getInstance(cacheDir);
+
+        Set<String> dimensions = discoverDimensionsFromCache(absCacheDir);
+        if (dimensions.isEmpty()) {
+            LOGGER.debug("No cached dimensions, skipping proactive manifest push for player {}", player.getUUID());
+            return;
+        }
+
+        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(
+                absCacheDir, dimensions, dimMapping, genCache);
+        genCache.save();
+        if (manifest.isEmpty()) {
+            LOGGER.debug("Manifest is empty, skipping proactive manifest push for player {}", player.getUUID());
+            return;
+        }
+
+        ForgeNetworkHandler.confirmPlayer(player.getUUID());
+        int worldId = readWorldIdFromXaeroMap(player);
+        for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId, "ok")) {
+            ForgeNetworkHandler.get().sendToPlayer(player, part);
+        }
+        LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
+    }
+
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
         Player player = ForgeNetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;

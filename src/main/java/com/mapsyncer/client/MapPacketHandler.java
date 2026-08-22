@@ -2,12 +2,10 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.network.payload.ServerInstalledPayload;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
@@ -70,8 +68,6 @@ public class MapPacketHandler {
 
     private static volatile boolean serverInstalled = false;
 
-    private static volatile String serverVersion = "";
-
     private static volatile Path lastMwDir = null;
 
     private static final Set<XaeroMapDataHandler.RegionCoord> updatedRegionCoords = ConcurrentHashMap.newKeySet();
@@ -96,6 +92,8 @@ public class MapPacketHandler {
     private static volatile String pendingTargetDim = "";
     private static volatile boolean pendingSilent = false;
 
+    private static volatile boolean expectManifest = false;
+
     private static final long MANIFEST_PART_STALE_TIMEOUT_MS = 2 * 60 * 1000;
     private static final Map<Integer, SyncManifestPayload> manifestParts = new ConcurrentHashMap<>();
     private static volatile int manifestTotalParts = 0;
@@ -115,6 +113,7 @@ public class MapPacketHandler {
         pendingSyncAll = syncAll;
         pendingTargetDim = targetDim;
         pendingSilent = silent;
+        expectManifest = true;
         manifestParts.clear();
         manifestTotalParts = 0;
         manifestFirstPartArrivedMs = 0;
@@ -216,6 +215,7 @@ public class MapPacketHandler {
         manifestFirstPartArrivedMs = 0;
         pendingRegionPaths.clear();
         regionRequestInFlight = false;
+        expectManifest = false;
         syncTotal = 0;
         syncProcessed = 0;
         syncFailed = 0;
@@ -243,8 +243,6 @@ public class MapPacketHandler {
     public static void registerHandlers() {
         var handler = ForgeNetworkHandler.get();
 
-        handler.registerServerInstalledHandler(MapPacketHandler::onServerInstalled);
-
         handler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
 
         handler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
@@ -266,53 +264,24 @@ public class MapPacketHandler {
 
     public static void resetServerStatus() {
         serverInstalled = false;
-        serverVersion = "";
-        joinSyncScheduled = false;
         AutoSyncManager.resetServerPolicy();
     }
 
-    private static volatile boolean joinSyncScheduled = false;
-
-    public static void onServerInstalled(ServerInstalledPayload payload, Supplier<NetworkEvent.Context> ctx) {
-        ForgeNetworkHandler.enqueueWork(ctx, () -> {
-            try {
-                boolean firstAnnounce = !serverInstalled;
-                serverInstalled = true;
-                serverVersion = payload.version();
-                AutoSyncManager.configureFromServer(payload.updateMode());
-                LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, joinAutoSync={}",
-                        serverVersion, payload.updateMode(),
-                        payload.updateMode() != UpdateMode.DISABLED);
-
-                if (!firstAnnounce) {
-                    return;
-                }
-
-                Minecraft.getInstance().player.displayClientMessage(
-                    ChatUtils.prefix().append(ChatUtils.desc(AutoSyncManager.getStatusKey())), false);
-
-                boolean shouldJoinSync = AutoSyncManager.shouldAutoSyncOnJoin(
-                        payload.lastGenerationTimestamp());
-                LOGGER.info("shouldAutoSyncOnJoin result: {} (serverGenTime={})",
-                        shouldJoinSync, payload.lastGenerationTimestamp());
-                if (shouldJoinSync && !joinSyncScheduled) {
-                    joinSyncScheduled = true;
-                    AutoSyncManager.schedule(() -> {
-                        Minecraft.getInstance().execute(() -> {
-                            if (Minecraft.getInstance().player != null
-                                    && !MapPacketHandler.isSyncInProgress()) {
-                                Minecraft.getInstance().player.displayClientMessage(
-                                    ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
-                                AutoSyncManager.markStarted();
-                                MapSyncerCommandLogic.executeSyncAll(true);
-                            }
-                        });
-                    }, 5);
-                }
-            } catch (Exception e) {
-                LOGGER.error("Error processing ServerInstalledPayload", e);
-            }
-        });
+    public static void prepareJoinSync() {
+        Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
+        ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
+                ? ClientTimestampCache.getInstance(serverDir) : null;
+        if (tsCache != null) {
+            tsCache.markSyncStart(Set.of("all"), "/mapsyncer sync all");
+        }
+        startManifestRequest(true, "", true);
+        SyncProgressTracker.startTracking();
+        AutoSyncManager.markStarted();
+        if (Minecraft.getInstance().player != null) {
+            Minecraft.getInstance().player.displayClientMessage(
+                ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
+        }
+        LOGGER.info("Prepared join sync: waiting for server-pushed manifest");
     }
 
     private static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
@@ -553,6 +522,15 @@ public class MapPacketHandler {
             LOGGER.debug("Ignoring sync manifest for stale generation {}", generation);
             return;
         }
+
+        if (!expectManifest) {
+            LOGGER.debug("Ignoring unsolicited sync manifest (no sync expected)");
+            manifestParts.clear();
+            manifestTotalParts = 0;
+            manifestFirstPartArrivedMs = 0;
+            return;
+        }
+        expectManifest = false;
 
         SyncProgressTracker.onServerResponded();
 

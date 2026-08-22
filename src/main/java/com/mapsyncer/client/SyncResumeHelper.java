@@ -1,5 +1,6 @@
 package com.mapsyncer.client;
 
+import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.ChatUtils;
 
 import net.minecraft.client.Minecraft;
@@ -18,9 +19,6 @@ public class SyncResumeHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SyncResumeHelper.class);
 
-    private static final long POLICY_WAIT_MS = 3_000;
-    private static final long POLICY_POLL_MS = 100;
-
     @SubscribeEvent
     public static void onPlayerLoggingInEvent(ClientPlayerNetworkEvent.LoggingIn event) {
         onPlayerLoggingIn();
@@ -35,28 +33,19 @@ public class SyncResumeHelper {
             return;
         }
 
+        if (ModConfig.CLIENT.isAutoSyncEnabled()) {
+            MapPacketHandler.prepareJoinSync();
+        }
+
         Thread resumeCheckThread = new Thread(() -> {
-            waitForServerPolicy();
             mc.execute(() -> checkInterruptedSync(mc));
         }, "mapsyncer-resume-check");
         resumeCheckThread.setDaemon(true);
         resumeCheckThread.start();
     }
 
-    private static void waitForServerPolicy() {
-        long deadline = System.currentTimeMillis() + POLICY_WAIT_MS;
-        while (System.currentTimeMillis() < deadline && !AutoSyncManager.isServerPolicyKnown()) {
-            try {
-                Thread.sleep(POLICY_POLL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-    }
-
     private static void checkInterruptedSync(Minecraft mc) {
-        if (AutoSyncManager.isJoinAutoSyncEnabled()) {
+        if (ModConfig.CLIENT.isAutoSyncEnabled()) {
             LOGGER.debug("Join auto-sync enabled, skip resume prompt");
             return;
         }
