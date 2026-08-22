@@ -51,7 +51,6 @@ public class ChunkDataParser {
     private static final class HeightmapFields {
         long[] worldSurface;
         long[] motionBlocking;
-        int[] legacyHeightmap;
     }
 
     public static ChunkInfo parseChunk(int localX, int localZ, byte[] nbtData, int worldHeightRange)
@@ -71,12 +70,8 @@ public class ChunkDataParser {
 
         String status = null;
         int yPos = 0;
-        List<ChunkSectionParser.SectionData> topSections = new ArrayList<>();
-        List<ChunkSectionParser.SectionData> levelSections = new ArrayList<>();
-        boolean topHasSections = false;
-        boolean levelSeen = false;
-        HeightmapFields topHeightmaps = new HeightmapFields();
-        HeightmapFields levelHeightmaps = new HeightmapFields();
+        List<ChunkSectionParser.SectionData> sections = new ArrayList<>();
+        HeightmapFields heightmaps = new HeightmapFields();
 
         byte type;
         while ((type = stream.readTagType()) != NbtStream.TAG_END) {
@@ -98,30 +93,14 @@ public class ChunkDataParser {
                     break;
                 case "sections":
                     if (type == NbtStream.TAG_LIST) {
-                        topHasSections = true;
-                        readSections(stream, topSections);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case "Level":
-                    if (type == NbtStream.TAG_COMPOUND) {
-                        levelSeen = true;
-                        readLevelContent(stream, levelSections, levelHeightmaps);
+                        readSections(stream, sections);
                     } else {
                         stream.skip(type);
                     }
                     break;
                 case "Heightmaps":
                     if (type == NbtStream.TAG_COMPOUND) {
-                        readHeightmapCompound(stream, topHeightmaps);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case "HeightMap":
-                    if (type == NbtStream.TAG_INT_ARRAY) {
-                        topHeightmaps.legacyHeightmap = stream.readIntArray();
+                        readHeightmapCompound(stream, heightmaps);
                     } else {
                         stream.skip(type);
                     }
@@ -135,35 +114,23 @@ public class ChunkDataParser {
             return null;
         }
 
-        int chunkBottomY = yPos * 16;
-
-        List<ChunkSectionParser.SectionData> sections;
-        HeightmapFields heightmaps;
-        if (topHasSections) {
-            sections = topSections;
-            heightmaps = topHeightmaps;
-        } else if (levelSeen) {
-            sections = levelSections;
-            heightmaps = levelHeightmaps;
-        } else {
+        if (sections.isEmpty()) {
             return null;
         }
+
+        int chunkBottomY = yPos * 16;
 
         int[][] heightmap = parseHeightmap(heightmaps, chunkBottomY, worldHeightRange);
 
         sections.sort((a, b) -> Integer.compare(b.sectionY(), a.sectionY()));
 
-        int minSectionY = 0;
-        ChunkSectionParser.SectionData[] sectionLookup = null;
-        if (!sections.isEmpty()) {
-            int maxY = sections.get(0).sectionY();
-            minSectionY = sections.get(sections.size() - 1).sectionY();
-            int range = maxY - minSectionY + 1;
-            sectionLookup = new ChunkSectionParser.SectionData[range];
-            for (ChunkSectionParser.SectionData sec : sections) {
-                int idx = sec.sectionY() - minSectionY;
-                if (idx >= 0 && idx < range) sectionLookup[idx] = sec;
-            }
+        int maxY = sections.get(0).sectionY();
+        int minSectionY = sections.get(sections.size() - 1).sectionY();
+        int range = maxY - minSectionY + 1;
+        ChunkSectionParser.SectionData[] sectionLookup = new ChunkSectionParser.SectionData[range];
+        for (ChunkSectionParser.SectionData sec : sections) {
+            int idx = sec.sectionY() - minSectionY;
+            if (idx >= 0 && idx < range) sectionLookup[idx] = sec;
         }
 
         BiomeQuartGrid biomeGrid = BiomeQuartGrid.build(sections, minSectionY, sectionLookup);
@@ -183,40 +150,6 @@ public class ChunkDataParser {
         }
         for (int i = 0; i < length; i++) {
             sections.add(ChunkSectionParser.parseSection(stream));
-        }
-    }
-
-    private static void readLevelContent(NbtStream stream,
-                                         List<ChunkSectionParser.SectionData> sections,
-                                         HeightmapFields heightmaps) throws IOException {
-        byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case "sections":
-                    if (type == NbtStream.TAG_LIST) {
-                        readSections(stream, sections);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case "Heightmaps":
-                    if (type == NbtStream.TAG_COMPOUND) {
-                        readHeightmapCompound(stream, heightmaps);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case "HeightMap":
-                    if (type == NbtStream.TAG_INT_ARRAY) {
-                        heightmaps.legacyHeightmap = stream.readIntArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
         }
     }
 
@@ -262,16 +195,6 @@ public class ChunkDataParser {
                 decodeHeightmapLongArray(heightmaps.motionBlocking, bitsPerHeight, chunkBottomY, heightmap);
                 return heightmap;
             }
-        }
-
-        if (heightmaps.legacyHeightmap != null && heightmaps.legacyHeightmap.length == 256) {
-            int[] data = heightmaps.legacyHeightmap;
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    heightmap[x][z] = data[z * 16 + x];
-                }
-            }
-            return heightmap;
         }
 
         return heightmap;
