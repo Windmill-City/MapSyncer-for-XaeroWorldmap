@@ -105,7 +105,7 @@ public class GenerationCache {
         int removed = 0;
         for (String key : List.copyOf(cache.keySet())) {
             Path zipPath = resolveZipPath(cacheRoot, key);
-            if (zipPath == null || !HashUtils.isValidRegionZip(zipPath)) {
+            if (zipPath == null || !Files.isRegularFile(zipPath)) {
                 cache.remove(key);
                 removed++;
             }

@@ -18,8 +18,6 @@ public final class ServerLifecycleBridge {
 
         ConversionOrchestrator.shutdownExecutor();
 
-        GenerationCache.resetInstance();
-        McaTimestampCache.resetInstance();
         IncrementalUpdateHandlerLogic.resetInstance();
 
         MapPacketHandler.clearReceivedChunks();

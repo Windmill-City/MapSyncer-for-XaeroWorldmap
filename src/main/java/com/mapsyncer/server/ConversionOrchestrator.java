@@ -164,6 +164,7 @@ public class ConversionOrchestrator {
                             }
                         });
             }
+            ManifestCache.getInstance().invalidate();
             LOGGER.info("Cleared cache directory: {}", dimCacheDir);
         } catch (IOException e) {
             LOGGER.error("Failed to clear dimension cache: {}", dimCacheDir, e);
@@ -370,6 +371,7 @@ public class ConversionOrchestrator {
                 LOGGER.warn("Could not convert region ({}, {}): all passes empty", regionX, regionZ);
                 result = SingleRegionResult.CONVERSION_FAILED;
             } else {
+                ManifestCache.getInstance().invalidate();
                 LOGGER.info("Converted single region ({}, {}) with {} passes", regionX, regionZ, written);
             }
         } catch (IOException e) {
@@ -576,6 +578,7 @@ public class ConversionOrchestrator {
                 purgeGeneratedArtifacts(
                     outputDir, coords.x(), coords.z(), relativePath, genCache);
             }
+            ManifestCache.getInstance().invalidate();
             skippedEmptyContentCount.incrementAndGet();
             if (logProgress) {
                 processedCountAtomic.addAndGet(passes.size());
@@ -592,6 +595,7 @@ public class ConversionOrchestrator {
         }
 
         boolean anyWritten = false;
+        boolean anyPurged = false;
         boolean anyFailed = false;
         for (int i = 0; i < passes.size(); i++) {
             RegionScanPass pass = passes.get(i);
@@ -606,6 +610,7 @@ public class ConversionOrchestrator {
             if (isEmptyConverted(single)) {
                 purgeGeneratedArtifacts(
                     outputDir, coords.x(), coords.z(), relativePath, genCache);
+                anyPurged = true;
                 if (logProgress) {
                     processedCountAtomic.incrementAndGet();
                 }
@@ -631,6 +636,9 @@ public class ConversionOrchestrator {
 
         if (anyWritten) {
             mcaCache.updateTimestamp(dimPath, coords.x(), coords.z(), mcaPath);
+        }
+        if (anyWritten || anyPurged) {
+            ManifestCache.getInstance().invalidate();
         }
         if (anyFailed) {
             failedRegions.add(coords);

@@ -12,7 +12,6 @@ import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
-import com.mapsyncer.util.HashUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -555,7 +554,6 @@ public class ServerSyncHandlerLogic {
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         GenerationCache genCache = GenerationCache.getInstance(cacheDir);
         genCache.pruneInvalidEntries(cacheDir);
-        Map<String, ClientMeta> serverCache = genCache.getAll();
 
         if (!Files.exists(cacheDir)) {
             enqueueIfCurrent(server, playerId, syncVersion, player -> {
@@ -640,6 +638,13 @@ public class ServerSyncHandlerLogic {
         }
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
+
+        if (isManifestRequest(clientMeta)) {
+            sendManifest(server, playerId, syncVersion, worldId, requestedDimensions, absCacheDir,
+                    dimMapping, genCache, silent);
+            return;
+        }
+
         List<Path> allZipPaths;
         try (Stream<Path> stream = Files.walk(absCacheDir)) {
             allZipPaths = stream.filter(p -> p.toString().endsWith(".zip")).toList();
@@ -648,14 +653,11 @@ public class ServerSyncHandlerLogic {
             allZipPaths = List.of();
         }
 
-        if (isManifestRequest(clientMeta)) {
-            sendManifest(server, playerId, syncVersion, worldId, requestedDimensions, absCacheDir,
-                    allZipPaths, serverCache, dimMapping, genCache, silent);
-            return;
-        }
-
         Set<String> requestedPaths = clientMeta.keySet();
         List<RegionSyncInfo> regionsToSync = new ArrayList<>();
+
+        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(
+                absCacheDir, requestedDimensions, dimMapping, genCache);
 
         for (Path zipPath : allZipPaths) {
             String normalizedPath = toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
@@ -663,19 +665,9 @@ public class ServerSyncHandlerLogic {
                 continue;
             }
 
-            ClientMeta serverMeta = serverCache.get(normalizedPath);
-            if (!HashUtils.isValidRegionZip(zipPath)) {
-                if (serverMeta != null) {
-                    genCache.remove(normalizedPath);
-                }
+            Long timestamp = manifest.get(normalizedPath);
+            if (timestamp == null) {
                 continue;
-            }
-
-            long timestamp;
-            if (serverMeta == null) {
-                timestamp = System.currentTimeMillis() / 1000;
-            } else {
-                timestamp = serverMeta.timestampSeconds();
             }
 
             RegionSyncInfo info = parseRegionInfo(zipPath, normalizedPath, timestamp);
@@ -975,7 +967,7 @@ public class ServerSyncHandlerLogic {
                 regions.size(), viewRegionCount, viewDistanceRegions);
     }
 
-    private static String stripMwWorldId(String path) {
+    static String stripMwWorldId(String path) {
         String[] parts = path.split("/");
         if (parts.length >= 3 && parts[1].startsWith("mw$")) {
             StringBuilder sb = new StringBuilder(parts[0]);
@@ -987,7 +979,7 @@ public class ServerSyncHandlerLogic {
         return path;
     }
 
-    private static String toNormalizedServerPath(Path absCacheDir, Path zipPath, DimensionPathMapping dimMapping) {
+    static String toNormalizedServerPath(Path absCacheDir, Path zipPath, DimensionPathMapping dimMapping) {
         String relativePath = absCacheDir.relativize(zipPath).toString();
         String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
         normalizedPath = stripMwWorldId(normalizedPath);
@@ -1003,32 +995,10 @@ public class ServerSyncHandlerLogic {
     }
 
     private static void sendManifest(MinecraftServer server, UUID playerId, int syncVersion, int worldId,
-            Set<String> requestedDimensions, Path absCacheDir, List<Path> allZipPaths,
-            Map<String, ClientMeta> serverCache, DimensionPathMapping dimMapping,
-            GenerationCache genCache, boolean silent) {
-        Map<String, Long> manifest = new HashMap<>();
-
-        for (Path zipPath : allZipPaths) {
-            String normalizedPath = toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
-            String[] pathParts = normalizedPath.split("[/\\\\]");
-            String xaeroDimName = pathParts.length > 1 ? pathParts[0] : "unknown";
-            if (!requestedDimensions.contains(xaeroDimName)) {
-                continue;
-            }
-
-            ClientMeta serverMeta = serverCache.get(normalizedPath);
-            if (!HashUtils.isValidRegionZip(zipPath)) {
-                if (serverMeta != null) {
-                    genCache.remove(normalizedPath);
-                }
-                continue;
-            }
-
-            long timestamp = serverMeta != null
-                    ? serverMeta.timestampSeconds()
-                    : System.currentTimeMillis() / 1000;
-            manifest.put(normalizedPath, timestamp);
-        }
+            Set<String> requestedDimensions, Path absCacheDir,
+            DimensionPathMapping dimMapping, GenerationCache genCache, boolean silent) {
+        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(
+                absCacheDir, requestedDimensions, dimMapping, genCache);
 
         genCache.save();
 
