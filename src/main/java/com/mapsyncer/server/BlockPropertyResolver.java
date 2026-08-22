@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.BlockGetter;
@@ -56,6 +55,7 @@ import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,7 +229,7 @@ public class BlockPropertyResolver {
     private static BlockProperties resolveProperties(String blockName) {
         try {
             ResourceLocation location = new ResourceLocation(blockName);
-            Optional<Block> blockOpt = BuiltInRegistries.BLOCK.getOptional(location);
+            Optional<Block> blockOpt = Optional.ofNullable(ForgeRegistries.BLOCKS.getValue(location));
 
             if (blockOpt.isEmpty()) {
                 LOGGER.debug("Block not found in registry: {}, using fallback", blockName);
@@ -258,7 +258,7 @@ public class BlockPropertyResolver {
 
             boolean isGrassBlock = block == Blocks.GRASS_BLOCK;
 
-            int lightEmission = defaultState.getLightEmission();
+            int lightEmission = defaultState.getLightEmission(PLACEHOLDER_BLOCK_GETTER, PLACEHOLDER_BLOCKPOS);
             boolean isGlowing = lightEmission >= 15;
 
             int lightBlock = getLightBlock(defaultState);
@@ -383,7 +383,7 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
+        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
 
         if (block == Blocks.TORCH || blockId.contains("torch") || blockId.endsWith("_torch")) {
             return true;
@@ -407,7 +407,7 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        String blockName = BuiltInRegistries.BLOCK.getKey(block).toString();
+        String blockName = ForgeRegistries.BLOCKS.getKey(block).toString();
         if (buggedBlocks.containsKey(blockName)) {
             return true;
         }
@@ -536,7 +536,7 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
+        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
         if (blockId.contains("plant")
                 || blockId.contains("crop")
                 || blockId.contains("sapling")
@@ -565,7 +565,7 @@ public class BlockPropertyResolver {
             }
         }
 
-        String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
+        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
         if (blockId.contains("fence_gate")
                 || blockId.contains("stairs")
                 || blockId.contains("slab")
@@ -600,7 +600,7 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        String blockId = BuiltInRegistries.BLOCK.getKey(block).getPath();
+        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
         return blockId.equals("seagrass")
                 || blockId.equals("tall_seagrass")
                 || blockId.equals("kelp")
