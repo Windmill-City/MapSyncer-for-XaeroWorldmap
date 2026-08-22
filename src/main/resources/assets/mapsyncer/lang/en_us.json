@@ -67,10 +67,8 @@
   "option.mapsyncer.concurrent_regions": "Max concurrent regions",
   "option.mapsyncer.concurrent_regions.tooltip": "Maximum number of regions converted simultaneously. 0 = automatic (CPU cores − 2, clamped to 1–16). Higher values process faster but demand more server CPU.",
   "option.mapsyncer.packet_size": "Max sync packet size",
-  "option.mapsyncer.speed_limit": "Sync speed limit (KB/s)",
   "option.mapsyncer.update_mode": "Incremental update mode",
   "option.mapsyncer.debug": "Debug logging",
   "option.mapsyncer.packet_size.tooltip": "Maximum bytes per network packet during sync. Excessively large packets may be dropped on unstable connections.",
-  "option.mapsyncer.speed_limit.tooltip": "Maximum transfer rate (KB/s) during sync. Set to 0 for unlimited. Too high may impact game network quality.",
   "option.mapsyncer.update_mode.tooltip": "Server-side map cache incremental update strategy.\n\nDISABLED - No incremental updates.\nON_EMPTY - Runs an incremental update whenever no players are online (once per empty period, including after the last player leaves). The client always auto-syncs on join based on the server cache."
 }

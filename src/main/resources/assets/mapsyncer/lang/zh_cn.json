@@ -67,10 +67,8 @@
   "option.mapsyncer.concurrent_regions": "最大并发区域数",
   "option.mapsyncer.concurrent_regions.tooltip": "同时转换的最大区域数。0 = 自动（逻辑处理器数 − 2，限制在 1–16）。较高值处理更快，但对服务端 CPU 要求更高。",
   "option.mapsyncer.packet_size": "最大同步包大小",
-  "option.mapsyncer.speed_limit": "同步速度限制（KB/s）",
   "option.mapsyncer.update_mode": "增量更新模式",
   "option.mapsyncer.debug": "调试日志",
   "option.mapsyncer.packet_size.tooltip": "网络传输时单个数据包的最大字节数。设置过大的包在弱网环境中可能被丢弃，建议保持默认值。",
-  "option.mapsyncer.speed_limit.tooltip": "同步时每秒最大传输速率（KB/s）。设为 0 则不限制。限制过高可能影响游戏网络连接质量。",
   "option.mapsyncer.update_mode.tooltip": "服务端地图缓存的增量更新策略。\n\nDISABLED - 关闭增量更新。\nON_EMPTY - 无人在线时执行增量更新（包括最后一名玩家离线后的空服期，每个空服期执行一次）；客户端进服时始终按服务端缓存自动同步缺失区域。"
 }
