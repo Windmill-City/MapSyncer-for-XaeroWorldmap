@@ -33,6 +33,7 @@ public class PlayerJoinHandlerLogic {
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ForgeNetworkHandler.onPlayerDisconnect(event.getEntity().getUUID());
+        IncrementalUpdateHandlerLogic.getInstance().onPlayerLoggedOut();
     }
 
     @SubscribeEvent

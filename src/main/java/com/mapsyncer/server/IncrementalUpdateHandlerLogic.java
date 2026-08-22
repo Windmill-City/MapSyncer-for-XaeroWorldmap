@@ -7,26 +7,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.server.MinecraftServer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Mod.EventBusSubscriber(
-        modid = "mapsyncer",
-        value = {Dist.CLIENT, Dist.DEDICATED_SERVER},
-        bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class IncrementalUpdateHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
-
-    @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        getInstance().onServerTick();
-    }
 
     private static volatile IncrementalUpdateHandlerLogic instance;
 
@@ -107,15 +93,18 @@ public class IncrementalUpdateHandlerLogic {
         }
     }
 
-    public void onServerTick() {
+    public void onPlayerLoggedOut() {
         if (!running || server == null) return;
+
+        if (server.isStopped()) return;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode == UpdateMode.DISABLED) return;
 
-        if (mode == UpdateMode.ON_EMPTY) {
-            checkEmptyMode();
-        }
+        if (updateInProgress.get()) return;
+
+        emptyModeTriggered = false;
+        server.execute(this::checkEmptyMode);
     }
 
     private void checkEmptyMode() {
