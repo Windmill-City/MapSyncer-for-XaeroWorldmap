@@ -151,8 +151,8 @@ public class ModConfig {
                     .defineInRange("mapRegionLoadIntervalTicks", 1, -1, 100);
 
             autoSyncEnabled = builder
-                    .comment("服务端 TICK/SCHEDULED 模式下启用进服自动同步；TICK 模式另启在线周期同步",
-                             "Enable join auto-sync when server uses TICK or SCHEDULED; online periodic sync when TICK",
+                    .comment("服务端 SCHEDULED 模式下启用进服自动同步",
+                             "Enable join auto-sync when server uses SCHEDULED mode",
                              "手动 /mapsyncer sync 始终可用",
                              "Manual /mapsyncer sync is always available")
                     .define("autoSyncEnabled", true);
@@ -188,8 +188,6 @@ public class ModConfig {
         public final IntValue syncSpeedLimitKBps;
 
         public final EnumValue<UpdateMode> incrementalUpdateMode;
-
-        public final IntValue incrementalUpdateIntervalTicks;
 
         public final IntValue scheduledUpdateHour;
 
@@ -261,14 +259,9 @@ public class ModConfig {
             builder.comment("增量更新设置 / Incremental update settings");
 
             incrementalUpdateMode = builder
-                    .comment("增量更新模式：DISABLED（禁用），TICK（按 tick 周期更新），SCHEDULED（每日定时更新）",
-                             "Incremental update mode: DISABLED (off), TICK (periodic by ticks), SCHEDULED (daily at specific time)")
+                    .comment("增量更新模式：DISABLED（禁用），SCHEDULED（每日定时更新）",
+                             "Incremental update mode: DISABLED (off), SCHEDULED (daily at specific time)")
                     .defineEnum("incrementalUpdateMode", UpdateMode.DISABLED);
-
-            incrementalUpdateIntervalTicks = builder
-                    .comment("TICK 模式的更新间隔（20 ticks = 1 秒，默认 6000 = 5 分钟）",
-                             "Interval in server ticks for TICK mode (20 ticks = 1 second, default 6000 = 5 minutes)")
-                    .defineInRange("incrementalUpdateIntervalTicks", 6000, 2400, 72000);
 
             scheduledUpdateHour = builder
                     .comment("SCHEDULED 模式的更新时间（小时，0-23，使用服务器本地时区）",

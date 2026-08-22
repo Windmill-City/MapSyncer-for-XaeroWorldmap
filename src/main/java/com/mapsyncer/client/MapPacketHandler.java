@@ -228,8 +228,7 @@ public class MapPacketHandler {
                 serverInstalled = true;
                 serverVersion = payload.version();
                 int intervalMinutes = payload.autoSyncIntervalMinutes();
-                AutoSyncManager.configureFromServer(
-                        payload.updateMode(), intervalMinutes, payload.incrementalUpdateIntervalTicks());
+                AutoSyncManager.configureFromServer(payload.updateMode(), intervalMinutes);
                 LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, intervalMinutes={}, joinAutoSync={}",
                         serverVersion, payload.updateMode(), intervalMinutes, intervalMinutes > 0);
 
@@ -260,16 +259,6 @@ public class MapPacketHandler {
                         });
                     }, 5);
                 }
-
-                AutoSyncManager.startTickPeriodicSync(() ->
-                        Minecraft.getInstance().execute(() -> {
-                            if (Minecraft.getInstance().player != null
-                                    && !MapPacketHandler.isSyncInProgress()) {
-                                LOGGER.debug("TICK periodic auto-sync: requesting sync");
-                                AutoSyncManager.markPeriodicSync();
-                                MapSyncerCommandLogic.executeSyncAll(true);
-                            }
-                        }));
                 } catch (Exception e) {
                     LOGGER.error("Error processing ServerInstalledPayload", e);
                 }

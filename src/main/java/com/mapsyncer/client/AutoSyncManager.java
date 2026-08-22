@@ -2,7 +2,6 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.server.AutoSyncConfig;
 import com.mapsyncer.util.ClientMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,13 +25,10 @@ public class AutoSyncManager {
 
     private static volatile long lastAutoSyncTimeMs = 0;
     private static volatile ScheduledFuture<?> pendingTask;
-    private static volatile ScheduledFuture<?> periodicTask;
     private static volatile boolean active = false;
-    private static volatile boolean periodicSync = false;
 
     private static volatile int serverAutoSyncIntervalMinutes = -1;
     private static volatile UpdateMode serverUpdateMode = UpdateMode.DISABLED;
-    private static volatile int serverIntervalTicks = 0;
 
     public static Object[] getStatusKey(int intervalMinutes) {
         try {
@@ -47,16 +43,14 @@ public class AutoSyncManager {
         return new Object[]{"mapsyncer.autosync.status.daily"};
     }
 
-    public static void configureFromServer(UpdateMode mode, int intervalMinutes, int intervalTicks) {
+    public static void configureFromServer(UpdateMode mode, int intervalMinutes) {
         serverUpdateMode = mode;
         serverAutoSyncIntervalMinutes = intervalMinutes;
-        serverIntervalTicks = intervalTicks;
     }
 
     public static void resetServerPolicy() {
         serverAutoSyncIntervalMinutes = -1;
         serverUpdateMode = UpdateMode.DISABLED;
-        serverIntervalTicks = 0;
     }
 
     public static boolean isServerPolicyKnown() {
@@ -66,9 +60,6 @@ public class AutoSyncManager {
     public static boolean isJoinAutoSyncEnabled() {
         if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
             return false;
-        }
-        if (serverUpdateMode == UpdateMode.SCHEDULED || serverUpdateMode == UpdateMode.TICK) {
-            return true;
         }
         return serverAutoSyncIntervalMinutes > 0;
     }
@@ -86,36 +77,6 @@ public class AutoSyncManager {
         }
         LOGGER.info("Scheduled join auto-sync: client behind server (client={}, server={})",
                 clientLastSync, serverGenTime);
-        return true;
-    }
-
-    public static boolean shouldAutoSync(long serverGenTime, int intervalMinutes) {
-        if (intervalMinutes <= 0) {
-            LOGGER.debug("Auto-sync disabled (interval={})", intervalMinutes);
-            return false;
-        }
-        if (serverGenTime <= 0) {
-            LOGGER.debug("Auto-sync skipped: server has no generation data");
-            return false;
-        }
-
-        long clientLastSync = getClientLastSyncTimestamp();
-        if (serverGenTime <= clientLastSync) {
-            LOGGER.debug("Auto-sync skipped: client up-to-date (client={}, server={})",
-                clientLastSync, serverGenTime);
-            return false;
-        }
-
-        long elapsed = System.currentTimeMillis() - lastAutoSyncTimeMs;
-        long cooldown = TimeUnit.MINUTES.toMillis(intervalMinutes);
-        if (elapsed < cooldown && lastAutoSyncTimeMs > 0) {
-            LOGGER.debug("Auto-sync skipped: cooldown ({}m remaining)",
-                (cooldown - elapsed) / 60_000);
-            return false;
-        }
-
-        LOGGER.info("Auto-sync conditions met: serverGen={}, clientSync={}, interval={}m",
-            serverGenTime, clientLastSync, intervalMinutes);
         return true;
     }
 
@@ -137,12 +98,8 @@ public class AutoSyncManager {
             LOGGER.debug("Join auto-sync: SCHEDULED mode, checking timestamps...");
             return shouldSyncScheduledOnJoin(serverGenTime);
         }
-        if (intervalMinutes <= 0) {
-            LOGGER.debug("Join auto-sync skipped: intervalMinutes={}", intervalMinutes);
-            return false;
-        }
-        LOGGER.debug("Join auto-sync: TICK mode, checking conditions (serverGenTime={}, intervalMinutes={})...", serverGenTime, intervalMinutes);
-        return shouldAutoSync(serverGenTime, intervalMinutes);
+        LOGGER.debug("Join auto-sync skipped: unknown update mode {}", serverUpdateMode);
+        return false;
     }
 
     public static boolean hasPendingResume() {
@@ -159,26 +116,6 @@ public class AutoSyncManager {
         }
     }
 
-    public static void startTickPeriodicSync(Runnable syncAction) {
-        cancelPeriodic();
-        if (!ModConfig.CLIENT.isAutoSyncEnabled()) {
-            return;
-        }
-        if (serverUpdateMode != UpdateMode.TICK || serverIntervalTicks <= 0) {
-            return;
-        }
-
-        long periodMs = AutoSyncConfig.ticksToPeriodMs(serverIntervalTicks);
-        LOGGER.info("Starting TICK periodic auto-sync: {} ticks ({} ms)", serverIntervalTicks, periodMs);
-        periodicTask = EXECUTOR.scheduleAtFixedRate(() -> {
-            try {
-                syncAction.run();
-            } catch (Exception e) {
-                LOGGER.error("TICK periodic auto-sync failed", e);
-            }
-        }, periodMs, periodMs, TimeUnit.MILLISECONDS);
-    }
-
     public static void schedule(Runnable task, int delaySeconds) {
         cancelPending();
         pendingTask = EXECUTOR.schedule(() -> {
@@ -188,19 +125,6 @@ public class AutoSyncManager {
                 LOGGER.error("Auto-sync task failed", e);
             }
         }, delaySeconds, TimeUnit.SECONDS);
-    }
-
-    public static void markPeriodicSync() {
-        periodicSync = true;
-        lastAutoSyncTimeMs = System.currentTimeMillis();
-    }
-
-    public static boolean isPeriodicSync() {
-        return periodicSync;
-    }
-
-    public static void clearPeriodicSync() {
-        periodicSync = false;
     }
 
     public static void markStarted() {
@@ -222,9 +146,7 @@ public class AutoSyncManager {
 
     public static void cancel() {
         active = false;
-        periodicSync = false;
         cancelPending();
-        cancelPeriodic();
     }
 
     private static void cancelPending() {
@@ -232,17 +154,6 @@ public class AutoSyncManager {
             pendingTask.cancel(false);
             pendingTask = null;
         }
-    }
-
-    private static void cancelPeriodic() {
-        if (periodicTask != null) {
-            periodicTask.cancel(false);
-            periodicTask = null;
-        }
-    }
-
-    public static void stopPeriodicSync() {
-        cancelPeriodic();
     }
 
     public static void shutdown() {

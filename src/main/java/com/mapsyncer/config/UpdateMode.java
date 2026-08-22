@@ -4,7 +4,5 @@ public enum UpdateMode {
 
     DISABLED,
 
-    TICK,
-
     SCHEDULED
 }

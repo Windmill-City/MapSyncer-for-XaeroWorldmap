@@ -62,9 +62,7 @@ public class SyncProgressTracker {
         tracking = true;
         processed = 0;
         total = 0;
-        status = AutoSyncManager.isPeriodicSync()
-                ? Component.translatable("mapsyncer.autosync.periodic.start").getString()
-                : Component.translatable("mapsyncer.sync.waiting").getString();
+        status = Component.translatable("mapsyncer.sync.waiting").getString();
         startTime = System.currentTimeMillis();
         receivedFirstResponse = false;
 
@@ -117,14 +115,8 @@ public class SyncProgressTracker {
 
         long elapsed = getElapsedSeconds();
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            if (AutoSyncManager.isPeriodicSync()) {
-                AutoSyncManager.clearPeriodicSync();
-                ChatUtils.sendOverlayMessage(
-                        ChatUtils.message("mapsyncer.autosync.periodic.complete", count, elapsed));
-            } else if (!AutoSyncManager.isActive()) {
-                ChatUtils.sendChatMessage(ChatUtils.success("mapsyncer.sync.completed", count, elapsed));
-            }
+        if (mc.player != null && !AutoSyncManager.isActive()) {
+            ChatUtils.sendChatMessage(ChatUtils.success("mapsyncer.sync.completed", count, elapsed));
         }
     }
 
@@ -132,21 +124,12 @@ public class SyncProgressTracker {
         tracking = false;
         hashScanning = false;
         stopTimeoutChecker();
-        if (AutoSyncManager.isPeriodicSync()) {
-            AutoSyncManager.clearPeriodicSync();
-            Minecraft mc = Minecraft.getInstance();
-            if (mc.player != null) {
-                ChatUtils.sendOverlayMessage(
-                        ChatUtils.message("mapsyncer.autosync.periodic.uptodate"));
-            }
-        }
         setOverlayActive(false);
     }
 
     public static void cancelTracking() {
         tracking = false;
         hashScanning = false;
-        AutoSyncManager.clearPeriodicSync();
         status = Component.translatable("mapsyncer.sync.cancelled").getString();
         stopTimeoutChecker();
         setOverlayActive(false);
@@ -194,16 +177,8 @@ public class SyncProgressTracker {
             int scanTotal = hashScanTotal;
             if (scanTotal > 0) {
                 int percent = (done * 100) / scanTotal;
-                if (AutoSyncManager.isPeriodicSync()) {
-                    ChatUtils.sendOverlayMessage(
-                            ChatUtils.message("mapsyncer.autosync.periodic.hash_progress", done, scanTotal, percent));
-                } else {
-                    ChatUtils.sendOverlayMessage(
-                            ChatUtils.message("mapsyncer.sync.hash_progress", done, scanTotal, percent));
-                }
-            } else if (AutoSyncManager.isPeriodicSync()) {
                 ChatUtils.sendOverlayMessage(
-                        ChatUtils.message("mapsyncer.autosync.periodic.hash_computing"));
+                        ChatUtils.message("mapsyncer.sync.hash_progress", done, scanTotal, percent));
             } else {
                 ChatUtils.sendOverlayMessage(
                         ChatUtils.message("mapsyncer.sync.hash_computing"));
@@ -218,13 +193,8 @@ public class SyncProgressTracker {
         String currentStatus = status;
         if (currentTotal > 0) {
             int percent = (currentProcessed * 100) / currentTotal;
-            if (AutoSyncManager.isPeriodicSync()) {
-                ChatUtils.sendOverlayMessage(
-                        ChatUtils.message("mapsyncer.autosync.periodic.progress", currentProcessed, currentTotal, percent));
-            } else {
-                ChatUtils.sendOverlayMessage(
-                        ChatUtils.message("mapsyncer.sync.progress", currentProcessed, currentTotal, percent));
-            }
+            ChatUtils.sendOverlayMessage(
+                    ChatUtils.message("mapsyncer.sync.progress", currentProcessed, currentTotal, percent));
         } else {
             ChatUtils.sendOverlayMessage(
                     ChatUtils.prefix().append(Component.literal(currentStatus)));

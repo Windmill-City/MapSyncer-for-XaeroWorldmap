@@ -343,9 +343,6 @@ public class MapSyncerCommandLogic {
     public static int setClientAutoSync(boolean enabled) {
         ModConfig.CLIENT.setAutoSyncEnabled(enabled);
         ModConfig.saveClientConfig();
-        if (!enabled) {
-            AutoSyncManager.stopPeriodicSync();
-        }
         return executeAutoSyncStatus();
     }
 }

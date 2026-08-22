@@ -51,10 +51,6 @@ public class CacheCommandHandler {
                         .executes(CacheCommandHandler::showIncrementalMode)
                         .then(Commands.literal("off")
                                 .executes(CacheCommandHandler::setIncrementalOff))
-                        .then(Commands.literal("tick")
-                                .executes(CacheCommandHandler::setIncrementalTick)
-                                .then(Commands.argument("interval", IntegerArgumentType.integer(2400, 72000))
-                                        .executes(CacheCommandHandler::setIncrementalTickInterval)))
                         .then(Commands.literal("scheduled")
                                 .executes(CacheCommandHandler::setIncrementalScheduled)
                                 .then(Commands.argument("hour", IntegerArgumentType.integer(0, 23))
@@ -204,20 +200,6 @@ public class CacheCommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setIncrementalTick(CommandContext<CommandSourceStack> ctx) {
-        setIncrementalTick(ctx.getSource().getServer());
-        int interval = getIncrementalUpdateIntervalTicks();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_tick_set", interval, interval / 20.0f), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int setIncrementalTickInterval(CommandContext<CommandSourceStack> ctx) {
-        int interval = IntegerArgumentType.getInteger(ctx, "interval");
-        setIncrementalTick(ctx.getSource().getServer(), interval);
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_tick_interval", interval, interval / 20.0f), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
     private static int setIncrementalScheduled(CommandContext<CommandSourceStack> ctx) {
         setIncrementalScheduled(ctx.getSource().getServer());
         int hour = getScheduledUpdateHour();
@@ -259,7 +241,6 @@ public class CacheCommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.status", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_tick", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_scheduled", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
@@ -282,20 +263,7 @@ public class CacheCommandHandler {
 
     public static MutableComponent incrementalStatusMessage() {
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        IncrementalUpdateHandlerLogic handler = IncrementalUpdateHandlerLogic.getInstance();
 
-        if (mode == UpdateMode.TICK) {
-            int interval = ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
-            int remainingTicks = handler.isRunning()
-                    ? Math.max(0, interval - handler.getTickCounter())
-                    : interval;
-            int remainingSeconds = remainingTicks / 20;
-            int minutes = remainingSeconds / 60;
-            int seconds = remainingSeconds % 60;
-            return ChatUtils.message(
-                    "mapsyncer.command.incremental_status_tick",
-                    interval, interval / 20.0f, minutes, seconds);
-        }
         if (mode == UpdateMode.SCHEDULED) {
             int hour = ModConfig.SERVER.scheduledUpdateHour.get();
             int minute = ModConfig.SERVER.scheduledUpdateMinute.get();
@@ -400,19 +368,6 @@ public class CacheCommandHandler {
         IncrementalUpdateHandlerLogic.getInstance().stop();
     }
 
-    public static void setIncrementalTick(MinecraftServer server) {
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.TICK);
-        ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().start(server);
-    }
-
-    public static void setIncrementalTick(MinecraftServer server, int interval) {
-        ModConfig.SERVER.incrementalUpdateIntervalTicks.set(interval);
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.TICK);
-        ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().start(server);
-    }
-
     public static void setIncrementalScheduled(MinecraftServer server) {
         ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.SCHEDULED);
         ModConfig.SERVER_SPEC.save();
@@ -436,10 +391,6 @@ public class CacheCommandHandler {
 
     public static UpdateMode getIncrementalUpdateMode() {
         return ModConfig.SERVER.incrementalUpdateMode.get();
-    }
-
-    public static int getIncrementalUpdateIntervalTicks() {
-        return ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
     }
 
     public static int getScheduledUpdateHour() {

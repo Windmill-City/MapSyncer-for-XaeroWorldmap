@@ -16,7 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Mod.EventBusSubscriber(modid = "mapsyncer", value = {Dist.CLIENT, Dist.DEDICATED_SERVER}, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class IncrementalUpdateHandlerLogic {
@@ -34,8 +33,6 @@ public class IncrementalUpdateHandlerLogic {
     private volatile MinecraftServer server;
 
     private volatile boolean running = false;
-
-    private final AtomicInteger tickCounter = new AtomicInteger(0);
 
     private volatile LocalDateTime lastScheduledUpdate = null;
 
@@ -65,15 +62,10 @@ public class IncrementalUpdateHandlerLogic {
         }
         this.server = server;
         this.running = true;
-        this.tickCounter.set(0);
         this.lastScheduledUpdate = null;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.TICK) {
-            LOGGER.info("Incremental update handler started (TICK mode, interval: {} ticks = {} seconds)",
-                ModConfig.SERVER.incrementalUpdateIntervalTicks.get(),
-                ModConfig.SERVER.incrementalUpdateIntervalTicks.get() / 20);
-        } else if (mode == UpdateMode.SCHEDULED) {
+        if (mode == UpdateMode.SCHEDULED) {
             LOGGER.info("Incremental update handler started (SCHEDULED mode, daily at {}:{})",
                 ModConfig.SERVER.scheduledUpdateHour.get(),
                 ModConfig.SERVER.scheduledUpdateMinute.get());
@@ -85,7 +77,6 @@ public class IncrementalUpdateHandlerLogic {
         updateInProgress.set(false);
         shutdownExecutor();
         server = null;
-        tickCounter.set(0);
         lastScheduledUpdate = null;
         LOGGER.info("Incremental update handler stopped");
     }
@@ -124,36 +115,14 @@ public class IncrementalUpdateHandlerLogic {
         return running;
     }
 
-    public int getTickCounter() {
-        return tickCounter.get();
-    }
-
     public void onServerTick() {
         if (!running || server == null) return;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
         if (mode == UpdateMode.DISABLED) return;
 
-        switch (mode) {
-            case TICK:
-                checkTickMode();
-                break;
-            case SCHEDULED:
-                checkScheduledMode();
-                break;
-            case DISABLED:
-
-                break;
-        }
-    }
-
-    private void checkTickMode() {
-        int interval = ModConfig.SERVER.incrementalUpdateIntervalTicks.get();
-        int currentTick = tickCounter.incrementAndGet();
-
-        if (currentTick >= interval) {
-            tickCounter.set(0);
-            performScheduledUpdate("TICK mode interval");
+        if (mode == UpdateMode.SCHEDULED) {
+            checkScheduledMode();
         }
     }
 
