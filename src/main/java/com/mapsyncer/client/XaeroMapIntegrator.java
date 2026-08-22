@@ -46,7 +46,7 @@ public class XaeroMapIntegrator {
         if (mc.hasSingleplayerServer()) {
             return "Singleplayer";
         }
-        return "LAN";
+        return "Unknown";
     }
 
     public static Path getCurrentServerDirectory() {
