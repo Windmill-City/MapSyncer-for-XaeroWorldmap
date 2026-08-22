@@ -21,23 +21,6 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-/**
- * Standalone CLI tool that repackages a server cache directory into a client-ready Xaero map zip.
- *
- * <p>Server layout (flat or with mw$):</p>
- * <pre>
- * {cacheDir}/{dim}/*.zip
- * {cacheDir}/{dim}/caves/{layer}/*.zip
- * {cacheDir}/{dim}/mw${id}/*.zip   (legacy / re-imported layout)
- * </pre>
- *
- * <p>Client layout:</p>
- * <pre>
- * Multiplayer_{server}/{dim}/mw${worldId}/*.zip
- * Multiplayer_{server}/{dim}/mw${worldId}/caves/{layer}/*.zip
- * Multiplayer_{server}/sync_timestamps.cache
- * </pre>
- */
 public final class MapPackager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MapPackager.class);
@@ -45,7 +28,7 @@ public final class MapPackager {
     private static final String GENERATION_CACHE = "generation_cache.properties";
     private static final String SYNC_TIMESTAMPS = "sync_timestamps.cache";
     private static final String XAERO_MAP_FILE = "xaeromap.txt";
-    /** 未指定服务器地址时使用的占位名，对应 Xaero 目录 Multiplayer_Server/ */
+
     static final String PLACEHOLDER_SERVER = "Server";
 
     private final Path cacheDir;
@@ -59,8 +42,6 @@ public final class MapPackager {
         this.serverFolderName = serverFolderName;
         this.worldId = worldId;
     }
-
-    // ==================== entry point ====================
 
     public static void main(String[] args) {
         CliArgs cli = parseArgs(args);
@@ -77,8 +58,6 @@ public final class MapPackager {
             System.exit(1);
         }
     }
-
-    // ==================== main flow ====================
 
     private void execute() throws IOException {
         LOGGER.info("MapPackager starting");
@@ -118,8 +97,6 @@ public final class MapPackager {
             packagedRegions.size(), Files.size(outputFile), outputFile);
     }
 
-    // ==================== source validation ====================
-
     private void validateSourceDir() {
         if (!Files.isDirectory(cacheDir)) {
             throw new IllegalArgumentException("Cache directory not found: " + cacheDir);
@@ -132,11 +109,6 @@ public final class MapPackager {
         LOGGER.info("Detected {} dimensions: {}", dims.size(), dims);
     }
 
-    // ==================== dimension scanning ====================
-
-    /**
-     * 扫描含地图数据的维度目录，排除无 zip 的空目录及非维度目录。
-     */
     private List<String> scanDimensions() {
         List<String> dims = new ArrayList<>();
         try (var stream = Files.newDirectoryStream(cacheDir, Files::isDirectory)) {
@@ -168,10 +140,6 @@ public final class MapPackager {
         }
     }
 
-    /**
-     * 解析维度的地图源根目录。
-     * 服务端通常为扁平结构；若存在 mw$ 子目录则从中读取（避免路径重复）。
-     */
     static Path resolveMapSourceRoot(Path dimDir, int targetWorldId) throws IOException {
         Path preferred = dimDir.resolve("mw$" + targetWorldId);
         if (Files.isDirectory(preferred) && hasMapContent(preferred)) {
@@ -202,8 +170,6 @@ public final class MapPackager {
 
         return dimDir;
     }
-
-    // ==================== map file packaging ====================
 
     private void packageMapFiles(
             ZipOutputStream zos,
@@ -260,10 +226,6 @@ public final class MapPackager {
             && !name.endsWith(".tmp");
     }
 
-    /**
-     * 构建与 GenerationCache / ClientTimestampCache 一致的缓存键。
-     * 例：null/0_0、null/caves/32/1_-2
-     */
     static String buildCacheKey(String dim, String relativePath, String zipFileName) {
         String regionCoords = zipFileName.substring(0, zipFileName.length() - 4);
         if (relativePath.isEmpty()) {
@@ -276,10 +238,6 @@ public final class MapPackager {
         return dim + "/" + normalized + "/" + regionCoords;
     }
 
-    /**
-     * 优先从 generation_cache.properties 读取时间戳与 CRC32；
-     * 缓存缺失时再回退到文件修改时间与现场计算哈希。
-     */
     private static TimestampHashEntry resolveCacheEntry(
             String cacheKey,
             Map<String, TimestampHashEntry> generationCache,
@@ -293,8 +251,6 @@ public final class MapPackager {
         LOGGER.debug("No generation_cache entry for {}, using mtime + computed hash", cacheKey);
         return new TimestampHashEntry(timestamp, hash);
     }
-
-    // ==================== generation_cache → sync_timestamps ====================
 
     private Map<String, TimestampHashEntry> loadGenerationCache() {
         Path genCacheFile = cacheDir.resolve(GENERATION_CACHE);
@@ -344,8 +300,6 @@ public final class MapPackager {
         zos.closeEntry();
         LOGGER.info("  + {} ({} entries, dimensions: {})", zipEntryName, regionByKey.size(), dimensions);
     }
-
-    // ==================== CLI parsing ====================
 
     private static CliArgs parseArgs(String[] args) {
         Path cacheDir = null;
@@ -405,9 +359,6 @@ public final class MapPackager {
         return new CliArgs(cacheDir, output, serverFolderName, worldId);
     }
 
-    /**
-     * World ID 优先级：--world-id &gt; xaeromap.txt &gt; 缓存目录 mw$ &gt; 0
-     */
     static int resolveWorldId(Path cacheDir, Path worldDir, Integer explicitWorldId) {
         if (explicitWorldId != null) {
             return explicitWorldId;
@@ -480,8 +431,6 @@ public final class MapPackager {
         System.out.println("  java -jar mapsyncer-packager.jar -c ./cache -d ./world -o output.zip");
         System.out.println("  java -jar mapsyncer-packager.jar -c ./cache -a play.example.com:25565 -o output.zip");
     }
-
-    // ==================== utility ====================
 
     static int readWorldId(Path worldDir) {
         Path mapFile = worldDir.resolve(XAERO_MAP_FILE);

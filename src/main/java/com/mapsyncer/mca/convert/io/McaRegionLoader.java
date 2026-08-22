@@ -54,9 +54,6 @@ public final class McaRegionLoader {
         return data;
     }
 
-    /**
-     * 单次 MCA 解析，按多个扫描 pass 输出多份 MapRegionData。
-     */
     public static List<PassMapData> loadMulti(Path mcaPath, int minBuildHeight, int worldTopY,
                                                boolean worldHasSkylight,
                                                BlockPropertyLookup blockLookup,

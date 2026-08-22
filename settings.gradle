@@ -2,7 +2,7 @@ pluginManagement {
     repositories {
         mavenLocal()
         gradlePluginPortal()
-        // Forge 插件仓库
+
         maven { url = 'https://maven.minecraftforge.net/' }
         maven { url = 'https://maven.aliyun.com/repository/public' }
     }
@@ -13,11 +13,3 @@ plugins {
 }
 
 rootProject.name = mod_id
-
-// ── 抽象库层（平台无关，编译为独立 JAR）──
-include 'libs:core'             // 纯 Java 核心（MCA/NBT/工具类）
-include 'libs:lz4-relocated'    // lz4-java 重定位产物（规避 JPMS 包冲突）
-
-// ── MC 1.20.1 Forge 胶水模块 ──
-// 本项目仅保留 Forge 1.20.1 单版本构建
-include 'mc-1.20.1:forge'

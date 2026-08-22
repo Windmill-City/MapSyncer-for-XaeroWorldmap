@@ -8,24 +8,17 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * 快速检测 MCA 是否含有可转换的 chunk 数据（不解析 NBT）。
- * 用于跳过 0 字节或仅含 location/timestamp 表头的空 region 文件。
- */
 public final class McaContentProbe {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(McaContentProbe.class);
 
     private static final int SECTOR_SIZE = 4096;
     private static final int CHUNKS_PER_REGION = 32;
-    /** 空 MCA 仅含 location + timestamp 两扇区 */
+
     private static final long HEADER_ONLY_SIZE = (long) SECTOR_SIZE * 2;
 
     private McaContentProbe() {}
 
-    /**
-     * @return true 若文件存在且 location 表中至少有一个有效 chunk slot
-     */
     public static boolean hasAnyChunk(Path mcaPath) {
         if (mcaPath == null || !Files.exists(mcaPath)) {
             return false;

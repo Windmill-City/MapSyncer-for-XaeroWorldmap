@@ -32,7 +32,7 @@ public class MapSyncerCommand {
                                             ResourceLocation loc = ctx.getArgument("dimension", ResourceLocation.class);
                                             return MapSyncerCommandLogic.executeSyncDimension(loc.toString());
                                         })))
-                        
+
                         .then(net.minecraft.commands.Commands.literal("autosync")
                                 .executes(ctx -> MapSyncerCommandLogic.executeAutoSyncStatus())
                                 .then(net.minecraft.commands.Commands.literal("on")

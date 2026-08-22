@@ -3,15 +3,10 @@ package com.mapsyncer.client;
 import com.mapsyncer.sync.SyncOutcome;
 import com.mapsyncer.sync.SyncPhase;
 
-/**
- * 客户端同步会话状态机（generation + phase + 超时）。
- * 所有 handler 入口通过 {@link #isCurrent(int)} 校验 generation。
- */
 public final class ClientSyncSession {
 
     private static final ClientSyncSession INSTANCE = new ClientSyncSession();
 
-    /** 陈旧同步超时（10 分钟） */
     public static final long STALE_TIMEOUT_MS = 10 * 60 * 1000L;
 
     private volatile int generation = 0;
@@ -50,7 +45,6 @@ public final class ClientSyncSession {
         return gen == generation;
     }
 
-    /** 会话是否占用同步通道（含视距外重载排空阶段；新 sync 是否可发起见 {@code MapPacketHandler.isSyncInProgress}） */
     public boolean isSessionActive() {
         return phase != SyncPhase.IDLE;
     }
@@ -62,7 +56,6 @@ public final class ClientSyncSession {
         return System.currentTimeMillis() - startedAt > STALE_TIMEOUT_MS;
     }
 
-    /** 断线或全量清状态时作废已入队 handler */
     public void invalidate() {
         generation++;
         resetSession();
@@ -90,7 +83,6 @@ public final class ClientSyncSession {
         phase = SyncPhase.DRAINING_RELOAD;
     }
 
-    /** 视距外队列排空后回到 IDLE */
     public void completeSession() {
         phase = SyncPhase.IDLE;
         startedAt = 0;

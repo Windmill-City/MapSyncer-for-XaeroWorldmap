@@ -4,7 +4,6 @@ import net.minecraft.commands.CommandSourceStack;
 
 import java.util.function.Predicate;
 
-/** G1 — {@code hasPermission(4)} API (1.20.x / 1.21.1). */
 public final class CommandPermissionHelper {
 
     private CommandPermissionHelper() {}

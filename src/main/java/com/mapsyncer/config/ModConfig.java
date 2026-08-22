@@ -17,64 +17,20 @@ import java.util.List;
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ScanMode;
 
-/**
- * Mod 配置类
- *
- * <p>管理 MapSyncer for XaeroWorldMap 的配置，包括:</p>
- * <ul>
- *   <li>客户端设置（哈希计算线程数等）</li>
- *   <li>服务器端设置（调试日志、并发限制等）</li>
- *   <li>增量更新设置（更新模式、时间间隔）</li>
- *   <li>维度扫描配置（扫描模式、起始高度等）</li>
- * </ul>
- *
- * <p>使用 Forge 的 ForgeConfigSpec 进行配置管理</p>
- *
- * @see ClientConfig 客户端配置内部类
- * @see ServerConfig 服务端配置内部类
- * @see DimensionScanConfig 维度扫描配置记录
- * @see ScanMode 扫描模式枚举
- * @see UpdateMode 更新模式枚举
- */
 public class ModConfig {
 
-    /**
-     * 客户端配置规范对象
-     */
     public static final ForgeConfigSpec CLIENT_SPEC;
 
-    /**
-     * 客户端配置实例
-     */
     public static final ClientConfig CLIENT;
 
-    /**
-     * 服务端配置规范对象
-     */
     public static final ForgeConfigSpec SERVER_SPEC;
 
-    /**
-     * 服务端配置实例
-     */
     public static final ServerConfig SERVER;
 
-    /**
-     * 获取原版维度的默认配置（系统预设）
-     *
-     * <p>使用字符串格式避免 NightConfig 序列化问题</p>
-     * <p>推荐格式：{@code dimension = layerPlan}（layerPlan 为 SURFACE / ALL / Y 或其组合）</p>
-     * <p>例如：{@code minecraft:the_nether = SURFACE,63}</p>
-     * <p>旧管道格式 {@code dimension|layerPlan} 仍可读取</p>
-     *
-     * @return 默认维度配置字符串列表
-     */
     private static List<String> getDefaultDimensionConfigStrings() {
                 return DimensionConfigParser.getDefaultDimensionConfigStrings();
     }
 
-    /**
-     * 初始化配置的静态代码块
-     */
     static {
         var clientPair = new ForgeConfigSpec.Builder().configure(ClientConfig::new);
         CLIENT = clientPair.getLeft();
@@ -89,7 +45,6 @@ public class ModConfig {
         CLIENT_SPEC.save();
     }
 
-    /** 从磁盘重新加载服务端 TOML 配置 */
     public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
         if (config.getType() == net.minecraftforge.fml.config.ModConfig.Type.SERVER) {
             boundServerConfig = config;
@@ -112,45 +67,18 @@ public class ModConfig {
 
     private static volatile net.minecraftforge.fml.config.ModConfig boundServerConfig;
 
-    /**
-     * 客户端配置内部类
-     *
-     * <p>包含所有客户端可配置的选项</p>
-     */
     public static class ClientConfig {
 
-        /**
-         * 哈希计算线程数
-         *
-         * <p>用于 ClientHashManager 的 ForkJoinPool 并行计算区域文件哈希。</p>
-         * <p>默认值使用 JVM 可用处理器数的一半，避免阻塞游戏主线程。</p>
-         *
-         * <p>线程数选择建议：</p>
-         * <ul>
-         *   <li>1-2 核：使用 1 线程</li>
-         *   <li>4 核：使用 2 线程</li>
-         *   <li>8 核及以上：使用 4-8 线程</li>
-         *   <li>最大不超过可用处理器数</li>
-         * </ul>
-         */
         public final IntValue hashThreads;
 
         public final IntValue mapRegionLoadIntervalTicks;
 
         public final BooleanValue autoSyncEnabled;
 
-        /**
-         * 构造客户端配置
-         *
-         * <p>定义所有配置选项及其默认值、范围和注释</p>
-         *
-         * @param builder ForgeConfigSpec 构建器
-         */
         public ClientConfig(ForgeConfigSpec.Builder builder) {
             builder.push("client");
             builder.comment("客户端设置 / Client settings");
 
-            // 计算默认线程数：可用处理器数的一半，最少 1 个
             int defaultThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
             int maxThreads = Runtime.getRuntime().availableProcessors();
 
@@ -215,80 +143,30 @@ public class ModConfig {
         }
     }
 
-    /**
-     * 服务端配置内部类
-     *
-     * <p>包含所有服务端可配置的选项</p>
-     */
     public static class ServerConfig {
-        // ========== 通用设置 ==========
 
-        /**
-         * 启用调试日志记录
-         */
         public final BooleanValue enableDebugLogging;
 
-        /**
-         * 最大并发区域转换数量
-         */
         public final IntValue maxConcurrentRegions;
 
-        /**
-         * 最大同步数据包大小（字节）
-         */
         public final IntValue maxSyncPacketSize;
 
-        /**
-         * 同步速度限制（KB/s）
-         */
         public final IntValue syncSpeedLimitKBps;
 
-        // ========== 增量更新设置 ==========
-
-        /**
-         * 增量更新模式
-         */
         public final EnumValue<UpdateMode> incrementalUpdateMode;
 
-        /**
-         * TICK 模式的更新间隔（tick 数）
-         */
         public final IntValue incrementalUpdateIntervalTicks;
 
-        /**
-         * SCHEDULED 模式的更新时间（小时）
-         */
         public final IntValue scheduledUpdateHour;
 
-        /**
-         * SCHEDULED 模式的更新时间（分钟）
-         */
         public final IntValue scheduledUpdateMinute;
 
-        // ========== 维度扫描配置 ==========
-
-        /**
-         * 默认扫描模式
-         */
         public final EnumValue<ScanMode> defaultScanMode;
 
-        /**
-         * 默认洞穴起始高度
-         */
         public final IntValue defaultCaveStart;
 
-        /**
-         * 维度扫描配置列表
-         */
         public final ConfigValue<List<? extends String>> dimensionConfigs;
 
-        /**
-         * 构造服务端配置
-         *
-         * <p>定义所有配置选项及其默认值、范围和注释</p>
-         *
-         * @param builder ForgeConfigSpec 构建器
-         */
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("general");
             builder.comment("通用设置 / General settings");
@@ -401,45 +279,14 @@ public class ModConfig {
             builder.pop();
         }
 
-        /**
-         * 解析维度配置列表
-         *
-         * <p>将字符串格式的配置转换为 DimensionScanConfig 对象列表</p>
-         * <p>字符串格式："dimension|layerPlan|dim_type_info"</p>
-         *
-         * @return DimensionScanConfig 对象列表
-         */
         public List<DimensionScanConfig> parseDimensionConfigs() {
                     return DimensionConfigParser.parseDimensionConfigs(dimensionConfigs.get());
         }
 
-        /**
-         * 解析单个配置字符串
-         *
-         * <p>格式："dimension|layerPlan|dim_type_info"</p>
-         * <p>旧格式："dimension|scan_mode|cave_start|dim_type_info" 仍可读取并合并为 layerPlan</p>
-         * <p>dim_type_info："hasSkylight|hasCeiling|minY|height|logicalHeight"</p>
-         *
-         * @param configStr 配置字符串
-         * @return DimensionScanConfig 对象，如果无效则返回 null
-         */
         private DimensionScanConfig parseConfigString(String configStr) {
             return DimensionConfigParser.parseConfigString(configStr);
         }
 
-        /**
-         * 获取特定维度的扫描配置
-         *
-         * <p>查找顺序:</p>
-         * <ol>
-         *   <li>首先检查配置列表中的自定义配置</li>
-         *   <li>然后检查原版维度的内置默认配置</li>
-         *   <li>最后返回通用默认配置</li>
-         * </ol>
-         *
-         * @param dimensionPath 维度路径（如 "the_nether" 或 "minecraft:the_nether"）
-         * @return DimensionScanConfig 对象
-         */
         public DimensionScanConfig getConfigForDimension(String dimensionPath) {
             return DimensionConfigParser.getConfigForDimension(
                 dimensionPath, dimensionConfigs.get(), defaultScanMode.get(), defaultCaveStart.get());

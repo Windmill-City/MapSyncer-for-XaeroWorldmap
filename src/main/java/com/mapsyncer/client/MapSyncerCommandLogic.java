@@ -26,19 +26,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-/**
- * 地图同步命令业务逻辑。
- * 包含所有平台共享的命令处理逻辑，平台特定的命令注册由各平台薄包装器处理。
- */
 public class MapSyncerCommandLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MapSyncerCommandLogic.class);
 
-    /**
-     * 显示命令帮助信息。
-     *
-     * @param hasServerPermission 是否有服务端权限（OP4+）
-     */
     public static void showHelp(boolean hasServerPermission) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
@@ -55,9 +46,6 @@ public class MapSyncerCommandLogic {
         }
     }
 
-    /**
-     * 提供维度名称建议（namespace:path 格式）。
-     */
     public static void suggestDimensions(SuggestionsBuilder builder) {
         builder.suggest("minecraft:overworld");
         builder.suggest("minecraft:the_nether");
@@ -126,9 +114,6 @@ public class MapSyncerCommandLogic {
         }
     }
 
-    /**
-     * 将 Xaero 目录名转换为维度 ID。
-     */
     public static String xaeroDirToDimensionId(String dirName) {
         if ("null".equals(dirName)) return "overworld";
         if ("DIM-1".equals(dirName)) return "the_nether";
@@ -138,9 +123,6 @@ public class MapSyncerCommandLogic {
         return dirName;
     }
 
-    /**
-     * 同步指定维度。
-     */
     public static int executeSyncDimension(String dimInput) {
         if ("all".equalsIgnoreCase(dimInput)) {
             return executeSyncAll(false);
@@ -155,9 +137,6 @@ public class MapSyncerCommandLogic {
         return 1;
     }
 
-    /**
-     * 同步所有维度。
-     */
     public static int executeSyncAll(boolean silent) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return 0;
@@ -166,9 +145,6 @@ public class MapSyncerCommandLogic {
         return 1;
     }
 
-    /**
-     * 同步当前维度。
-     */
     public static int executeSyncCurrentDim() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return 0;
@@ -180,9 +156,6 @@ public class MapSyncerCommandLogic {
         return 1;
     }
 
-    /**
-     * 解析用户输入的维度名称为完整维度 ID。
-     */
     public static String resolveDimensionId(String input, ClientLevel level) {
         switch (input.toLowerCase()) {
             case "overworld": return "minecraft:overworld";
@@ -209,9 +182,6 @@ public class MapSyncerCommandLogic {
         return "minecraft:" + input;
     }
 
-    /**
-     * 发送同步请求到服务端。
-     */
     public static void sendSyncRequest(Minecraft mc, String dimensionId, boolean syncAll, boolean silent) {
         if (MapPacketHandler.isSyncInProgress() || ClientHashManager.isComputingMeta()) {
             if (mc.player != null) {
@@ -310,9 +280,6 @@ public class MapSyncerCommandLogic {
         SyncProgressTracker.startTracking();
     }
 
-    /**
-     * 在维度目录下查找 mw$worldId 目录。
-     */
     public static Path findMwDir(Path dimDir) {
         if (dimDir == null || !dimDir.toFile().exists()) return null;
         try (var dirs = Files.list(dimDir)) {
@@ -324,7 +291,6 @@ public class MapSyncerCommandLogic {
         }
     }
 
-    /** 显示客户端自动同步开关状态 */
     public static int executeAutoSyncStatus() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return 0;
@@ -336,7 +302,6 @@ public class MapSyncerCommandLogic {
         return 1;
     }
 
-    /** 设置客户端自动同步开关并持久化 */
     public static int setClientAutoSync(boolean enabled) {
         PlatformManager.getPlatform().setClientAutoSyncEnabled(enabled);
         if (!enabled) {

@@ -13,30 +13,14 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
 
-/**
- * Properties 格式缓存文件读写工具类
- *
- * 统一的缓存文件IO操作，合并 ClientTimestampCache 和 GenerationCache 中的重复实现
- * 支持泛型值类型，通过解析器/格式化器进行转换
- */
 public final class PropertiesCacheIO {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesCacheIO.class);
 
-    /**
-     * 私有构造方法，防止实例化
-     */
     private PropertiesCacheIO() {
-        // 工具类不允许实例化
+
     }
 
-    /**
-     * 从 Properties 文件加载缓存
-     *
-     * @param cacheFile 缓存文件路径
-     * @param parser 值解析器（字符串 → T）
-     * @return 加载的缓存数据 Map
-     */
     public static <T> Map<String, T> load(Path cacheFile, Function<String, T> parser) {
         Map<String, T> cache = new HashMap<>();
 
@@ -66,14 +50,6 @@ public final class PropertiesCacheIO {
         return cache;
     }
 
-    /**
-     * 保存缓存到 Properties 文件
-     *
-     * @param cacheFile 缓存文件路径
-     * @param cache 缓存数据 Map
-     * @param formatter 值格式化器（T → 字符串）
-     * @param header 文件头注释
-     */
     public static <T> void save(Path cacheFile, Map<String, T> cache, Function<T, String> formatter, String header) {
         if (cacheFile == null) {
             LOGGER.warn("Cache file path is null, skip saving");
@@ -98,12 +74,6 @@ public final class PropertiesCacheIO {
         }
     }
 
-    /**
-     * 解析 "timestamp_seconds:hash" 格式的缓存值
-     *
-     * @param value 缓存值字符串（如 "1234567890:abc12345"）
-     * @return TimestampHashEntry 对象，解析失败返回 null
-     */
     public static TimestampHashEntry parseTimestampHash(String value) {
         if (value == null || value.isEmpty()) {
             return null;
@@ -121,13 +91,8 @@ public final class PropertiesCacheIO {
         return null;
     }
 
-    /**
-     * 时间戳+哈希缓存条目
-     */
     public record TimestampHashEntry(long timestampSeconds, String hash) {
-        /**
-         * 格式化为缓存字符串
-         */
+
         public String format() {
             return timestampSeconds + ":" + hash;
         }

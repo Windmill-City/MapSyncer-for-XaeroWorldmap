@@ -28,14 +28,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Forge 1.20.1 平台实现
- *
- * 主要差异点：
- * - ForgeRegistries 代替 BuiltInRegistries（部分）
- * - SimpleNetworkWrapper 代替 StreamCodec 网络
- * - ForgeConfigSpec 代替 NeoForge 配置
- */
 public class ForgeLegacyPlatform implements Platform {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ForgeLegacyPlatform.class);
@@ -51,7 +43,6 @@ public class ForgeLegacyPlatform implements Platform {
     public String getServerCommandPrefix() {
         return "mapsyncer";
     }
-
 
     @Override
     public String getMinecraftVersion() {
@@ -72,8 +63,6 @@ public class ForgeLegacyPlatform implements Platform {
     public boolean isClientEnvironment() {
         return net.minecraftforge.fml.loading.FMLEnvironment.dist == net.minecraftforge.api.distmarker.Dist.CLIENT;
     }
-
-    // ===== 方块属性 =====
 
     @Override
     public BlockProperties getBlockProperties(String blockName) {
@@ -132,8 +121,6 @@ public class ForgeLegacyPlatform implements Platform {
         return BlockColorMapper.getBlockColorByName(blockName);
     }
 
-    // ===== 世界信息 =====
-
     @Override
     public int getDefaultMinBuildHeight() {
         return -64;
@@ -144,8 +131,6 @@ public class ForgeLegacyPlatform implements Platform {
         return 320;
     }
 
-    // ===== 维度信息 =====
-
     @Override
     public String getXaeroDimensionPath(String dimensionId) {
         return DimensionPathMapping.getInstance().toXaeroDimension(dimensionId);
@@ -155,8 +140,6 @@ public class ForgeLegacyPlatform implements Platform {
     public DimensionTypeInfo getDimensionTypeInfo(String dimensionId) {
         return DimensionTypeInfo.fromDimensionId(dimensionId);
     }
-
-    // ===== 配置系统：Forge 使用 ForgeConfigSpec =====
 
     @Override
     public int getSyncSpeedLimitKBps() {
@@ -269,8 +252,6 @@ public class ForgeLegacyPlatform implements Platform {
         return ModConfig.SERVER.getConfigForDimension(dimensionPath);
     }
 
-    // ===== 文件路径 =====
-
     @Override
     public Path getServerMapCacheDir() {
         return Path.of("server_map_cache");
@@ -307,14 +288,10 @@ public class ForgeLegacyPlatform implements Platform {
         return "Multiplayer_Server";
     }
 
-    // ===== 日志 =====
-
     @Override
     public Logger getLogger() {
         return LOGGER;
     }
-
-    // ===== 工具方法 =====
 
     @Override
     public boolean matchesBlockPattern(String blockName, String pattern) {

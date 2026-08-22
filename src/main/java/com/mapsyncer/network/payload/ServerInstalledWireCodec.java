@@ -3,9 +3,6 @@ package com.mapsyncer.network.payload;
 import com.mapsyncer.platform.UpdateMode;
 import net.minecraft.network.FriendlyByteBuf;
 
-/**
- * ServerInstalledPayload 的统一网络序列化。
- */
 public final class ServerInstalledWireCodec {
 
     private ServerInstalledWireCodec() {}

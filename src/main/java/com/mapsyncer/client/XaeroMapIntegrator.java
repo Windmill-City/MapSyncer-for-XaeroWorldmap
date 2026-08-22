@@ -19,58 +19,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Xaero 地图集成器。
- * 提供与 Xaero's World Map 模组的交互功能，包括地图数据写入和目录路径管理。
- *
- * <p>主要功能：</p>
- * <ul>
- *   <li>获取当前服务器和地图目录路径</li>
- *   <li>写入服务端同步的地图数据到 Xaero 目录</li>
- *   <li>管理同步期间的区域追踪</li>
- *   <li>重置区域加载状态，触发地图重新加载</li>
- * </ul>
- *
- * <p>纯数据操作（文件写入、区域追踪）已移至 {@link XaeroMapDataHandler}。
- * 此类仅保留依赖 Minecraft API 的功能。</p>
- *
- * <p>目录结构（自动检测，兼容 1.20.x 和 1.21.x+）：</p>
- * <ul>
- *   <li>多人游戏：&lt;worldMapDir&gt;/Multiplayer_&lt;serverIP&gt;/&lt;dimension&gt;/mw$&lt;worldId&gt;/</li>
- *   <li>单机游戏：&lt;worldMapDir&gt;/Multiplayer_Singleplayer/&lt;dimension&gt;/mw$&lt;worldId&gt;/</li>
- *   <li>局域网游戏：&lt;worldMapDir;/Multiplayer_LAN/&lt;dimension&gt;/mw$&lt;worldId&gt;/</li>
- * </ul>
- */
 public class XaeroMapIntegrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapIntegrator.class);
 
-    /**
-     * 自动检测 Xaero's World Map 数据目录。
-     * 委托给 {@link XaeroPathResolver}，兼容 1.20.x 和 1.21.x+ 路径。
-     */
     public static Path getWorldMapDir(Path gameDir) {
         return XaeroPathResolver.getWorldMapDir(gameDir);
     }
 
-    /**
-     * 计算视距范围内的区域坐标。
-     * 根据玩家的位置和视距设置，计算需要关注的区域集合。
-     * 默认使用地表层 (Integer.MAX_VALUE)。
-     *
-     * @return 视距范围内的区域坐标集合（地表层）
-     */
     public static Set<XaeroMapDataHandler.RegionCoord> getViewDistanceRegions() {
         return getViewDistanceRegions(Integer.MAX_VALUE);
     }
 
-    /**
-     * 计算视距范围内的区域坐标。
-     * 根据玩家的位置和视距设置，计算需要关注的区域集合。
-     *
-     * @param caveLayer 洞穴层编号，地表层使用 Integer.MAX_VALUE
-     * @return 视距范围内的区域坐标集合
-     */
     public static Set<XaeroMapDataHandler.RegionCoord> getViewDistanceRegions(int caveLayer) {
         Minecraft mc = Minecraft.getInstance();
         Player player = mc.player;
@@ -106,12 +66,6 @@ public class XaeroMapIntegrator {
         return viewRegions;
     }
 
-    /**
-     * 卸载玩家视野范围内的所有region。
-     * 在同步当前维度时调用，让视野范围内的region可以重新加载服务端数据。
-     *
-     * @return 卸载的区域数量
-     */
     public static int unloadViewDistanceRegions() {
         Set<XaeroMapDataHandler.RegionCoord> viewRegions = getViewDistanceRegions();
         if (viewRegions.isEmpty()) {
@@ -123,12 +77,6 @@ public class XaeroMapIntegrator {
         return resetSpecificRegionLoadStates(viewRegions);
     }
 
-    /**
-     * 仅重置指定区域的加载状态。
-     *
-     * @param regionsToReset 需要重置的区域集合
-     * @return 重置的区域数量
-     */
     public static int resetSpecificRegionLoadStates(Set<XaeroMapDataHandler.RegionCoord> regionsToReset) {
         int resetCount = 0;
 
@@ -172,10 +120,6 @@ public class XaeroMapIntegrator {
         return resetCount;
     }
 
-    /**
-     * 遍历区域并选择性重置目标集合中的区域。
-     * 记录原本已加载的 region 到 preUnloadedRegions。
-     */
     private static int selectiveResetLeafRegions(Object region, Set<XaeroMapDataHandler.RegionCoord> regionsToReset, int caveLayer) {
         int count = 0;
         try {
@@ -241,12 +185,6 @@ public class XaeroMapIntegrator {
         return count;
     }
 
-    /**
-     * 清理服务器 IP 地址，去除端口和方括号。
-     *
-     * @param rawIP 原始 IP 字符串
-     * @return 清理后的 IP
-     */
     private static String cleanServerIP(String rawIP) {
         int portDivider = rawIP.lastIndexOf(":");
         if (portDivider > 0 && rawIP.indexOf(":") != rawIP.lastIndexOf(":")) {
@@ -266,12 +204,6 @@ public class XaeroMapIntegrator {
         return rawIP;
     }
 
-    /**
-     * 获取当前服务器 IP（已清理）。
-     * 多人游戏返回清理后的 IP，单机返回 "Singleplayer"，局域网返回 "LAN"。
-     *
-     * @return 服务器 IP 字符串，如果未连接返回 null
-     */
     private static String getCurrentServerIP() {
         Minecraft mc = Minecraft.getInstance();
         ClientPacketListener connection = mc.getConnection();
@@ -290,12 +222,6 @@ public class XaeroMapIntegrator {
         return "LAN";
     }
 
-    /**
-     * 获取当前服务器的基础目录（null 目录）。
-     * 路径结构：&lt;worldMapDir&gt;/Multiplayer_&lt;server&gt;/null/
-     *
-     * @return 服务器基础目录路径，如果未连接返回 null
-     */
     public static Path getCurrentServerBaseDirectory() {
         Minecraft mc = Minecraft.getInstance();
         ClientPacketListener connection = mc.getConnection();
@@ -352,11 +278,6 @@ public class XaeroMapIntegrator {
         return dimDir;
     }
 
-    /**
-     * 获取当前连接服务器的服务器目录（Multiplayer_&lt;serverIP&gt;）。
-     *
-     * @return 服务器目录路径，如果未连接返回 null
-     */
     public static Path getCurrentServerDirectory() {
         Minecraft mc = Minecraft.getInstance();
         ClientPacketListener connection = mc.getConnection();
@@ -377,14 +298,6 @@ public class XaeroMapIntegrator {
         return serverDir;
     }
 
-    /**
-     * 写入服务端接收的地图数据到正确位置。
-     * 委托给 {@link XaeroMapDataHandler#writeMapData}，同时获取 MC 上下文。
-     *
-     * @param chunks 接收的区块数据列表
-     * @param serverWorldId 服务端的 worldId
-     * @return 最后写入的 mw 目录路径，如果写入失败返回 null
-     */
     public static Path writeMapDataAndReturnDir(List<ChunkMapData> chunks, int serverWorldId) {
         Minecraft mc = Minecraft.getInstance();
         ClientPacketListener connection = mc.getConnection();
@@ -413,13 +326,6 @@ public class XaeroMapIntegrator {
         return XaeroMapDataHandler.writeMapData(chunks, serverDir, serverWorldId);
     }
 
-    /**
-     * 写入单个区块数据并返回写入结果。
-     *
-     * @param chunk 区块数据
-     * @param worldId 服务端 worldId
-     * @return 写入结果，失败或无法获取服务器目录时返回 null
-     */
     public static XaeroMapDataHandler.RegionWriteResult writeChunkDataResult(ChunkMapData chunk, int worldId) {
         Path serverDir = getCurrentServerDirectory();
         if (serverDir == null) {
@@ -429,14 +335,6 @@ public class XaeroMapIntegrator {
         return XaeroMapDataHandler.writeChunkData(chunk, serverDir, worldId);
     }
 
-    /**
-     * 写入单个区块数据并返回 mw 目录路径。
-     * 委托给 {@link XaeroMapDataHandler#writeChunkData}，同时获取 MC 上下文。
-     *
-     * @param chunk 区块数据
-     * @param worldId 服务端 worldId
-     * @return mw 目录路径，如果获取服务器目录失败返回 null
-     */
     public static Path writeChunkDataAndGetMwDir(ChunkMapData chunk, int worldId) {
         XaeroMapDataHandler.RegionWriteResult result = writeChunkDataResult(chunk, worldId);
         return result != null ? result.mwDir() : null;
