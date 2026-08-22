@@ -121,8 +121,9 @@ final class NbtStream implements AutoCloseable {
                 break;
             case TAG_BYTE_ARRAY: {
                 int length = in.readInt();
-                checkLength(length);
-                in.skipNBytes(length);
+                if (length > 0) {
+                    in.skipNBytes(length);
+                }
                 break;
             }
             case TAG_STRING:
@@ -131,9 +132,10 @@ final class NbtStream implements AutoCloseable {
             case TAG_LIST: {
                 byte elementType = in.readByte();
                 int length = in.readInt();
-                checkLength(length);
-                for (int i = 0; i < length; i++) {
-                    skip(elementType);
+                if (length > 0) {
+                    for (int i = 0; i < length; i++) {
+                        skip(elementType);
+                    }
                 }
                 break;
             }
@@ -156,14 +158,16 @@ final class NbtStream implements AutoCloseable {
             }
             case TAG_INT_ARRAY: {
                 int length = in.readInt();
-                checkLength(length);
-                in.skipNBytes((long) length * 4);
+                if (length > 0) {
+                    in.skipNBytes((long) length * 4);
+                }
                 break;
             }
             case TAG_LONG_ARRAY: {
                 int length = in.readInt();
-                checkLength(length);
-                in.skipNBytes((long) length * 8);
+                if (length > 0) {
+                    in.skipNBytes((long) length * 8);
+                }
                 break;
             }
             default:
