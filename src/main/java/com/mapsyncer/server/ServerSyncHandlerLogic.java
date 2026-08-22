@@ -4,6 +4,7 @@ import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -180,21 +181,8 @@ public class ServerSyncHandlerLogic {
         playerSyncVersions.remove(playerId);
     }
 
-    private static boolean shouldTransfer(String serverHash, long serverTs, ClientMeta clientMeta) {
-        if (clientMeta == null) {
-            return true;
-        }
-        String clientHash = clientMeta.hash();
-        if (!HashUtils.isValidHash(clientHash)) {
-            return true;
-        }
-        if (serverHash.equals(clientHash)) {
-            return false;
-        }
-        if (clientMeta.timestampSeconds() >= serverTs) {
-            return false;
-        }
-        return true;
+    private static boolean isManifestRequest(Map<String, ClientMeta> clientMeta) {
+        return clientMeta == null || clientMeta.isEmpty();
     }
 
     private record RegionSyncInfo(Path zipPath, String normalizedPath, long timestampSeconds,
@@ -574,14 +562,11 @@ public class ServerSyncHandlerLogic {
                 player.sendSystemMessage(ChatUtils.message(
                         "mapsyncer.server.no_cache", CacheCommandHandler.serverCommandPrefix()));
                 NetworkManager.sendToPlayer(player,
-                        new SyncResponsePayload(List.of(), true, worldId, "no_cache"));
+                        new SyncManifestPayload(Map.of(), worldId, "no_cache"));
                 finalizePlayerSync(playerId);
             });
             return;
         }
-
-        int hashMatchCount = 0;
-        int timestampSkipCount = 0;
 
         Set<String> requestedDimensions = new java.util.HashSet<>();
         if (syncAll) {
@@ -596,15 +581,11 @@ public class ServerSyncHandlerLogic {
                 String[] keyParts = key.split("[/\\\\]");
                 if (keyParts.length > 1) {
                     requestedDimensions.add(keyParts[0]);
-                    if (key.contains("_placeholder_")) {
-                        LOGGER.debug("Found placeholder for dimension {}, will sync all regions", keyParts[0]);
-                    }
                 }
             }
         }
         LOGGER.debug("Requested dimensions (Xaero format): {}", requestedDimensions);
 
-        Set<String> skippedDimensions = new HashSet<>();
         DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
         boolean hasValidDimension = false;
         boolean alreadyNotifiedMissingDim = false;
@@ -652,13 +633,11 @@ public class ServerSyncHandlerLogic {
                     }
                 }
                 NetworkManager.sendToPlayer(player,
-                        new SyncResponsePayload(List.of(), true, worldId, "dim_not_available"));
+                        new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
                 finalizePlayerSync(playerId);
             });
             return;
         }
-
-        List<RegionSyncInfo> regionsToSync = new ArrayList<>();
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
         List<Path> allZipPaths;
@@ -669,78 +648,50 @@ public class ServerSyncHandlerLogic {
             allZipPaths = List.of();
         }
 
-        allZipPaths.forEach(zipPath -> {
-                        String relativePath = absCacheDir.relativize(zipPath).toString();
-                        String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
-                        normalizedPath = stripMwWorldId(normalizedPath);
+        if (isManifestRequest(clientMeta)) {
+            sendManifest(server, playerId, syncVersion, worldId, requestedDimensions, absCacheDir,
+                    allZipPaths, serverCache, dimMapping, genCache, silent);
+            return;
+        }
 
-                        String[] parts = normalizedPath.split("[/\\\\]");
-                        String xaeroDimName = parts.length > 1 ? parts[0] : "unknown";
+        Set<String> requestedPaths = clientMeta.keySet();
+        List<RegionSyncInfo> regionsToSync = new ArrayList<>();
 
-                        String normalizedXaeroDim = dimMapping.toXaeroDimension(xaeroDimName);
-                        if (!normalizedXaeroDim.equals(xaeroDimName)) {
-                            normalizedPath = normalizedXaeroDim + normalizedPath.substring(xaeroDimName.length());
-                        }
+        for (Path zipPath : allZipPaths) {
+            String normalizedPath = toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
+            if (!requestedPaths.contains(normalizedPath)) {
+                continue;
+            }
 
-                        if (!requestedDimensions.contains(normalizedXaeroDim)) {
-                            if (!skippedDimensions.contains(normalizedXaeroDim)) {
-                                skippedDimensions.add(normalizedXaeroDim);
-                                LOGGER.debug("Skipping dimension {}: not requested", normalizedXaeroDim);
-                            }
-                            return;
-                        }
+            ClientMeta serverMeta = serverCache.get(normalizedPath);
+            if (!HashUtils.isValidRegionZip(zipPath)) {
+                if (serverMeta != null) {
+                    genCache.remove(normalizedPath);
+                }
+                continue;
+            }
 
-                        ClientMeta serverMeta = serverCache.get(normalizedPath);
-                        ClientMeta clientMetaEntry = clientMeta.get(normalizedPath);
+            long timestamp;
+            if (serverMeta == null) {
+                timestamp = System.currentTimeMillis() / 1000;
+            } else {
+                timestamp = serverMeta.timestampSeconds();
+            }
 
-                        if (!HashUtils.isValidRegionZip(zipPath)) {
-                            if (serverMeta != null) {
-                                genCache.remove(normalizedPath);
-                            }
-                            return;
-                        }
-
-                        String serverHash;
-                        long timestamp;
-                        if (serverMeta == null) {
-                            serverHash = HashUtils.computeFileHash(zipPath);
-                            timestamp = System.currentTimeMillis() / 1000;
-                        } else {
-                            serverHash = serverMeta.hash();
-                            timestamp = serverMeta.timestampSeconds();
-                        }
-
-                        if (shouldTransfer(serverHash, timestamp, clientMetaEntry)) {
-                            RegionSyncInfo info = parseRegionInfo(zipPath, normalizedPath, timestamp);
-                            if (info != null) {
-                                regionsToSync.add(info);
-                            }
-                        }
-                    });
-
-        genCache.save();
-
-        for (Map.Entry<String, ClientMeta> entry : serverCache.entrySet()) {
-            ClientMeta cm = clientMeta.get(entry.getKey());
-            if (cm != null && entry.getValue().hash().equals(cm.hash())) {
-                hashMatchCount++;
-            } else if (cm != null && cm.timestampSeconds() >= entry.getValue().timestampSeconds()) {
-                timestampSkipCount++;
+            RegionSyncInfo info = parseRegionInfo(zipPath, normalizedPath, timestamp);
+            if (info != null) {
+                regionsToSync.add(info);
             }
         }
 
-        int total = regionsToSync.size();
-        final int finalHashMatchCount = hashMatchCount;
-        final int finalTimestampSkipCount = timestampSkipCount;
+        genCache.save();
 
-        LOGGER.info("Sync request from player {}: {} regions to sync, {} hash match, {} timestamp skip",
-                playerId, total, finalHashMatchCount, finalTimestampSkipCount);
+        int total = regionsToSync.size();
+
+        LOGGER.info("Sync request from player {}: {} regions to send", playerId, total);
 
         if (total == 0) {
             enqueueIfCurrent(server, playerId, syncVersion, player -> {
-                if (!silent) {
-                    player.sendSystemMessage(ChatUtils.success("mapsyncer.server.map_uptodate", finalHashMatchCount, finalTimestampSkipCount));
-                }
                 NetworkManager.sendToPlayer(player,
                         new SyncResponsePayload(List.of(), true, worldId, "uptodate"));
                 finalizePlayerSync(playerId);
@@ -751,11 +702,9 @@ public class ServerSyncHandlerLogic {
         sortByViewDistancePriority(regionsToSync, startBlockX, startBlockZ, viewDistanceRegions);
 
         final int initialTotal = total;
-        final int initialHashMatch = hashMatchCount;
-        final int initialTimestampSkip = timestampSkipCount;
         enqueueIfCurrent(server, playerId, syncVersion, player -> {
                 if (!silent) {
-                    player.sendSystemMessage(ChatUtils.message("mapsyncer.server.sync_start", initialTotal, initialHashMatch, initialTimestampSkip));
+                    player.sendSystemMessage(ChatUtils.message("mapsyncer.server.sync_start", initialTotal));
                 }
                 NetworkManager.sendToPlayer(player,
                         new SyncProgressPayload(0, initialTotal, "Sync started"));
@@ -1036,5 +985,63 @@ public class ServerSyncHandlerLogic {
             return sb.toString();
         }
         return path;
+    }
+
+    private static String toNormalizedServerPath(Path absCacheDir, Path zipPath, DimensionPathMapping dimMapping) {
+        String relativePath = absCacheDir.relativize(zipPath).toString();
+        String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
+        normalizedPath = stripMwWorldId(normalizedPath);
+
+        String[] parts = normalizedPath.split("[/\\\\]");
+        String xaeroDimName = parts.length > 1 ? parts[0] : "unknown";
+
+        String normalizedXaeroDim = dimMapping.toXaeroDimension(xaeroDimName);
+        if (!normalizedXaeroDim.equals(xaeroDimName)) {
+            normalizedPath = normalizedXaeroDim + normalizedPath.substring(xaeroDimName.length());
+        }
+        return normalizedPath;
+    }
+
+    private static void sendManifest(MinecraftServer server, UUID playerId, int syncVersion, int worldId,
+            Set<String> requestedDimensions, Path absCacheDir, List<Path> allZipPaths,
+            Map<String, ClientMeta> serverCache, DimensionPathMapping dimMapping,
+            GenerationCache genCache, boolean silent) {
+        Map<String, Long> manifest = new HashMap<>();
+
+        for (Path zipPath : allZipPaths) {
+            String normalizedPath = toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
+            String[] pathParts = normalizedPath.split("[/\\\\]");
+            String xaeroDimName = pathParts.length > 1 ? pathParts[0] : "unknown";
+            if (!requestedDimensions.contains(xaeroDimName)) {
+                continue;
+            }
+
+            ClientMeta serverMeta = serverCache.get(normalizedPath);
+            if (!HashUtils.isValidRegionZip(zipPath)) {
+                if (serverMeta != null) {
+                    genCache.remove(normalizedPath);
+                }
+                continue;
+            }
+
+            long timestamp = serverMeta != null
+                    ? serverMeta.timestampSeconds()
+                    : System.currentTimeMillis() / 1000;
+            manifest.put(normalizedPath, timestamp);
+        }
+
+        genCache.save();
+
+        SyncManifestPayload[] parts = SyncManifestPayload.split(manifest, worldId, "ok");
+        enqueueIfCurrent(server, playerId, syncVersion, player -> {
+            if (!silent) {
+                player.sendSystemMessage(ChatUtils.message("mapsyncer.server.manifest_ready", manifest.size()));
+            }
+            for (SyncManifestPayload part : parts) {
+                NetworkManager.sendToPlayer(player, part);
+            }
+            finalizePlayerSync(playerId);
+        });
+        LOGGER.info("Sync manifest sent to player {}: {} regions", playerId, manifest.size());
     }
 }

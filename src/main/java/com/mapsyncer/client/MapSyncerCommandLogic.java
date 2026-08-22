@@ -4,7 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mapsyncer.network.NetworkManager;
-import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.server.CacheCommandHandler;
@@ -221,7 +220,8 @@ public class MapSyncerCommandLogic {
     }
 
     public static void sendSyncRequest(Minecraft mc, String dimensionId, boolean syncAll, boolean silent) {
-        if (MapPacketHandler.isSyncInProgress() || ClientHashManager.isComputingMeta()) {
+        if (MapPacketHandler.isSyncInProgress() || SyncProgressTracker.isTracking()
+                || ClientHashManager.isComputingMeta()) {
             if (mc.player != null) {
                 mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.in_progress"), false);
             }
@@ -236,69 +236,6 @@ public class MapSyncerCommandLogic {
         DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
         String xaeroDim = syncAll ? null : dimMapping.toXaeroDimension(dimensionId);
 
-        Path scanDir = null;
-        Map<String, ClientMeta> immediateMeta = null;
-
-        if (syncAll) {
-            if (serverDir != null && tsCache != null && tsCache.cacheFileExists()) {
-                scanDir = serverDir;
-            } else {
-                immediateMeta = new java.util.HashMap<>();
-                LOGGER.debug("First sync all, sending empty request");
-            }
-        } else if (tsCache != null && tsCache.cacheFileExists() && tsCache.hasDimensionSynced(xaeroDim)) {
-            Path dimDir = serverDir.resolve(xaeroDim);
-            Path mwDir = findMwDir(dimDir);
-            if (mwDir != null) {
-                scanDir = mwDir;
-            } else {
-                immediateMeta = new java.util.HashMap<>();
-                immediateMeta.put(xaeroDim + "/_placeholder_", new ClientMeta(0, "00000000"));
-                LOGGER.warn("Dimension {} has cache but no mw$ dir", dimensionId);
-            }
-        } else {
-            immediateMeta = new java.util.HashMap<>();
-            immediateMeta.put(xaeroDim + "/_placeholder_", new ClientMeta(0, "00000000"));
-            LOGGER.debug("First sync for {}", dimensionId);
-        }
-
-        if (immediateMeta != null) {
-            dispatchSyncRequest(mc, dimensionId, syncAll, serverDir, tsCache, xaeroDim, immediateMeta, silent);
-            return;
-        }
-
-        ClientHashManager.computeMetaForSyncAsync(scanDir, result ->
-                mc.execute(() -> {
-                    if (mc.player == null) {
-                        return;
-                    }
-                    if (!result.isSuccess()) {
-                        if (result.failedFiles() > 0) {
-                            mc.player.displayClientMessage(
-                                    ChatUtils.error("mapsyncer.sync.hash_scan_partial", result.failedFiles()), false);
-                        } else {
-                            mc.player.displayClientMessage(
-                                    ChatUtils.error("mapsyncer.sync.hash_scan_failed"), false);
-                        }
-                        return;
-                    }
-                    LOGGER.debug("Sync hash scan complete: {} entries", result.meta().size());
-                    dispatchSyncRequest(mc, dimensionId, syncAll, serverDir, tsCache, xaeroDim, result.meta(), silent);
-                }));
-    }
-
-    private static void dispatchSyncRequest(Minecraft mc, String dimensionId, boolean syncAll,
-            Path serverDir, ClientTimestampCache tsCache, String xaeroDim,
-            Map<String, ClientMeta> metaMap, boolean silent) {
-        if (MapPacketHandler.isSyncInProgress()) {
-            if (mc.player != null) {
-                mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.in_progress"), false);
-            }
-            return;
-        }
-
-        LOGGER.debug("Sending sync request with {} entries (serverDir={})", metaMap.size(), serverDir);
-
         if (tsCache != null) {
             Set<String> dimensions = new HashSet<>();
             if (syncAll) {
@@ -310,11 +247,12 @@ public class MapSyncerCommandLogic {
             tsCache.markSyncStart(dimensions, command);
         }
 
-        SyncRequestPayload[] parts = SyncRequestPayload.split(metaMap, syncAll,
-                syncAll ? "" : (xaeroDim != null ? xaeroDim : ""), silent);
-        for (SyncRequestPayload part : parts) {
-            NetworkManager.sendToServer(part);
-        }
+        String targetDim = syncAll ? "" : (xaeroDim != null ? xaeroDim : "");
+        MapPacketHandler.startManifestRequest(syncAll, targetDim, silent);
+
+        LOGGER.debug("Sending sync manifest request (syncAll={}, targetDimension={})", syncAll, targetDim);
+
+        NetworkManager.sendToServer(new SyncRequestPayload(new java.util.HashMap<>(), syncAll, targetDim, silent));
         SyncProgressTracker.startTracking();
     }
 

@@ -3,6 +3,7 @@ package com.mapsyncer.network;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.network.payload.ServerInstalledPayload;
+import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -66,6 +67,26 @@ public class ForgePayloadAdapters {
             boolean isComplete = buf.readBoolean();
             String status = buf.readUtf();
             return new ForgeSyncResponseMessage(new SyncResponsePayload(chunks, isComplete, worldId, status));
+        }
+    }
+
+    public static class ForgeSyncManifestMessage {
+        private final SyncManifestPayload data;
+
+        public ForgeSyncManifestMessage(SyncManifestPayload data) {
+            this.data = data;
+        }
+
+        public SyncManifestPayload getData() {
+            return data;
+        }
+
+        public static void encode(ForgeSyncManifestMessage msg, FriendlyByteBuf buf) {
+            SyncManifestPayload.write(buf, msg.data);
+        }
+
+        public static ForgeSyncManifestMessage decode(FriendlyByteBuf buf) {
+            return new ForgeSyncManifestMessage(SyncManifestPayload.read(buf));
         }
     }
 

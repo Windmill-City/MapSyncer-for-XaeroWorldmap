@@ -3,19 +3,26 @@ package com.mapsyncer.client;
 import com.mapsyncer.network.NetworkManager;
 import com.mapsyncer.network.PayloadContext;
 import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.ServerInstalledPayload;
+import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncProgressPayload;
+import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.client.ClientSyncSession;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.util.ChatUtils;
+import com.mapsyncer.util.ClientMeta;
 import com.mapsyncer.util.DimensionPathMapping;
+import com.mapsyncer.util.HashUtils;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -101,6 +108,24 @@ public class MapPacketHandler {
     private static volatile ClientTimestampCache syncFinishTsCache = null;
 
     private static final AtomicInteger pendingWriteApplyCallbacks = new AtomicInteger(0);
+
+    private static volatile boolean pendingSyncAll = false;
+    private static volatile String pendingTargetDim = "";
+    private static volatile boolean pendingSilent = false;
+
+    private static final long MANIFEST_PART_STALE_TIMEOUT_MS = 2 * 60 * 1000;
+    private static final Map<Integer, SyncManifestPayload> manifestParts = new ConcurrentHashMap<>();
+    private static volatile int manifestTotalParts = 0;
+    private static volatile long manifestFirstPartArrivedMs = 0;
+
+    public static void startManifestRequest(boolean syncAll, String targetDim, boolean silent) {
+        pendingSyncAll = syncAll;
+        pendingTargetDim = targetDim;
+        pendingSilent = silent;
+        manifestParts.clear();
+        manifestTotalParts = 0;
+        manifestFirstPartArrivedMs = 0;
+    }
 
     private static String partKey(ChunkMapData chunk) {
         return chunk.regionX + "," + chunk.regionZ + "," + chunk.dimension + "," + chunk.caveLayer;
@@ -195,6 +220,9 @@ public class MapPacketHandler {
         syncFinishOutcome = ClientSyncSession.SyncOutcome.NONE;
         syncFinishTsCache = null;
         pendingWriteApplyCallbacks.set(0);
+        manifestParts.clear();
+        manifestTotalParts = 0;
+        manifestFirstPartArrivedMs = 0;
         LOGGER.info("Cleared sync data to prevent memory leak");
     }
 
@@ -219,45 +247,13 @@ public class MapPacketHandler {
     public static void registerHandlers() {
         var handler = NetworkManager.getHandler();
 
+        handler.registerServerInstalledHandler(MapPacketHandler::onServerInstalled);
+
         handler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
 
         handler.registerSyncProgressHandler(MapPacketHandler::handleProgressUpdate);
 
-        handler.registerServerInstalledHandler((payload, ctx) -> {
-            ctx.enqueueWork(() -> {
-                try {
-                serverInstalled = true;
-                serverVersion = payload.version();
-                AutoSyncManager.configureFromServer(payload.updateMode());
-                LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, joinAutoSync={}",
-                        serverVersion, payload.updateMode(),
-                        payload.updateMode() != UpdateMode.DISABLED);
-
-                Minecraft.getInstance().player.displayClientMessage(
-                    ChatUtils.prefix().append(ChatUtils.desc(AutoSyncManager.getStatusKey())), false);
-
-                boolean shouldJoinSync = AutoSyncManager.shouldAutoSyncOnJoin(
-                        payload.lastGenerationTimestamp());
-                LOGGER.info("shouldAutoSyncOnJoin result: {} (serverGenTime={})",
-                        shouldJoinSync, payload.lastGenerationTimestamp());
-                if (shouldJoinSync) {
-                    AutoSyncManager.schedule(() -> {
-                        Minecraft.getInstance().execute(() -> {
-                            if (Minecraft.getInstance().player != null
-                                    && !MapPacketHandler.isSyncInProgress()) {
-                                Minecraft.getInstance().player.displayClientMessage(
-                                    ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
-                                AutoSyncManager.markStarted();
-                                MapSyncerCommandLogic.executeSyncAll(true);
-                            }
-                        });
-                    }, 5);
-                }
-                } catch (Exception e) {
-                    LOGGER.error("Error processing ServerInstalledPayload", e);
-                }
-            });
-        });
+        handler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
 
         handler.registerSyncRequestHandler((payload, ctx) -> {
             ctx.enqueueWork(() -> {
@@ -277,7 +273,52 @@ public class MapPacketHandler {
     public static void resetServerStatus() {
         serverInstalled = false;
         serverVersion = "";
+        joinSyncScheduled = false;
         AutoSyncManager.resetServerPolicy();
+    }
+
+    private static volatile boolean joinSyncScheduled = false;
+
+    public static void onServerInstalled(ServerInstalledPayload payload, PayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            try {
+                boolean firstAnnounce = !serverInstalled;
+                serverInstalled = true;
+                serverVersion = payload.version();
+                AutoSyncManager.configureFromServer(payload.updateMode());
+                LOGGER.info("Server has MapSyncer installed, version: {}, mode={}, joinAutoSync={}",
+                        serverVersion, payload.updateMode(),
+                        payload.updateMode() != UpdateMode.DISABLED);
+
+                if (!firstAnnounce) {
+                    return;
+                }
+
+                Minecraft.getInstance().player.displayClientMessage(
+                    ChatUtils.prefix().append(ChatUtils.desc(AutoSyncManager.getStatusKey())), false);
+
+                boolean shouldJoinSync = AutoSyncManager.shouldAutoSyncOnJoin(
+                        payload.lastGenerationTimestamp());
+                LOGGER.info("shouldAutoSyncOnJoin result: {} (serverGenTime={})",
+                        shouldJoinSync, payload.lastGenerationTimestamp());
+                if (shouldJoinSync && !joinSyncScheduled) {
+                    joinSyncScheduled = true;
+                    AutoSyncManager.schedule(() -> {
+                        Minecraft.getInstance().execute(() -> {
+                            if (Minecraft.getInstance().player != null
+                                    && !MapPacketHandler.isSyncInProgress()) {
+                                Minecraft.getInstance().player.displayClientMessage(
+                                    ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
+                                AutoSyncManager.markStarted();
+                                MapSyncerCommandLogic.executeSyncAll(true);
+                            }
+                        });
+                    }, 5);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Error processing ServerInstalledPayload", e);
+            }
+        });
     }
 
     private static void handleSyncResponse(SyncResponsePayload payload, PayloadContext context) {
@@ -535,6 +576,187 @@ public class MapPacketHandler {
                         ChatUtils.error("mapsyncer.sync.partial"), false);
             }
         }
+    }
+
+    private static void handleManifestReceived(SyncManifestPayload payload, int generation) {
+        if (!session.isCurrent(generation)) {
+            LOGGER.debug("Ignoring sync manifest for stale generation {}", generation);
+            return;
+        }
+
+        SyncProgressTracker.onServerResponded();
+
+        if (!serverInstalled) {
+            serverInstalled = true;
+            LOGGER.info("Server confirmed (SyncManifest received), MapSyncer detected");
+        }
+
+        String status = payload.status();
+        Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
+        ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
+                ? ClientTimestampCache.getInstance(serverDir) : null;
+
+        if ("no_cache".equals(status) || "dim_not_available".equals(status)) {
+            LOGGER.info("Server returned error status: {}, aborting sync", status);
+            session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
+            clearSyncData();
+            clearReflectionCache();
+            if (tsCache != null) {
+                tsCache.clearSyncState();
+            }
+            return;
+        }
+
+        if (serverDir == null) {
+            LOGGER.error("Unable to resolve server directory, cannot compute diff sync");
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null) {
+                mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.server_dir_missing"), false);
+            }
+            session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
+            clearSyncData();
+            clearReflectionCache();
+            if (tsCache != null) {
+                tsCache.clearSyncState();
+            }
+            return;
+        }
+
+        Map<String, Long> serverTimestamps = payload.timestamps();
+        if (serverTimestamps.isEmpty()) {
+            LOGGER.info("Server manifest is empty, nothing to sync");
+            finishUpToDate(tsCache);
+            return;
+        }
+
+        Path scanDir = resolveScanDir(serverDir);
+        ClientHashManager.computeMetaForSyncAsync(scanDir, result -> {
+            Minecraft mc = Minecraft.getInstance();
+            mc.execute(() -> {
+                if (!session.isCurrent(generation)) {
+                    LOGGER.debug("Discarding local scan result for stale generation {}", generation);
+                    return;
+                }
+                if (mc.player == null) {
+                    return;
+                }
+                if (!result.isSuccess()) {
+                    if (result.failedFiles() > 0) {
+                        mc.player.displayClientMessage(
+                                ChatUtils.error("mapsyncer.sync.hash_scan_partial", result.failedFiles()), false);
+                    } else {
+                        mc.player.displayClientMessage(
+                                ChatUtils.error("mapsyncer.sync.hash_scan_failed"), false);
+                    }
+                    session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
+                    clearSyncData();
+                    clearReflectionCache();
+                    if (tsCache != null) {
+                        tsCache.clearSyncState();
+                    }
+                    return;
+                }
+
+                Map<String, ClientMeta> localMeta = result.meta();
+                Map<String, ClientMeta> diff = new HashMap<>();
+                int upToDateCount = 0;
+                for (Map.Entry<String, Long> entry : serverTimestamps.entrySet()) {
+                    String path = entry.getKey();
+                    long serverTs = entry.getValue();
+                    ClientMeta local = localMeta.get(path);
+                    if (local != null && local.timestampSeconds() >= serverTs) {
+                        upToDateCount++;
+                    } else {
+                        diff.put(path, local != null ? local : new ClientMeta(0, HashUtils.DEFAULT_HASH));
+                    }
+                }
+
+                LOGGER.info("Manifest comparison: {} server regions, {} already up-to-date, {} need update",
+                        serverTimestamps.size(), upToDateCount, diff.size());
+
+                if (diff.isEmpty()) {
+                    finishUpToDate(tsCache);
+                    return;
+                }
+
+                LOGGER.debug("Sending diff request with {} regions", diff.size());
+                SyncRequestPayload[] parts = SyncRequestPayload.split(diff, false, pendingTargetDim, pendingSilent);
+                for (SyncRequestPayload part : parts) {
+                    NetworkManager.sendToServer(part);
+                }
+            });
+        });
+    }
+
+    private static void handleSyncManifest(SyncManifestPayload payload, PayloadContext context) {
+        final int generationAtEnqueue = session.generation();
+        context.enqueueWork(() -> {
+            if (!session.isCurrent(generationAtEnqueue)) {
+                LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
+                return;
+            }
+
+            SyncManifestPayload resolved = payload;
+            if (resolved.totalParts() > 1) {
+                if (manifestTotalParts == 0) {
+                    manifestParts.clear();
+                    manifestTotalParts = resolved.totalParts();
+                    manifestFirstPartArrivedMs = System.currentTimeMillis();
+                }
+                manifestParts.put(resolved.partIndex(), resolved);
+                if (System.currentTimeMillis() - manifestFirstPartArrivedMs > MANIFEST_PART_STALE_TIMEOUT_MS) {
+                    LOGGER.warn("Sync manifest assembly timed out, aborting");
+                    manifestParts.clear();
+                    manifestTotalParts = 0;
+                    session.setOutcome(ClientSyncSession.SyncOutcome.HARD_FAIL);
+                    clearSyncData();
+                    return;
+                }
+                if (manifestParts.size() < manifestTotalParts) {
+                    return;
+                }
+                Map<String, Long> merged = new HashMap<>();
+                SyncManifestPayload ref = null;
+                for (SyncManifestPayload part : manifestParts.values()) {
+                    merged.putAll(part.timestamps());
+                    if (ref == null) {
+                        ref = part;
+                    }
+                }
+                manifestParts.clear();
+                manifestTotalParts = 0;
+                resolved = new SyncManifestPayload(merged, ref.worldId(), ref.status());
+            }
+
+            handleManifestReceived(resolved, generationAtEnqueue);
+        });
+    }
+
+    private static Path resolveScanDir(Path serverDir) {
+        if (pendingSyncAll) {
+            return serverDir;
+        }
+        if (pendingTargetDim == null || pendingTargetDim.isEmpty()) {
+            return serverDir;
+        }
+        Path dimDir = serverDir.resolve(pendingTargetDim);
+        Path mwDir = MapSyncerCommandLogic.findMwDir(dimDir);
+        return mwDir != null ? mwDir : dimDir;
+    }
+
+    private static void finishUpToDate(ClientTimestampCache tsCache) {
+        session.setOutcome(ClientSyncSession.SyncOutcome.SILENT_SKIP);
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && !pendingSilent) {
+            mc.player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
+        }
+        finishJoinAutoSyncIfActive();
+        if (tsCache != null) {
+            tsCache.markSyncComplete();
+        }
+        clearSyncData();
+        clearReflectionCache();
+        SyncProgressTracker.finishUptodate();
     }
 
     private static void handleProgressUpdate(SyncProgressPayload payload, PayloadContext context) {

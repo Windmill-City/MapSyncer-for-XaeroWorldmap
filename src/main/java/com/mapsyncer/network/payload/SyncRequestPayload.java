@@ -118,29 +118,19 @@ public class SyncRequestPayload {
 
         int partIndex = 0;
         int totalParts = 0;
-        if (buf.readableBytes() > 0) {
-            boolean isSplit = buf.readBoolean();
-            if (isSplit) {
-                partIndex = buf.readInt();
-                totalParts = buf.readInt();
-            }
+        boolean isSplit = buf.readBoolean();
+        if (isSplit) {
+            partIndex = buf.readInt();
+            totalParts = buf.readInt();
         }
 
-        boolean syncAll = false;
+        boolean syncAll = buf.readBoolean();
         String targetDimension = "";
-        if (buf.readableBytes() > 0) {
-            syncAll = buf.readBoolean();
-            if (!syncAll && buf.readableBytes() > 0) {
-                targetDimension = buf.readUtf();
-            }
-        } else if (metaMap.isEmpty()) {
-            syncAll = true;
+        if (!syncAll) {
+            targetDimension = buf.readUtf();
         }
 
-        boolean silent = false;
-        if (buf.readableBytes() > 0) {
-            silent = buf.readBoolean();
-        }
+        boolean silent = buf.readBoolean();
 
         return new SyncRequestPayload(metaMap, partIndex, totalParts, syncAll, targetDimension, silent);
     }

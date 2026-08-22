@@ -8,6 +8,7 @@
   "mapsyncer.sync.hash_progress": "扫描本地地图: %d/%d (%d%%)",
   "mapsyncer.sync.hash_scan_failed": "本地地图扫描失败，同步已取消，请稍后重试",
   "mapsyncer.sync.hash_scan_partial": "本地地图扫描失败（%d 个文件出错），同步已取消",
+  "mapsyncer.sync.server_dir_missing": "无法解析服务器地图目录，同步已取消",
   "mapsyncer.sync.server_timeout": "服务端繁忙，同步已中断，请稍后重试",
   "mapsyncer.sync.cancelled": "同步已取消",
   "mapsyncer.sync.timeout": "同步超时，请重试",
@@ -70,7 +71,7 @@
 
   "mapsyncer.server.no_cache": "地图缓存不可用，请先运行 /%s generate",
   "mapsyncer.server.dim_not_available": "维度 '%s' 地图数据不可用，请先运行 /%s generate %s",
-  "mapsyncer.server.map_uptodate": "地图已是最新，无需下载",
+  "mapsyncer.server.manifest_ready": "服务端有 %d 个区域，正在比对本地时间戳...",
   "mapsyncer.server.sync_start": "即将下载 %d 个区域",
   "mapsyncer.server.sync_complete": "地图同步完成，已发送 %d 个需更新区域",
   "mapsyncer.server.sync_partial": "地图同步部分完成：已发送 %d 个区域，%d 个读取失败（共计划 %d 个）",

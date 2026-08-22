@@ -1,6 +1,7 @@
 package com.mapsyncer.network;
 
 import com.mapsyncer.network.payload.ServerInstalledPayload;
+import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncProgressPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -40,6 +41,12 @@ public final class NetworkManager {
     }
 
     public static void sendToPlayer(Object player, SyncProgressPayload payload) {
+        @SuppressWarnings("unchecked")
+        NetworkHandler<Object, Object> handler = (NetworkHandler<Object, Object>) getHandler();
+        handler.sendToPlayer(player, payload);
+    }
+
+    public static void sendToPlayer(Object player, SyncManifestPayload payload) {
         @SuppressWarnings("unchecked")
         NetworkHandler<Object, Object> handler = (NetworkHandler<Object, Object>) getHandler();
         handler.sendToPlayer(player, payload);
