@@ -38,8 +38,8 @@ public class MapSyncer {
     public static String VERSION = "unknown";
     public static final Logger LOGGER = LoggerFactory.getLogger(MapSyncer.class);
 
-    public MapSyncer(FMLJavaModLoadingContext context) {
-        IEventBus modBus = context.getModEventBus();
+    public MapSyncer() {
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
