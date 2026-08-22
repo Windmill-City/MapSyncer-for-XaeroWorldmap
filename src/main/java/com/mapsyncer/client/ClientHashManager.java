@@ -91,27 +91,21 @@ public class ClientHashManager {
         return sharedPool;
     }
 
-    public static boolean isComputingMeta() {
-        return poolUsers.get() > 0;
-    }
-
-
     public static void computeMetaForSyncAsync(Path mapDir, Consumer<MetaScanResult> onComplete) {
         poolUsers.incrementAndGet();
         getSharedPool().submit(() -> {
             try {
-                onComplete.accept(computeMetaForSyncWorker(mapDir, true));
+                onComplete.accept(computeMetaForSyncWorker(mapDir));
             } catch (Exception e) {
                 LOGGER.error("Failed to compute hashes asynchronously", e);
                 onComplete.accept(MetaScanResult.failure("async_error", 0));
             } finally {
-                SyncProgressTracker.completeHashScan();
                 poolUsers.decrementAndGet();
             }
         });
     }
 
-    private static MetaScanResult computeMetaForSyncWorker(Path mapDir, boolean reportProgress) {
+    private static MetaScanResult computeMetaForSyncWorker(Path mapDir) {
         Map<String, ClientMeta> metaMap = new ConcurrentHashMap<>();
 
         if (mapDir == null || !Files.exists(mapDir)) {
@@ -140,13 +134,7 @@ public class ClientHashManager {
 
         LOGGER.info("Computing hashes for {} region files in {} (parallel threads={})", zipFiles.size(), mapDir, currentPoolThreads);
 
-        if (reportProgress && !zipFiles.isEmpty()) {
-            SyncProgressTracker.startHashScan(zipFiles.size());
-        }
-
-        AtomicInteger processed = new AtomicInteger();
         AtomicInteger failedFiles = new AtomicInteger();
-        AtomicInteger lastReportedPercent = new AtomicInteger(-1);
         int totalFiles = zipFiles.size();
 
         ForkJoinPool pool = getSharedPool();
@@ -176,16 +164,6 @@ public class ClientHashManager {
                                 } catch (Exception e) {
                                     failedFiles.incrementAndGet();
                                     LOGGER.warn("Failed to hash region file: {}", zipPath, e);
-                                } finally {
-                                    if (reportProgress && totalFiles > 0) {
-                                        int done = processed.incrementAndGet();
-                                        int percent = (done * 100) / totalFiles;
-                                        int prev = lastReportedPercent.get();
-                                        if (done == totalFiles || percent >= prev + 10) {
-                                            lastReportedPercent.set(percent);
-                                            SyncProgressTracker.updateHashScan(done, totalFiles);
-                                        }
-                                    }
                                 }
                             })
             ).join();

@@ -68,10 +68,6 @@ public class ModConfig {
         SERVER_SPEC = serverPair.getRight();
     }
 
-    public static void saveClientConfig() {
-        CLIENT_SPEC.save();
-    }
-
     public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
         if (config.getType() == net.minecraftforge.fml.config.ModConfig.Type.SERVER) {
             boundServerConfig = config;
@@ -97,10 +93,6 @@ public class ModConfig {
     public static class ClientConfig {
 
         public final IntValue hashThreads;
-
-        public final IntValue mapRegionLoadIntervalTicks;
-
-        public final BooleanValue autoSyncEnabled;
 
         public ClientConfig(ForgeConfigSpec.Builder builder) {
             builder.push("client");
@@ -131,42 +123,11 @@ public class ModConfig {
                              "Range: 1 - " + maxThreads)
                     .defineInRange("hashThreads", defaultThreads, 1, maxThreads);
 
-            mapRegionLoadIntervalTicks = builder
-                    .comment("视距外 region 传入 Xaero 的客户端 tick 间隔（1 = 每 tick 一个）。",
-                             "Tick interval between loading each out-of-view region into Xaero (1 = every tick).",
-                             "",
-                             "  -1 = 不限制（一次排空）",
-                             "  0  = 仅加载视距内",
-                             "  1-100 = 每 N tick 加载 1 个（默认：1）",
-                             "  -1 = Unlimited (drain all at once)",
-                             "  0  = View-distance only",
-                             "  1-100 = one region every N ticks (default: 1)")
-                    .defineInRange("mapRegionLoadIntervalTicks", 1, -1, 100);
-
-            autoSyncEnabled = builder
-                    .comment("服务端启用增量更新时启用进服自动同步",
-                             "Enable join auto-sync when server has incremental updates enabled",
-                             "手动 /mapsyncer sync 始终可用",
-                             "Manual /mapsyncer sync is always available")
-                    .define("autoSyncEnabled", true);
-
             builder.pop();
         }
 
         public int getHashThreads() {
             return hashThreads.get();
-        }
-
-        public int getMapRegionLoadIntervalTicks() {
-            return mapRegionLoadIntervalTicks.get();
-        }
-
-        public boolean isAutoSyncEnabled() {
-            return autoSyncEnabled.get();
-        }
-
-        public void setAutoSyncEnabled(boolean enabled) {
-            autoSyncEnabled.set(enabled);
         }
     }
 

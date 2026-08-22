@@ -24,7 +24,6 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.event.TickEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,15 +70,13 @@ public class MapSyncer {
     @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
     public static class ClientEventHandler {
         @SubscribeEvent
-        public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-            MapPacketHandler.onDisconnect();
+        public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
+            MapPacketHandler.prepareJoinSync();
         }
 
         @SubscribeEvent
-        public static void onClientTick(TickEvent.ClientTickEvent event) {
-            if (event.phase == TickEvent.Phase.END) {
-                MapPacketHandler.drainPendingLoadQueue();
-            }
+        public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+            MapPacketHandler.onDisconnect();
         }
     }
 

@@ -1,40 +1,13 @@
 {
-  "mapsyncer.sync.start": "Starting sync...",
-  "mapsyncer.sync.waiting": "Waiting for server...",
   "mapsyncer.sync.completed": "Sync complete: %d regions updated (%ds)",
-  "mapsyncer.sync.in_progress": "Receiving or writing map data, please wait before syncing again",
-  "mapsyncer.sync.progress": "Download progress: %d/%d (%d%%)",
-  "mapsyncer.sync.hash_computing": "Scanning local map state...",
-  "mapsyncer.sync.hash_progress": "Scanning local maps: %d/%d (%d%%)",
   "mapsyncer.sync.hash_scan_failed": "Local map scan failed; sync cancelled. Please try again later.",
   "mapsyncer.sync.hash_scan_partial": "Local map scan failed (%d file errors); sync cancelled.",
   "mapsyncer.sync.server_dir_missing": "Unable to resolve server map directory; sync cancelled.",
-  "mapsyncer.sync.server_timeout": "Server busy; sync interrupted. Please try again later.",
-  "mapsyncer.sync.cancelled": "Sync cancelled",
   "mapsyncer.sync.timeout": "Sync timed out, please try again",
   "mapsyncer.sync.partial": "Some regions were updated; retry sync for any that failed to write or conflict with local exploration",
-  "mapsyncer.sync.incomplete": "Sync incomplete: received %d/%d regions, please sync again",
-  "mapsyncer.sync.server_not_installed": "Server doesn't have MapSyncer installed",
-  "mapsyncer.sync.unloading_regions": "Unloading %d view distance regions for update",
+  "mapsyncer.sync.reflection_failed": "Xaero map reflection failed. Files were saved but the map may not refresh — ensure a compatible Xaero's World Map is installed",
 
-  "mapsyncer.command.no_map_dir": "Unable to determine map directory. Are you connected to a server?",
-  "mapsyncer.command.sync_dimension": "Starting sync for dimension: %s",
-  "mapsyncer.command.sync_all": "Starting sync for all dimensions...",
-  "mapsyncer.command.sync_current": "Syncing current dimension: %s",
   "mapsyncer.command.no_regions": "Local map is up-to-date, nothing to sync",
-  "mapsyncer.command.checking_regions": "Checking %d regions...",
-  "mapsyncer.command.help_header": "Usage:",
-  "mapsyncer.command.help_sync": "/mapsyncer sync - Sync current dimension",
-  "mapsyncer.command.help_sync_dim": "/mapsyncer sync <dimension> - Sync specified dimension",
-  "mapsyncer.command.help_sync_all": "/mapsyncer sync all - Sync all dimensions",
-  "mapsyncer.command.help_autosync": "/mapsyncer autosync [on|off] - View or toggle client auto-sync",
-  "mapsyncer.command.help_dimension_note": "Dimension names: overworld, the_nether, the_end or full ID like twilightforest:twilight_forest",
-
-  "mapsyncer.cache.all_cleared": "All caches cleared, no reload needed",
-  "mapsyncer.cache.direct_reload": "Direct reload: %d regions",
-  "mapsyncer.cache.reload_failed": "Failed to trigger map reload",
-  "mapsyncer.cache.status": "Cache: %d cleared, %d reload",
-  "mapsyncer.cache.cleared": "Cache cleared",
 
   "mapsyncer.prefix": "[MapSyncer]",
 
@@ -52,12 +25,6 @@
   "mapsyncer.command.config_reloaded": "Server configuration reloaded successfully",
   "mapsyncer.command.config_reload_failed": "Failed to reload server configuration, check server log for details",
 
-  "mapsyncer.chunk.paused": "Chunk updates paused...",
-  "mapsyncer.chunk.resumed": "Chunk updates resumed",
-
-  "mapsyncer.sync.dimension_not_available": "Dimension %s map not generated or dimension does not exist, please ask admin to run generation command",
-
-  "mapsyncer.command.unknown_dimension": "Unknown dimension: %s",
   "mapsyncer.command.region_not_found": "Region (%d, %d) does not exist in dimension %s, please verify coordinates",
   "mapsyncer.command.generating_region": "Starting generation for region (%d, %d) in dimension %s...",
   "mapsyncer.command.region_converted": "Region conversion completed",
@@ -72,9 +39,6 @@
   "mapsyncer.server.no_cache": "No map cache available. Run /%s generate first.",
   "mapsyncer.server.dim_not_available": "Dimension '%s' map data not available. Run /%s generate %s first.",
   "mapsyncer.server.manifest_ready": "Server has %d regions, comparing local timestamps...",
-  "mapsyncer.server.sync_start": "Downloading %d regions",
-  "mapsyncer.server.sync_complete": "Map sync complete: sent %d updated regions",
-  "mapsyncer.server.sync_partial": "Map sync partially complete: sent %d regions, %d read failures (of %d planned)",
 
   "mapsyncer.generate.start_full": "Starting full map generation...",
   "mapsyncer.generate.full_complete": "Map generation completed: %d/%d regions, %d dimensions completed: %s",
@@ -87,21 +51,10 @@
   "mapsyncer.command.conversion_busy": "A map generation task is already in progress. Please wait for it to complete before starting a new one.",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
-  "mapsyncer.status.no_task_disabled": "No conversion task, incremental updates disabled",
-  "mapsyncer.status.combined": "%s, %s",
-  "mapsyncer.status.incremental_disabled": "Incremental updates: Disabled",
   "mapsyncer.status.cache_detail": "Cache stats: %s dimensions, %s regions, %s MB\n%s",
-
-  "mapsyncer.sync.resume_header": "Sync Resume Available",
-  "mapsyncer.sync.resume_prompt": "%s. Click below to continue:",
-  "mapsyncer.sync.state_cleared": "Sync state cleared",
-  "mapsyncer.sync.reflection_failed": "Xaero map reflection failed. Files were saved but the map may not refresh — ensure a compatible Xaero's World Map is installed",
-  "mapsyncer.sync.interrupted": "Sync was interrupted, resume available",
 
   "mapsyncer.autosync.start": "Auto-syncing maps (skips download when already up-to-date)...",
   "mapsyncer.autosync.complete": "Auto-sync complete",
-  "mapsyncer.autosync.client.enabled": "Client auto-sync: Enabled",
-  "mapsyncer.autosync.client.disabled": "Client auto-sync: Disabled",
 
   "title.mapsyncer.config": "MapSyncer Server Config",
   "title.mapsyncer.client_config": "MapSyncer Client Config",
@@ -110,10 +63,6 @@
   "category.mapsyncer.client": "Client",
   "option.mapsyncer.hash_threads": "Hash scan threads",
   "option.mapsyncer.hash_threads.tooltip": "Parallel threads used when scanning local map files and reading cached version info before sync. Higher values may speed up preparation but increase CPU usage.",
-  "option.mapsyncer.map_region_load_interval": "Out-of-view region load interval",
-  "option.mapsyncer.map_region_load_interval.tooltip": "Client tick interval for feeding out-of-view regions into Xaero after sync. -1=drain all, 0=view only, N=one region every N ticks.",
-  "option.mapsyncer.auto_sync_enabled": "Client auto-sync",
-  "option.mapsyncer.auto_sync_enabled.tooltip": "Enable join auto-sync when the server runs incremental updates. Manual /mapsyncer sync always works.",
   "option.mapsyncer.debug.tooltip": "When enabled, detailed map generation debug information will be output to the log.",
   "option.mapsyncer.concurrent_regions": "Max concurrent regions",
   "option.mapsyncer.concurrent_regions.tooltip": "Maximum number of regions converted simultaneously. 0 = automatic (CPU cores − 2, clamped to 1–16). Higher values process faster but demand more server CPU.",
@@ -123,5 +72,5 @@
   "option.mapsyncer.debug": "Debug logging",
   "option.mapsyncer.packet_size.tooltip": "Maximum bytes per network packet during sync. Excessively large packets may be dropped on unstable connections.",
   "option.mapsyncer.speed_limit.tooltip": "Maximum transfer rate (KB/s) during sync. Set to 0 for unlimited. Too high may impact game network quality.",
-  "option.mapsyncer.update_mode.tooltip": "Server-side map cache incremental update strategy.\n\nDISABLED - No incremental updates, also disables client auto-sync.\nON_EMPTY - Runs an incremental update whenever no players are online (once per empty period, including after the last player leaves). Client auto-syncs on join when local timestamps are older than the server cache."
+  "option.mapsyncer.update_mode.tooltip": "Server-side map cache incremental update strategy.\n\nDISABLED - No incremental updates.\nON_EMPTY - Runs an incremental update whenever no players are online (once per empty period, including after the last player leaves). The client always auto-syncs on join based on the server cache."
 }

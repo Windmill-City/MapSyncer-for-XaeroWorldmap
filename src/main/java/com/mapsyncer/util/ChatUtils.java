@@ -1,6 +1,5 @@
 package com.mapsyncer.util;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
@@ -60,19 +59,5 @@ public final class ChatUtils {
 
     public static MutableComponent header(String key) {
         return Component.translatable(key).withStyle(style -> style.withColor(HEADER_COLOR));
-    }
-
-    public static void sendChatMessage(Component msg) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            mc.player.displayClientMessage(msg, false);
-        }
-    }
-
-    public static void sendOverlayMessage(Component msg) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null) {
-            mc.player.displayClientMessage(msg, true);
-        }
     }
 }

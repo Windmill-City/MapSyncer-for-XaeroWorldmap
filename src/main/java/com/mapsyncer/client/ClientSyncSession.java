@@ -2,39 +2,14 @@ package com.mapsyncer.client;
 
 public final class ClientSyncSession {
 
-    public enum SyncPhase {
-        IDLE,
-        RECEIVING,
-        DRAINING_RELOAD
-    }
-
-    public enum SyncOutcome {
-        NONE,
-        SUCCESS,
-        PARTIAL_SUCCESS,
-        SILENT_SKIP,
-        HARD_FAIL;
-
-        public static SyncOutcome fromServerStatus(String status) {
-            return switch (status) {
-                case "no_cache", "dim_not_available" -> HARD_FAIL;
-                case "uptodate" -> SILENT_SKIP;
-                case "partial" -> PARTIAL_SUCCESS;
-                case "ok" -> SUCCESS;
-                default -> NONE;
-            };
-        }
-    }
-
     private static final ClientSyncSession INSTANCE = new ClientSyncSession();
 
     public static final long STALE_TIMEOUT_MS = 10 * 60 * 1000L;
 
     private volatile int generation = 0;
-    private volatile SyncPhase phase = SyncPhase.IDLE;
+    private volatile boolean receiving = false;
     private volatile long startedAt = 0;
     private volatile boolean reflectionFailed = false;
-    private volatile SyncOutcome outcome = SyncOutcome.NONE;
 
     private ClientSyncSession() {}
 
@@ -46,8 +21,8 @@ public final class ClientSyncSession {
         return generation;
     }
 
-    public SyncPhase phase() {
-        return phase;
+    public boolean isReceiving() {
+        return receiving;
     }
 
     public boolean reflectionFailed() {
@@ -59,7 +34,7 @@ public final class ClientSyncSession {
     }
 
     public boolean isStale() {
-        if (phase != SyncPhase.RECEIVING || startedAt == 0) {
+        if (!receiving || startedAt == 0) {
             return false;
         }
         return System.currentTimeMillis() - startedAt > STALE_TIMEOUT_MS;
@@ -67,47 +42,32 @@ public final class ClientSyncSession {
 
     public void invalidate() {
         generation++;
-        resetSession();
+        reset();
     }
 
-    public void beginReceiving() {
-        phase = SyncPhase.RECEIVING;
+    public void begin() {
+        receiving = true;
         startedAt = System.currentTimeMillis();
         reflectionFailed = false;
-        outcome = SyncOutcome.NONE;
     }
 
     public void touch() {
-        if (phase == SyncPhase.RECEIVING) {
+        if (receiving) {
             startedAt = System.currentTimeMillis();
         }
     }
 
     public void markReflectionFailed() {
         reflectionFailed = true;
-        if (outcome == SyncOutcome.NONE || outcome == SyncOutcome.SUCCESS) {
-            outcome = SyncOutcome.PARTIAL_SUCCESS;
-        }
     }
 
-    public void setOutcome(SyncOutcome newOutcome) {
-        outcome = newOutcome;
+    public void complete() {
+        reset();
     }
 
-    public void beginDrainingReload() {
-        phase = SyncPhase.DRAINING_RELOAD;
-    }
-
-    public void completeSession() {
-        phase = SyncPhase.IDLE;
+    private void reset() {
+        receiving = false;
         startedAt = 0;
         reflectionFailed = false;
-    }
-
-    private void resetSession() {
-        phase = SyncPhase.IDLE;
-        startedAt = 0;
-        reflectionFailed = false;
-        outcome = SyncOutcome.NONE;
     }
 }
