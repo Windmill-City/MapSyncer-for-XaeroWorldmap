@@ -1,7 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.nbt.NbtReader;
-import com.mapsyncer.nbt.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,8 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
-
-import net.jpountz.lz4.LZ4BlockInputStream;
 
 public class McaReader implements AutoCloseable {
 
@@ -27,7 +23,7 @@ public class McaReader implements AutoCloseable {
 
     private static final int COMPRESS_NONE = 3;
 
-    private static final int COMPRESS_LZ4 = 4;
+    private static final int LOCATION_COUNT = CHUNKS_PER_REGION * CHUNKS_PER_REGION;
 
     private static final long HEADER_ONLY_SIZE = (long) SECTOR_SIZE * 2;
 
@@ -46,18 +42,10 @@ public class McaReader implements AutoCloseable {
         }
 
         try (RandomAccessFile raf = new RandomAccessFile(mcaPath.toFile(), "r")) {
-            for (int localX = 0; localX < CHUNKS_PER_REGION; localX++) {
-                for (int localZ = 0; localZ < CHUNKS_PER_REGION; localZ++) {
-                    int index = (localX + localZ * CHUNKS_PER_REGION) * 4;
-                    raf.seek(index);
-                    int b0 = raf.readUnsignedByte();
-                    int b1 = raf.readUnsignedByte();
-                    int b2 = raf.readUnsignedByte();
-                    int offsetSectors = (b0 << 16) | (b1 << 8) | b2;
-                    int sectorCount = raf.readUnsignedByte();
-                    if (offsetSectors > 0 && sectorCount > 0) {
-                        return true;
-                    }
+            int[] locations = readLocationTable(raf);
+            for (int packed : locations) {
+                if ((packed >>> 8) > 0 && (packed & 0xFF) > 0) {
+                    return true;
                 }
             }
             return false;
@@ -66,7 +54,6 @@ public class McaReader implements AutoCloseable {
             return false;
         }
     }
-
 
     public record ChunkLocation(int offsetSectors, int sectorCount, int timestamp) {
 
@@ -79,12 +66,16 @@ public class McaReader implements AutoCloseable {
         }
     }
 
-    public record ChunkData(int chunkX, int chunkZ, Tag.Compound nbt) {}
-
     private final RandomAccessFile raf;
 
-    private McaReader(RandomAccessFile raf) {
+    private final int[] locations;
+
+    private final int[] timestamps;
+
+    private McaReader(RandomAccessFile raf, int[] locations, int[] timestamps) {
         this.raf = raf;
+        this.locations = locations;
+        this.timestamps = timestamps;
     }
 
     public static McaReader open(String path) throws IOException {
@@ -93,30 +84,48 @@ public class McaReader implements AutoCloseable {
             if (raf.length() < SECTOR_SIZE * 2) {
                 throw new IOException("MCA文件太小: " + raf.length() + " bytes");
             }
-            return new McaReader(raf);
+            int[] locations = readLocationTable(raf);
+            int[] timestamps = readTimestampTable(raf);
+            return new McaReader(raf, locations, timestamps);
         } catch (IOException e) {
             raf.close();
             throw e;
         }
     }
 
-    public ChunkLocation getChunkLocation(int localX, int localZ) throws IOException {
-        int index = (localX + localZ * CHUNKS_PER_REGION) * 4;
-        raf.seek(index);
-
-        int b0 = raf.readUnsignedByte();
-        int b1 = raf.readUnsignedByte();
-        int b2 = raf.readUnsignedByte();
-        int offsetSectors = (b0 << 16) | (b1 << 8) | b2;
-        int sectorCount = raf.readUnsignedByte();
-
-        raf.seek(SECTOR_SIZE + index);
-        int timestamp = raf.readInt();
-
-        return new ChunkLocation(offsetSectors, sectorCount, timestamp);
+    private static int[] readLocationTable(RandomAccessFile raf) throws IOException {
+        raf.seek(0);
+        byte[] raw = new byte[SECTOR_SIZE];
+        raf.readFully(raw);
+        int[] locations = new int[LOCATION_COUNT];
+        for (int i = 0; i < LOCATION_COUNT; i++) {
+            int idx = i * 4;
+            int offset = ((raw[idx] & 0xFF) << 16) | ((raw[idx + 1] & 0xFF) << 8) | (raw[idx + 2] & 0xFF);
+            locations[i] = (offset << 8) | (raw[idx + 3] & 0xFF);
+        }
+        return locations;
     }
 
-    public Tag.Compound readChunkNbt(int localX, int localZ) throws IOException {
+    private static int[] readTimestampTable(RandomAccessFile raf) throws IOException {
+        raf.seek(SECTOR_SIZE);
+        byte[] raw = new byte[SECTOR_SIZE];
+        raf.readFully(raw);
+        int[] timestamps = new int[LOCATION_COUNT];
+        for (int i = 0; i < LOCATION_COUNT; i++) {
+            int idx = i * 4;
+            timestamps[i] = ((raw[idx] & 0xFF) << 24) | ((raw[idx + 1] & 0xFF) << 16)
+                    | ((raw[idx + 2] & 0xFF) << 8) | (raw[idx + 3] & 0xFF);
+        }
+        return timestamps;
+    }
+
+    public ChunkLocation getChunkLocation(int localX, int localZ) {
+        int index = localX + localZ * CHUNKS_PER_REGION;
+        int packed = locations[index];
+        return new ChunkLocation(packed >>> 8, packed & 0xFF, timestamps[index]);
+    }
+
+    public byte[] readChunkData(int localX, int localZ) throws IOException {
         ChunkLocation loc = getChunkLocation(localX, localZ);
         if (!loc.exists()) {
             return null;
@@ -148,29 +157,7 @@ public class McaReader implements AutoCloseable {
             return null;
         }
 
-        byte[] nbtData = decompress(compressedData, compressionType);
-        if (nbtData == null) {
-            return null;
-        }
-
-        try (NbtReader reader = new NbtReader(new ByteArrayInputStream(nbtData))) {
-            return reader.readDocument();
-        }
-    }
-
-    public void forEachChunk(java.util.function.Consumer<ChunkData> consumer) throws IOException {
-        for (int localX = 0; localX < CHUNKS_PER_REGION; localX++) {
-            for (int localZ = 0; localZ < CHUNKS_PER_REGION; localZ++) {
-                try {
-                    Tag.Compound nbt = readChunkNbt(localX, localZ);
-                    if (nbt != null) {
-                        consumer.accept(new ChunkData(localX, localZ, nbt));
-                    }
-                } catch (IOException e) {
-                    LOGGER.warn("读取chunk ({}, {}) 失败: {}", localX, localZ, e.getMessage());
-                }
-            }
-        }
+        return decompress(compressedData, compressionType);
     }
 
     private byte[] decompress(byte[] data, int compressionType) throws IOException {
@@ -200,16 +187,6 @@ public class McaReader implements AutoCloseable {
 
             case COMPRESS_NONE:
                 return data;
-
-            case COMPRESS_LZ4:
-                try (LZ4BlockInputStream lis = new LZ4BlockInputStream(bais)) {
-                    byte[] buf = new byte[8192];
-                    int len;
-                    while ((len = lis.read(buf)) > 0) {
-                        baos.write(buf, 0, len);
-                    }
-                }
-                return baos.toByteArray();
 
             default:
                 throw new IOException("未知压缩类型: " + compressionType);

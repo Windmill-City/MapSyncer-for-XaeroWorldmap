@@ -1,8 +1,9 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.convert.biome.BiomeQuartGrid;
-import com.mapsyncer.nbt.Tag;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,38 +48,108 @@ public class ChunkDataParser {
         BiomeQuartGrid biomeGrid
     ) {}
 
-    public static ChunkInfo parseChunk(int localX, int localZ, Tag.Compound chunkNbt, int worldHeightRange) {
+    private static final class HeightmapFields {
+        long[] worldSurface;
+        long[] motionBlocking;
+        int[] legacyHeightmap;
+    }
 
-        String status = chunkNbt.getString("Status");
+    public static ChunkInfo parseChunk(int localX, int localZ, byte[] nbtData, int worldHeightRange)
+            throws IOException {
+        try (NbtStream stream = new NbtStream(new ByteArrayInputStream(nbtData))) {
+            return parseChunk(localX, localZ, stream, worldHeightRange);
+        }
+    }
+
+    private static ChunkInfo parseChunk(int localX, int localZ, NbtStream stream, int worldHeightRange)
+            throws IOException {
+        byte rootType = stream.readTagType();
+        if (rootType != NbtStream.TAG_COMPOUND) {
+            throw new IOException("NBT文档必须以Compound开头，实际类型: " + rootType);
+        }
+        stream.readString();
+
+        String status = null;
+        int yPos = 0;
+        List<ChunkSectionParser.SectionData> topSections = new ArrayList<>();
+        List<ChunkSectionParser.SectionData> levelSections = new ArrayList<>();
+        boolean topHasSections = false;
+        boolean levelSeen = false;
+        HeightmapFields topHeightmaps = new HeightmapFields();
+        HeightmapFields levelHeightmaps = new HeightmapFields();
+
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "Status":
+                    if (type == NbtStream.TAG_STRING) {
+                        status = stream.readString();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "yPos":
+                    if (type == NbtStream.TAG_INT) {
+                        yPos = stream.readInt();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "sections":
+                    if (type == NbtStream.TAG_LIST) {
+                        topHasSections = true;
+                        readSections(stream, topSections);
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "Level":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        levelSeen = true;
+                        readLevelContent(stream, levelSections, levelHeightmaps);
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "Heightmaps":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        readHeightmapCompound(stream, topHeightmaps);
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "HeightMap":
+                    if (type == NbtStream.TAG_INT_ARRAY) {
+                        topHeightmaps.legacyHeightmap = stream.readIntArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
+            }
+        }
 
         if (shouldSkipChunk(status)) {
             return null;
         }
 
-        Tag.Compound rootTag;
-        if (chunkNbt.contains("sections", Tag.TAG_LIST)) {
-            rootTag = chunkNbt;
-        } else if (chunkNbt.contains("Level", Tag.TAG_COMPOUND)) {
+        int chunkBottomY = yPos * 16;
 
-            rootTag = chunkNbt.getCompound("Level");
+        List<ChunkSectionParser.SectionData> sections;
+        HeightmapFields heightmaps;
+        if (topHasSections) {
+            sections = topSections;
+            heightmaps = topHeightmaps;
+        } else if (levelSeen) {
+            sections = levelSections;
+            heightmaps = levelHeightmaps;
         } else {
             return null;
         }
 
-        int yPos = chunkNbt.getInt("yPos");
-        int chunkBottomY = yPos * 16;
-
-        int[][] heightmap = parseHeightmap(rootTag, chunkBottomY, worldHeightRange);
-
-        List<ChunkSectionParser.SectionData> sections = new ArrayList<>();
-        if (rootTag.contains("sections", Tag.TAG_LIST)) {
-            Tag.ListTag sectionsList = rootTag.getList("sections", Tag.TAG_COMPOUND);
-            for (int i = 0; i < sectionsList.items().size(); i++) {
-                Tag.Compound sectionTag = (Tag.Compound) sectionsList.items().get(i);
-                ChunkSectionParser.SectionData section = ChunkSectionParser.parseSection(sectionTag);
-                sections.add(section);
-            }
-        }
+        int[][] heightmap = parseHeightmap(heightmaps, chunkBottomY, worldHeightRange);
 
         sections.sort((a, b) -> Integer.compare(b.sectionY(), a.sectionY()));
 
@@ -100,41 +171,107 @@ public class ChunkDataParser {
         return new ChunkInfo(localX, localZ, yPos, chunkBottomY, status, heightmap, sections, minSectionY, sectionLookup, biomeGrid);
     }
 
-    private static int[][] parseHeightmap(Tag.Compound rootTag, int chunkBottomY, int worldHeightRange) {
+    private static void readSections(NbtStream stream, List<ChunkSectionParser.SectionData> sections)
+            throws IOException {
+        byte elementType = stream.readListElementType();
+        int length = stream.readListLength();
+        if (elementType != NbtStream.TAG_COMPOUND) {
+            for (int i = 0; i < length; i++) {
+                stream.skip(elementType);
+            }
+            return;
+        }
+        for (int i = 0; i < length; i++) {
+            sections.add(ChunkSectionParser.parseSection(stream));
+        }
+    }
+
+    private static void readLevelContent(NbtStream stream,
+                                         List<ChunkSectionParser.SectionData> sections,
+                                         HeightmapFields heightmaps) throws IOException {
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "sections":
+                    if (type == NbtStream.TAG_LIST) {
+                        readSections(stream, sections);
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "Heightmaps":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        readHeightmapCompound(stream, heightmaps);
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "HeightMap":
+                    if (type == NbtStream.TAG_INT_ARRAY) {
+                        heightmaps.legacyHeightmap = stream.readIntArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
+            }
+        }
+    }
+
+    private static void readHeightmapCompound(NbtStream stream, HeightmapFields heightmaps) throws IOException {
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "WORLD_SURFACE":
+                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                        heightmaps.worldSurface = stream.readLongArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "MOTION_BLOCKING_NO_LEAVES":
+                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                        heightmaps.motionBlocking = stream.readLongArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
+            }
+        }
+    }
+
+    private static int[][] parseHeightmap(HeightmapFields heightmaps, int chunkBottomY, int worldHeightRange) {
         int[][] heightmap = new int[16][16];
 
-        if (rootTag.contains("Heightmaps", Tag.TAG_COMPOUND)) {
-            Tag.Compound heightmaps = rootTag.getCompound("Heightmaps");
-
-            if (heightmaps.contains("WORLD_SURFACE", Tag.TAG_LONG_ARRAY)) {
-                long[] data = heightmaps.getLongArray("WORLD_SURFACE");
-                int bitsPerHeight = calculateBitsPerHeight(data.length, worldHeightRange);
-                if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
-                    decodeHeightmapLongArray(data, bitsPerHeight, chunkBottomY, heightmap);
-                    return heightmap;
-                }
-            }
-
-            if (heightmaps.contains("MOTION_BLOCKING_NO_LEAVES", Tag.TAG_LONG_ARRAY)) {
-                long[] data = heightmaps.getLongArray("MOTION_BLOCKING_NO_LEAVES");
-                int bitsPerHeight = calculateBitsPerHeight(data.length, worldHeightRange);
-                if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
-                    decodeHeightmapLongArray(data, bitsPerHeight, chunkBottomY, heightmap);
-                    return heightmap;
-                }
+        if (heightmaps.worldSurface != null) {
+            int bitsPerHeight = calculateBitsPerHeight(heightmaps.worldSurface.length, worldHeightRange);
+            if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
+                decodeHeightmapLongArray(heightmaps.worldSurface, bitsPerHeight, chunkBottomY, heightmap);
+                return heightmap;
             }
         }
 
-        if (rootTag.contains("HeightMap", Tag.TAG_INT_ARRAY)) {
-            int[] data = rootTag.getIntArray("HeightMap");
-            if (data.length == 256) {
-                for (int z = 0; z < 16; z++) {
-                    for (int x = 0; x < 16; x++) {
-                        heightmap[x][z] = data[z * 16 + x];
-                    }
-                }
+        if (heightmaps.motionBlocking != null) {
+            int bitsPerHeight = calculateBitsPerHeight(heightmaps.motionBlocking.length, worldHeightRange);
+            if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
+                decodeHeightmapLongArray(heightmaps.motionBlocking, bitsPerHeight, chunkBottomY, heightmap);
                 return heightmap;
             }
+        }
+
+        if (heightmaps.legacyHeightmap != null && heightmaps.legacyHeightmap.length == 256) {
+            int[] data = heightmaps.legacyHeightmap;
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
+                    heightmap[x][z] = data[z * 16 + x];
+                }
+            }
+            return heightmap;
         }
 
         return heightmap;

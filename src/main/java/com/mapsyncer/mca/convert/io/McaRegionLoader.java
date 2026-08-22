@@ -6,11 +6,9 @@ import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
-import com.mapsyncer.mca.RegionConverterStandalone;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-import com.mapsyncer.nbt.Tag;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,18 +99,20 @@ public final class McaRegionLoader {
 
         for (int localX = 0; localX < RegionConverterStandalone.CHUNKS_PER_REGION; localX++) {
             for (int localZ = 0; localZ < RegionConverterStandalone.CHUNKS_PER_REGION; localZ++) {
-                Tag.Compound nbt;
+                ChunkDataParser.ChunkInfo chunkInfo;
                 try {
-                    nbt = reader.readChunkNbt(localX, localZ);
+                    byte[] nbtData = reader.readChunkData(localX, localZ);
+                    chunkInfo = nbtData == null
+                            ? null
+                            : ChunkDataParser.parseChunk(localX, localZ, nbtData, worldHeightRange);
                 } catch (IOException e) {
                     LOGGER.warn("Failed to read chunk ({}, {}) from region file, skipping: {}",
                             localX, localZ, e.getMessage());
                     continue;
                 }
-                if (nbt == null) {
-                    continue;
+                if (chunkInfo != null) {
+                    grid[localX][localZ] = chunkInfo;
                 }
-                grid[localX][localZ] = ChunkDataParser.parseChunk(localX, localZ, nbt, worldHeightRange);
             }
         }
         return grid;

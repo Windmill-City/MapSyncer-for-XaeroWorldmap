@@ -1,6 +1,5 @@
 plugins {
     id 'net.minecraftforge.gradle' version '[6.0.24,6.2)'
-    id 'com.gradleup.shadow' version '8.3.5'
     id 'maven-publish'
 }
 
@@ -44,7 +43,6 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_1201_version}-${forge_1201_version}"
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
-    implementation 'org.lz4:lz4-java:1.8.0'
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -59,29 +57,6 @@ processResources {
         expand "version": project.version,
                 "minecraft_range_forge": g1_minecraft_range_forge
     }
-}
-
-apply from: rootProject.file('gradle/lz4-relocate.gradle')
-
-configurations {
-
-    bundle
-}
-
-dependencies {
-    bundle 'org.lz4:lz4-java:1.8.0'
-}
-
-shadowJar {
-    archiveClassifier.set('')
-    configurations = [project.configurations.bundle]
-    configureLz4Shadow(it)
-    configureLz4ShadowExcludes(it)
-}
-
-tasks.named('jar') {
-    archiveClassifier.set('slim')
-    dependsOn shadowJar
 }
 
 tasks.named('jarJar') {

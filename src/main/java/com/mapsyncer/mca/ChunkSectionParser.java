@@ -1,7 +1,6 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.nbt.Tag;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -109,60 +108,74 @@ public class ChunkSectionParser {
 
     }
 
-    public static SectionData parseSection(Tag.Compound sectionTag) {
-        int sectionY = sectionTag.getByte("Y");
+    private record BlockData(List<BlockState> palette, List<String> names, long[] data) {}
 
+    private record BiomeData(List<String> palette, long[] data) {}
+
+    static SectionData parseSection(NbtStream stream) throws IOException {
+        int sectionY = 0;
         List<BlockState> blockPalette = new ArrayList<>();
         List<String> blockNames = new ArrayList<>();
         long[] blockData = null;
-        int blockBitsPerEntry = 0;
-
-        if (sectionTag.contains("block_states", Tag.TAG_COMPOUND)) {
-            Tag.Compound blockStates = sectionTag.getCompound("block_states");
-
-            if (blockStates.contains("palette", Tag.TAG_LIST)) {
-                Tag.ListTag paletteList = blockStates.getList("palette", Tag.TAG_COMPOUND);
-                for (int i = 0; i < paletteList.items().size(); i++) {
-                    Tag.Compound stateTag = (Tag.Compound) paletteList.items().get(i);
-                    BlockState blockState = parseBlockState(stateTag);
-                    blockPalette.add(blockState);
-                    blockNames.add(blockState.name());
-                }
-            }
-
-            if (blockStates.contains("data", Tag.TAG_LONG_ARRAY)) {
-                blockData = blockStates.getLongArray("data");
-            }
-
-            blockBitsPerEntry = calculateBitsPerEntry(blockPalette.size(), blockData);
-        }
-
         List<String> biomePalette = new ArrayList<>();
         long[] biomeData = null;
-        int biomeBitsPerEntry = 0;
+        byte[] rawBlockLight = null;
+        byte[] rawSkyLight = null;
 
-        if (sectionTag.contains("biomes", Tag.TAG_COMPOUND)) {
-            Tag.Compound biomes = sectionTag.getCompound("biomes");
-
-            if (biomes.contains("palette", Tag.TAG_LIST)) {
-                Tag.ListTag paletteList = biomes.getList("palette", Tag.TAG_STRING);
-                for (int i = 0; i < paletteList.items().size(); i++) {
-                    Tag.StringTag biomeTag = (Tag.StringTag) paletteList.items().get(i);
-                    biomePalette.add(biomeTag.value());
-                }
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "Y":
+                    if (type == NbtStream.TAG_BYTE) {
+                        sectionY = stream.readByte();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "block_states":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        BlockData blockStates = readBlockStates(stream);
+                        blockPalette = blockStates.palette;
+                        blockNames = blockStates.names;
+                        blockData = blockStates.data;
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "biomes":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        BiomeData biomes = readBiomes(stream);
+                        biomePalette = biomes.palette;
+                        biomeData = biomes.data;
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "BlockLight":
+                    if (type == NbtStream.TAG_BYTE_ARRAY) {
+                        rawBlockLight = stream.readByteArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "SkyLight":
+                    if (type == NbtStream.TAG_BYTE_ARRAY) {
+                        rawSkyLight = stream.readByteArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
             }
-
-            if (biomes.contains("data", Tag.TAG_LONG_ARRAY)) {
-                biomeData = biomes.getLongArray("data");
-            }
-
-            biomeBitsPerEntry = calculateBiomeBitsPerEntry(biomePalette.size(), biomeData);
         }
+
+        int blockBitsPerEntry = calculateBitsPerEntry(blockPalette.size(), blockData);
+        int biomeBitsPerEntry = calculateBiomeBitsPerEntry(biomePalette.size(), biomeData);
 
         byte[] decodedBlockLight = null;
         byte[] decodedSkyLight = null;
-        byte[] rawBlockLight = sectionTag.getByteArray("BlockLight");
-        byte[] rawSkyLight = sectionTag.getByteArray("SkyLight");
         if (rawBlockLight != null && rawBlockLight.length == 2048) {
             decodedBlockLight = new byte[4096];
             for (int i = 0; i < 2048; i++) {
@@ -197,31 +210,128 @@ public class ChunkSectionParser {
         );
     }
 
-    private static BlockState parseBlockState(Tag.Compound stateTag) {
-        String name = stateTag.getString("Name");
+    private static BlockData readBlockStates(NbtStream stream) throws IOException {
+        List<BlockState> palette = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        long[] data = null;
 
-        if (!stateTag.contains("Properties", Tag.TAG_COMPOUND)) {
-            return new BlockState(name, BlockState.EMPTY_PROPERTIES);
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "palette":
+                    if (type == NbtStream.TAG_LIST) {
+                        byte elementType = stream.readListElementType();
+                        int length = stream.readListLength();
+                        if (elementType == NbtStream.TAG_COMPOUND) {
+                            for (int i = 0; i < length; i++) {
+                                BlockState blockState = parseBlockState(stream);
+                                palette.add(blockState);
+                                names.add(blockState.name());
+                            }
+                        } else {
+                            for (int i = 0; i < length; i++) {
+                                stream.skip(elementType);
+                            }
+                        }
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "data":
+                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                        data = stream.readLongArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
+            }
         }
+        return new BlockData(palette, names, data);
+    }
 
-        Tag.Compound propsTag = stateTag.getCompound("Properties");
-        if (propsTag.children().isEmpty()) {
-            return new BlockState(name, BlockState.EMPTY_PROPERTIES);
+    private static BiomeData readBiomes(NbtStream stream) throws IOException {
+        List<String> palette = new ArrayList<>();
+        long[] data = null;
+
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "palette":
+                    if (type == NbtStream.TAG_LIST) {
+                        byte elementType = stream.readListElementType();
+                        int length = stream.readListLength();
+                        if (elementType == NbtStream.TAG_STRING) {
+                            for (int i = 0; i < length; i++) {
+                                palette.add(stream.readString());
+                            }
+                        } else {
+                            for (int i = 0; i < length; i++) {
+                                stream.skip(elementType);
+                            }
+                        }
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "data":
+                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                        data = stream.readLongArray();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
+            }
         }
+        return new BiomeData(palette, data);
+    }
 
-        Map<String, String> properties = new LinkedHashMap<>();
-        for (Map.Entry<String, Tag> entry : propsTag.children().entrySet()) {
-            Tag propTag = entry.getValue();
-            if (propTag instanceof Tag.StringTag str) {
-                properties.put(entry.getKey(), str.value());
+    private static BlockState parseBlockState(NbtStream stream) throws IOException {
+        String name = null;
+        Map<String, String> properties = null;
+
+        byte type;
+        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+            String key = stream.readString();
+            switch (key) {
+                case "Name":
+                    if (type == NbtStream.TAG_STRING) {
+                        name = stream.readString();
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                case "Properties":
+                    if (type == NbtStream.TAG_COMPOUND) {
+                        Map<String, String> props = new LinkedHashMap<>();
+                        byte pt;
+                        while ((pt = stream.readTagType()) != NbtStream.TAG_END) {
+                            String propKey = stream.readString();
+                            if (pt == NbtStream.TAG_STRING) {
+                                props.put(propKey, stream.readString());
+                            } else {
+                                stream.skip(pt);
+                            }
+                        }
+                        properties = props;
+                    } else {
+                        stream.skip(type);
+                    }
+                    break;
+                default:
+                    stream.skip(type);
             }
         }
 
-        if (properties.isEmpty()) {
-            return new BlockState(name, BlockState.EMPTY_PROPERTIES);
-        }
-
-        return new BlockState(name, properties);
+        return new BlockState(
+            name == null ? "" : name,
+            properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties
+        );
     }
 
     private static int calculateBitsPerEntry(int paletteSize, long[] data) {
