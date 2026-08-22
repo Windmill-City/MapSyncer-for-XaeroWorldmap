@@ -38,6 +38,13 @@ public final class XaeroReflectionHelper {
     private static Object cachedMapProcessor;
     private static Object cachedMapSaveLoad;
 
+    private static volatile boolean configReflectionInitialized = false;
+    private static Field worldMapInstanceField;
+    private static Field differentiateByServerAddressField;
+    private static Method getConfigsMethod;
+    private static Method getPrimaryClientConfigManagerMethod;
+    private static Method getEffectiveMethod;
+
     private XaeroReflectionHelper() {}
 
     public static boolean initialize() {
@@ -318,6 +325,56 @@ public final class XaeroReflectionHelper {
 
     public static boolean isInitialized() {
         return initialized;
+    }
+
+    public static Boolean getDifferentiateByServerAddress() {
+        if (!initConfigReflection()) {
+            return null;
+        }
+        try {
+            Object worldMap = worldMapInstanceField.get(null);
+            if (worldMap == null) {
+                return null;
+            }
+            Object configChannel = getConfigsMethod.invoke(worldMap);
+            if (configChannel == null) {
+                return null;
+            }
+            Object primaryClientConfigManager = getPrimaryClientConfigManagerMethod.invoke(configChannel);
+            if (primaryClientConfigManager == null) {
+                return null;
+            }
+            Object option = differentiateByServerAddressField.get(null);
+            Object value = getEffectiveMethod.invoke(primaryClientConfigManager, option);
+            return (Boolean) value;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to read Xaero differentiate_by_server_address via reflection", e);
+            return null;
+        }
+    }
+
+    private static synchronized boolean initConfigReflection() {
+        if (configReflectionInitialized) {
+            return true;
+        }
+        try {
+            Class<?> worldMapClass = Class.forName("xaero.map.WorldMap");
+            worldMapInstanceField = worldMapClass.getField("INSTANCE");
+            getConfigsMethod = worldMapClass.getMethod("getConfigs");
+            Class<?> configChannelClass = Class.forName("xaero.lib.common.config.channel.ConfigChannel");
+            getPrimaryClientConfigManagerMethod = configChannelClass.getMethod("getPrimaryClientConfigManager");
+            Class<?> singleConfigManagerClass = Class.forName("xaero.lib.common.config.single.SingleConfigManager");
+            Class<?> configOptionClass = Class.forName("xaero.lib.common.config.option.ConfigOption");
+            getEffectiveMethod = singleConfigManagerClass.getMethod("getEffective", configOptionClass);
+            Class<?> optionsClass = Class.forName("xaero.map.config.primary.option.WorldMapPrimaryClientConfigOptions");
+            differentiateByServerAddressField = optionsClass.getField("DIFFERENTIATE_BY_SERVER_ADDRESS");
+            configReflectionInitialized = true;
+            LOGGER.info("Xaero config reflection initialized");
+            return true;
+        } catch (Exception e) {
+            LOGGER.warn("Xaero config reflection unavailable", e);
+            return false;
+        }
     }
 
     public static void clearCache() {
