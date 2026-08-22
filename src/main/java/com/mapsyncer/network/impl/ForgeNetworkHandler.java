@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 
 public class ForgeNetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "4";
+    private static final String PROTOCOL_VERSION = "2";
     private static SimpleChannel CHANNEL;
 
     private static volatile ForgeNetworkHandler INSTANCE;
