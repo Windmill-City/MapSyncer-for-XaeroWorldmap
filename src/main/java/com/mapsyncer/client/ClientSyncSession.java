@@ -89,6 +89,12 @@ public final class ClientSyncSession {
         outcome = SyncOutcome.NONE;
     }
 
+    public void touch() {
+        if (phase == SyncPhase.RECEIVING) {
+            startedAt = System.currentTimeMillis();
+        }
+    }
+
     public void markReflectionFailed() {
         reflectionFailed = true;
         if (outcome == SyncOutcome.NONE || outcome == SyncOutcome.SUCCESS) {

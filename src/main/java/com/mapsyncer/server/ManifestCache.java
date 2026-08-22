@@ -22,6 +22,8 @@ public class ManifestCache {
 
     private volatile Map<String, Long> manifest = Map.of();
 
+    private volatile Map<String, Path> zipPaths = Map.of();
+
     private volatile Path builtCacheDir;
 
     private volatile boolean valid = false;
@@ -67,6 +69,7 @@ public class ManifestCache {
 
     private void rebuild(Path absCacheDir, DimensionPathMapping dimMapping, GenerationCache genCache) {
         Map<String, Long> rebuilt = new HashMap<>();
+        Map<String, Path> rebuiltPaths = new HashMap<>();
         try (Stream<Path> stream = Files.walk(absCacheDir)) {
             stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
                 String normalizedPath = ServerSyncHandlerLogic.toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
@@ -77,19 +80,30 @@ public class ManifestCache {
                 ClientMeta meta = genCache.getMeta(normalizedPath);
                 long timestamp = meta != null ? meta.timestampSeconds() : System.currentTimeMillis() / 1000;
                 rebuilt.put(normalizedPath, timestamp);
+                rebuiltPaths.put(normalizedPath, zipPath);
             });
         } catch (IOException e) {
             LOGGER.error("Failed to walk cache directory while building manifest", e);
         }
         builtCacheDir = absCacheDir;
         manifest = rebuilt;
+        zipPaths = rebuiltPaths;
         valid = true;
         LOGGER.info("Manifest cache built for {} with {} entries", absCacheDir, rebuilt.size());
+    }
+
+    public Path resolveZipPath(String normalizedPath) {
+        return zipPaths.get(normalizedPath);
+    }
+
+    public Long getTimestamp(String normalizedPath) {
+        return manifest.get(normalizedPath);
     }
 
     public void invalidate() {
         valid = false;
         manifest = Map.of();
+        zipPaths = Map.of();
         builtCacheDir = null;
         LOGGER.debug("ManifestCache invalidated");
     }

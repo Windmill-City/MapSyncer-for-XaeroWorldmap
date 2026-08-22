@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,8 +79,6 @@ public class MapPacketHandler {
 
     private static volatile Path lastMwDir = null;
 
-    private static final long SYNC_COMPLETE_DEBOUNCE_MS = 500;
-
     private static volatile long lastSyncCompleteTs = 0;
 
     private static volatile int lastProgressProcessed = -1;
@@ -103,8 +103,6 @@ public class MapPacketHandler {
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
     private static volatile boolean syncFinishRequested = false;
-    private static volatile int syncFinishGeneration = -1;
-    private static volatile ClientSyncSession.SyncOutcome syncFinishOutcome = ClientSyncSession.SyncOutcome.NONE;
     private static volatile ClientTimestampCache syncFinishTsCache = null;
 
     private static final AtomicInteger pendingWriteApplyCallbacks = new AtomicInteger(0);
@@ -117,6 +115,16 @@ public class MapPacketHandler {
     private static final Map<Integer, SyncManifestPayload> manifestParts = new ConcurrentHashMap<>();
     private static volatile int manifestTotalParts = 0;
     private static volatile long manifestFirstPartArrivedMs = 0;
+
+    private static final ConcurrentLinkedQueue<String> pendingRegionPaths = new ConcurrentLinkedQueue<>();
+
+    private static volatile boolean regionRequestInFlight = false;
+
+    private static volatile int syncTotal = 0;
+
+    private static volatile int syncProcessed = 0;
+
+    private static volatile int syncFailed = 0;
 
     public static void startManifestRequest(boolean syncAll, String targetDim, boolean silent) {
         pendingSyncAll = syncAll;
@@ -216,13 +224,16 @@ public class MapPacketHandler {
         pendingRegionLoads.clear();
         lastMwDir = null;
         syncFinishRequested = false;
-        syncFinishGeneration = -1;
-        syncFinishOutcome = ClientSyncSession.SyncOutcome.NONE;
         syncFinishTsCache = null;
         pendingWriteApplyCallbacks.set(0);
         manifestParts.clear();
         manifestTotalParts = 0;
         manifestFirstPartArrivedMs = 0;
+        pendingRegionPaths.clear();
+        regionRequestInFlight = false;
+        syncTotal = 0;
+        syncProcessed = 0;
+        syncFailed = 0;
         LOGGER.info("Cleared sync data to prevent memory leak");
     }
 
@@ -336,24 +347,6 @@ public class MapPacketHandler {
 
             LOGGER.debug("Received sync response: status={}, chunks={}, isComplete={}", status, chunks.size(), payload.isComplete());
 
-            boolean receiving = session.phase() == ClientSyncSession.SyncPhase.RECEIVING;
-
-            if (("ok".equals(status) || "partial".equals(status)) && !payload.isComplete() && !receiving) {
-                long elapsed = System.currentTimeMillis() - lastSyncCompleteTs;
-                if (elapsed < SYNC_COMPLETE_DEBOUNCE_MS) {
-                    LOGGER.debug("Debouncing duplicate sync packet ({}ms after complete)", elapsed);
-                    return;
-                }
-            }
-
-            if (payload.isComplete() && session.phase() == ClientSyncSession.SyncPhase.IDLE) {
-                long elapsed = System.currentTimeMillis() - lastSyncCompleteTs;
-                if (elapsed < SYNC_COMPLETE_DEBOUNCE_MS) {
-                    LOGGER.debug("Debouncing duplicate completion packet ({}ms after complete)", elapsed);
-                    return;
-                }
-            }
-
             Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
             ClientTimestampCache tsCache = serverDir != null && serverDir.toFile().exists()
                     ? ClientTimestampCache.getInstance(serverDir) : null;
@@ -402,7 +395,7 @@ public class MapPacketHandler {
 
             if (session.phase() == ClientSyncSession.SyncPhase.IDLE || session.phase() == ClientSyncSession.SyncPhase.DRAINING_RELOAD) {
                 session.beginReceiving();
-                LOGGER.info("Starting sync (streaming mode)");
+                LOGGER.info("Starting sync (per-region pull mode)");
                 if (!initializeReflectionCache()) {
                     session.markReflectionFailed();
                     if (Minecraft.getInstance().player != null) {
@@ -494,20 +487,17 @@ public class MapPacketHandler {
             }
 
             if (payload.isComplete()) {
-                requestSyncFinish(generationAtEnqueue, serverOutcome, tsCache);
-            }
-            if (submittedCount.get() == 0) {
-                tryCompleteSync(generationAtEnqueue);
+                session.touch();
+                regionRequestInFlight = false;
+                syncProcessed++;
+                if (submittedCount.get() == 0) {
+                    syncFailed++;
+                }
+                SyncProgressTracker.update(syncProcessed, syncTotal,
+                        String.format("Syncing regions %d/%d", syncProcessed, syncTotal));
+                requestNextRegion(generationAtEnqueue);
             }
         });
-    }
-
-    private static void requestSyncFinish(int generation, ClientSyncSession.SyncOutcome serverOutcome, ClientTimestampCache tsCache) {
-        syncFinishRequested = true;
-        syncFinishGeneration = generation;
-        syncFinishOutcome = serverOutcome;
-        syncFinishTsCache = tsCache;
-        tryCompleteSync(generation);
     }
 
     private static void tryCompleteSync(int generation) {
@@ -520,7 +510,6 @@ public class MapPacketHandler {
         }
 
         syncFinishRequested = false;
-        ClientSyncSession.SyncOutcome serverOutcome = syncFinishOutcome;
         ClientTimestampCache tsCache = syncFinishTsCache;
 
         int totalReceived = updatedRegionCoords.size();
@@ -528,7 +517,7 @@ public class MapPacketHandler {
 
         lastSyncCompleteTs = System.currentTimeMillis();
 
-        ClientSyncSession.SyncOutcome finalOutcome = serverOutcome == ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS || session.reflectionFailed()
+        ClientSyncSession.SyncOutcome finalOutcome = syncFailed > 0 || session.reflectionFailed()
                 ? ClientSyncSession.SyncOutcome.PARTIAL_SUCCESS
                 : ClientSyncSession.SyncOutcome.SUCCESS;
         session.setOutcome(finalOutcome);
@@ -679,13 +668,64 @@ public class MapPacketHandler {
                     return;
                 }
 
-                LOGGER.debug("Sending diff request with {} regions", diff.size());
-                SyncRequestPayload[] parts = SyncRequestPayload.split(diff, false, pendingTargetDim, pendingSilent);
-                for (SyncRequestPayload part : parts) {
-                    NetworkManager.sendToServer(part);
-                }
+                Minecraft mc2 = Minecraft.getInstance();
+                int playerBlockX = mc2.player != null ? mc2.player.getBlockX() : 0;
+                int playerBlockZ = mc2.player != null ? mc2.player.getBlockZ() : 0;
+                List<String> ordered = orderByViewDistance(diff.keySet(), playerBlockX, playerBlockZ);
+
+                pendingRegionPaths.clear();
+                pendingRegionPaths.addAll(ordered);
+                syncTotal = ordered.size();
+                syncProcessed = 0;
+                syncFailed = 0;
+                regionRequestInFlight = false;
+                LOGGER.debug("Starting per-region pull for {} regions", syncTotal);
+                SyncProgressTracker.update(0, syncTotal, "Sync started");
+                requestNextRegion(generation);
             });
         });
+    }
+
+    private static List<String> orderByViewDistance(Set<String> paths, int playerBlockX, int playerBlockZ) {
+        int playerRegionX = playerBlockX >> 9;
+        int playerRegionZ = playerBlockZ >> 9;
+        List<String> list = new ArrayList<>(paths);
+        list.sort(Comparator.comparingInt(path -> regionDistance(path, playerRegionX, playerRegionZ)));
+        return list;
+    }
+
+    private static int regionDistance(String path, int playerRegionX, int playerRegionZ) {
+        try {
+            String[] parts = path.split("[/\\\\]");
+            String fileName = parts[parts.length - 1];
+            String[] coords = fileName.split("_");
+            int rx = Integer.parseInt(coords[0]);
+            int rz = Integer.parseInt(coords[1]);
+            return Math.max(Math.abs(rx - playerRegionX), Math.abs(rz - playerRegionZ));
+        } catch (Exception e) {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    private static void requestNextRegion(int generation) {
+        if (!session.isCurrent(generation)) return;
+        if (regionRequestInFlight) return;
+
+        String path = pendingRegionPaths.poll();
+        if (path == null) {
+            Path serverDir2 = XaeroMapIntegrator.getCurrentServerDirectory();
+            syncFinishTsCache = (serverDir2 != null && serverDir2.toFile().exists())
+                    ? ClientTimestampCache.getInstance(serverDir2) : null;
+            syncFinishRequested = true;
+            tryCompleteSync(generation);
+            return;
+        }
+
+        regionRequestInFlight = true;
+        Map<String, ClientMeta> single = new HashMap<>();
+        single.put(path, new ClientMeta(0, HashUtils.DEFAULT_HASH));
+        NetworkManager.sendToServer(new SyncRequestPayload(single, false, pendingTargetDim, pendingSilent));
+        LOGGER.debug("Requesting region: {}", path);
     }
 
     private static void handleSyncManifest(SyncManifestPayload payload, PayloadContext context) {
