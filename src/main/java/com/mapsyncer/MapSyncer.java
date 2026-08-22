@@ -43,8 +43,8 @@ public class MapSyncer {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
-        DimensionPathMapping.getInstance().initialize(20);
-        LOGGER.info("DimensionPathMapping initialized for version 1.20.X");
+        DimensionPathMapping.getInstance().initialize();
+        LOGGER.info("DimensionPathMapping initialized for version 1.20.1 (legacy format)");
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
         ModLoadingContext.get().registerConfig(Type.CLIENT, ModConfig.CLIENT_SPEC);

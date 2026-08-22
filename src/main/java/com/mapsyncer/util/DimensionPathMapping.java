@@ -15,13 +15,7 @@ public class DimensionPathMapping {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DimensionPathMapping.class);
 
-    private static final int NEW_FORMAT_MIN_VERSION = 26;
-
     private static volatile DimensionPathMapping instance;
-
-    private int majorVersion = 21;
-
-    private boolean useNewFormatForVanilla = false;
 
     private final Map<String, String> pathToFolder = new ConcurrentHashMap<>();
 
@@ -46,18 +40,13 @@ public class DimensionPathMapping {
 
         pathToXaero.putAll(VANILLA_XAERO_MAPPINGS);
 
-        LOGGER.info("DimensionPathMapping initialized (version: {}, new format: {})",
-                majorVersion, useNewFormatForVanilla);
+        LOGGER.info("DimensionPathMapping initialized (1.20.1 legacy format)");
     }
 
-    public void initialize(int majorVersion) {
-        this.majorVersion = majorVersion;
-        this.useNewFormatForVanilla = majorVersion >= NEW_FORMAT_MIN_VERSION;
-
+    public void initialize() {
         pathToFolder.clear();
 
-        LOGGER.info("DimensionPathMapping version set to: {}, use new format for vanilla: {}",
-                majorVersion, useNewFormatForVanilla);
+        LOGGER.info("DimensionPathMapping reinitialized (1.20.1 legacy format)");
     }
 
     public static DimensionPathMapping getInstance() {
@@ -93,19 +82,7 @@ public class DimensionPathMapping {
             }
         }
 
-        if (useNewFormatForVanilla) {
-            String newFormatFolder = buildNewFormatPath(normalized);
-            if (newFormatFolder != null) {
-                Path regionDir = resolveRegionDir(worldRoot, newFormatFolder);
-                if (Files.exists(regionDir)) {
-                    LOGGER.info("Detected dimension {} (26.1+ new format): {}", normalized, newFormatFolder);
-                    pathToFolder.put(normalized, newFormatFolder);
-                    return regionDir;
-                }
-            }
-        }
-
-        if (!useNewFormatForVanilla && isVanillaDimension(normalized)) {
+        if (isVanillaDimension(normalized)) {
             String legacyFolder = VANILLA_LEGACY_FORMAT.get(normalized);
             if (legacyFolder != null) {
                 Path regionDir = resolveRegionDir(worldRoot, legacyFolder);
@@ -118,12 +95,12 @@ public class DimensionPathMapping {
         }
 
         if (normalized.contains(":")) {
-            String newFormatFolder = buildNewFormatPath(normalized);
-            if (newFormatFolder != null) {
-                Path regionDir = resolveRegionDir(worldRoot, newFormatFolder);
+            String modDimensionFolder = buildModDimensionPath(normalized);
+            if (modDimensionFolder != null) {
+                Path regionDir = resolveRegionDir(worldRoot, modDimensionFolder);
                 if (Files.exists(regionDir)) {
-                    LOGGER.info("Detected Mod dimension {} (new format): {}", normalized, newFormatFolder);
-                    pathToFolder.put(normalized, newFormatFolder);
+                    LOGGER.info("Detected Mod dimension {}: {}", normalized, modDimensionFolder);
+                    pathToFolder.put(normalized, modDimensionFolder);
                     return regionDir;
                 }
             }
@@ -133,16 +110,10 @@ public class DimensionPathMapping {
         return null;
     }
 
-    private String buildNewFormatPath(String normalized) {
-        if (normalized.contains(":")) {
-            String[] parts = normalized.split(":");
-            if (parts.length == 2) {
-                return "dimensions/" + parts[0] + "/" + parts[1];
-            }
-        }
-
-        if (!normalized.isEmpty()) {
-            return "dimensions/minecraft/" + normalized;
+    private String buildModDimensionPath(String normalized) {
+        String[] parts = normalized.split(":", 2);
+        if (parts.length == 2) {
+            return "dimensions/" + parts[0] + "/" + parts[1];
         }
         return null;
     }
@@ -302,8 +273,8 @@ public class DimensionPathMapping {
                         .forEach(namespaceDir -> {
                             String namespace = namespaceDir.getFileName().toString();
 
-                            if ("minecraft".equals(namespace) && !useNewFormatForVanilla) {
-                                LOGGER.debug("Skipping minecraft namespace in dimensions/ (1.21.X vanilla dims use traditional format)");
+                            if ("minecraft".equals(namespace)) {
+                                LOGGER.debug("Skipping minecraft namespace in dimensions/ (vanilla dims use traditional format)");
                                 return;
                             }
 
@@ -328,30 +299,28 @@ public class DimensionPathMapping {
                 }
             }
 
-            if (!useNewFormatForVanilla) {
-                try (Stream<Path> rootStream = Files.list(worldRoot)) {
-                    rootStream.filter(Files::isDirectory)
-                        .forEach(dir -> {
-                            String dirName = dir.getFileName().toString();
-                            if (dirName.startsWith("DIM") || dirName.startsWith("DIM-")) {
+            try (Stream<Path> rootStream = Files.list(worldRoot)) {
+                rootStream.filter(Files::isDirectory)
+                    .forEach(dir -> {
+                        String dirName = dir.getFileName().toString();
+                        if (dirName.startsWith("DIM") || dirName.startsWith("DIM-")) {
 
-                                if ("DIM-1".equals(dirName) || "DIM1".equals(dirName)) {
-                                    return;
-                                }
-                                Path regionDir = dir.resolve("region");
-                                if (Files.exists(regionDir)) {
-
-                                    LOGGER.info("Found unknown DIM directory: {} (cannot determine dimension ID)", dirName);
-                                }
+                            if ("DIM-1".equals(dirName) || "DIM1".equals(dirName)) {
+                                return;
                             }
-                        });
-                }
+                            Path regionDir = dir.resolve("region");
+                            if (Files.exists(regionDir)) {
 
-                Path overworldRegion = worldRoot.resolve("region");
-                if (Files.exists(overworldRegion)) {
-                    pathToFolder.put("overworld", ".");
-                    LOGGER.info("Confirmed overworld using legacy format: region/");
-                }
+                                LOGGER.info("Found unknown DIM directory: {} (cannot determine dimension ID)", dirName);
+                            }
+                        }
+                    });
+            }
+
+            Path overworldRegion = worldRoot.resolve("region");
+            if (Files.exists(overworldRegion)) {
+                pathToFolder.put("overworld", ".");
+                LOGGER.info("Confirmed overworld using legacy format: region/");
             }
 
         } catch (IOException e) {
