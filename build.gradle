@@ -72,12 +72,11 @@ tasks.named('jarJar') {
 }
 
 tasks.register('collectJars', Copy) {
-    description = '将所有构建产物 JAR 收集到 output 目录'
     group = 'distribution'
     into layout.projectDirectory.dir('output')
     from(layout.buildDirectory.dir('libs')) {
         include '*.jar'
-        exclude '*-slim.jar', '*-sources.jar', '*-javadoc.jar'
+        exclude '*-sources.jar', '*-javadoc.jar'
     }
     outputs.upToDateWhen { false }
 }
