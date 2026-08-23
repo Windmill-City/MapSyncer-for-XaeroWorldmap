@@ -18,7 +18,7 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
-public final class ForgeNetworkHandler {
+public final class NetworkHandler {
 
     private static final String PROTOCOL_VERSION = "4";
     private static @Nullable SimpleChannel CHANNEL;
@@ -42,21 +42,21 @@ public final class ForgeNetworkHandler {
                 ForgeSyncRequestMessage.class,
                 ForgeSyncRequestMessage::encode,
                 ForgeSyncRequestMessage::decode,
-                ForgeNetworkHandler::handleSyncRequest);
+                NetworkHandler::handleSyncRequest);
 
         channel.registerMessage(
                 1,
                 ForgeSyncResponseMessage.class,
                 ForgeSyncResponseMessage::encode,
                 ForgeSyncResponseMessage::decode,
-                ForgeNetworkHandler::handleSyncResponse);
+                NetworkHandler::handleSyncResponse);
 
         channel.registerMessage(
                 2,
                 ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
                 ForgeSyncManifestMessage::decode,
-                ForgeNetworkHandler::handleSyncManifest);
+                NetworkHandler::handleSyncManifest);
     }
 
     private static void handleSyncRequest(ForgeSyncRequestMessage msg, Supplier<NetworkEvent.Context> ctx) {

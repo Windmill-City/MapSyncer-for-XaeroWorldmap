@@ -3,7 +3,7 @@ package com.mapsyncer;
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.network.impl.ForgeNetworkHandler;
+import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.DimensionRegistry;
@@ -42,7 +42,7 @@ public class MapSyncer {
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
 
-        ForgeNetworkHandler.init();
+        NetworkHandler.init();
         LOGGER.info("NetworkHandler initialized");
 
         if (FMLEnvironment.dist == Dist.CLIENT) {

@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.impl.ForgeNetworkHandler;
+import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
@@ -61,8 +61,8 @@ public class MapPacketHandler {
     private static final AtomicInteger requestCounter = new AtomicInteger(0);
 
     public static void init() {
-        ForgeNetworkHandler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
-        ForgeNetworkHandler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
+        NetworkHandler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
+        NetworkHandler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
     }
 
     public static void prepareJoinSync() {
@@ -133,7 +133,7 @@ public class MapPacketHandler {
 
     private static void handleSyncManifest(SyncManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        ForgeNetworkHandler.enqueueWork(context, () -> {
+        NetworkHandler.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
                 return;
@@ -318,7 +318,7 @@ public class MapPacketHandler {
 
     private static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        ForgeNetworkHandler.enqueueWork(context, () -> {
+        NetworkHandler.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync response after disconnect/clear");
                 return;
@@ -457,7 +457,7 @@ public class MapPacketHandler {
         regionRequestInFlight = true;
         Map<String, RegionMeta> single = new HashMap<>();
         single.put(path, new RegionMeta(0));
-        ForgeNetworkHandler.sendToServer(new SyncRequestPayload(single));
+        NetworkHandler.sendToServer(new SyncRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",

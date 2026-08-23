@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.network.impl.ForgeNetworkHandler;
+import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
@@ -43,8 +43,8 @@ public class ServerSyncHandlerLogic {
             int caveLayer) {}
 
     public static void init() {
-        ForgeNetworkHandler.registerSyncRequestHandler((payload, context) ->
-                ForgeNetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
+        NetworkHandler.registerSyncRequestHandler((payload, context) ->
+                NetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
     }
 
     public static void pushManifestOnJoin(ServerPlayer player) {
@@ -73,11 +73,11 @@ public class ServerSyncHandlerLogic {
 
     private static void pushNoCacheManifest(ServerPlayer player) {
         int worldId = readWorldIdFromXaeroMap(player);
-        ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
     }
 
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
-        Player player = ForgeNetworkHandler.getPlayerFromContext(context);
+        Player player = NetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;
 
         Map<String, RegionMeta> regionMeta = payload.regionMeta();
@@ -90,7 +90,7 @@ public class ServerSyncHandlerLogic {
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         if (!Files.exists(cacheDir)) {
             int worldId = readWorldIdFromXaeroMap(serverPlayer);
-            ForgeNetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+            NetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
 
@@ -109,7 +109,7 @@ public class ServerSyncHandlerLogic {
         Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
 
         if (manifest.isEmpty()) {
-            ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+            NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
 

@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.impl.ForgeNetworkHandler;
+import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -268,7 +268,7 @@ public final class SyncTransferScheduler {
                 player.getName().getString(),
                 part.timestamps().size());
         try {
-            ForgeNetworkHandler.sendToPlayer(player, part);
+            NetworkHandler.sendToPlayer(player, part);
         } catch (Exception e) {
             LOGGER.warn("Failed to send manifest part to {}, dropping transfer", q.playerId);
             queues.remove(q.playerId);
@@ -295,7 +295,7 @@ public final class SyncTransferScheduler {
                 q.responses.size(),
                 queuedParts);
         try {
-            ForgeNetworkHandler.sendToPlayer(player, new SyncResponsePayload(parts, complete, worldId, status));
+            NetworkHandler.sendToPlayer(player, new SyncResponsePayload(parts, complete, worldId, status));
         } catch (Exception e) {
             LOGGER.warn("Failed to send sync response to {}, dropping transfer", q.playerId);
             queues.remove(q.playerId);
