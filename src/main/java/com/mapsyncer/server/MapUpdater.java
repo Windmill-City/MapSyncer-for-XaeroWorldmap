@@ -1,15 +1,18 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.annotation.Nullable;
-import net.minecraft.server.MinecraftServer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
+
+import net.minecraft.server.MinecraftServer;
 
 public class MapUpdater {
 
@@ -17,7 +20,7 @@ public class MapUpdater {
 
     private static final MapUpdater INSTANCE = new MapUpdater();
 
-    private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     private volatile @Nullable ExecutorService updateExecutor = null;
 
@@ -26,36 +29,32 @@ public class MapUpdater {
     }
 
     public void onPlayerLoggedOut(MinecraftServer server) {
-        if (server.isStopped()) return;
+        if (server.isStopped())
+            return;
 
-        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY) return;
+        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY)
+            return;
 
         server.execute(() -> checkAndScan(server));
     }
 
     private void checkAndScan(MinecraftServer server) {
-        if (updateInProgress.get()) return;
+        if (running.get())
+            return;
 
-        if (server.getPlayerList().getPlayerCount() > 0) return;
+        if (server.getPlayerList().getPlayerCount() > 0)
+            return;
 
         performUpdate(server);
     }
 
     private void performUpdate(MinecraftServer server) {
-        if (!updateInProgress.compareAndSet(false, true)) {
+        if (!running.compareAndSet(false, true)) {
             LOGGER.debug("Incremental update already in progress, skipping");
             return;
         }
 
         LOGGER.info("Performing incremental update: ON_EMPTY mode, no players online");
-
-        try {
-            server.saveEverything(false, true, true);
-        } catch (RuntimeException e) {
-            LOGGER.error("Runtime error saving chunks for incremental scan", e);
-            updateInProgress.set(false);
-            return;
-        }
 
         getUpdateExecutor().submit(() -> {
             try {
@@ -63,7 +62,7 @@ public class MapUpdater {
             } catch (RuntimeException e) {
                 LOGGER.error("Error during incremental update", e);
             } finally {
-                updateInProgress.set(false);
+                running.set(false);
             }
         });
     }
@@ -89,22 +88,7 @@ public class MapUpdater {
 
     public void stop() {
         MapConverter.requestCancel();
-        updateInProgress.set(false);
-        shutdownExecutor();
-        LOGGER.info("Incremental update handler stopped");
-    }
-
-    private void shutdownExecutor() {
-        if (updateExecutor != null) {
-            updateExecutor.shutdownNow();
-            try {
-                if (!updateExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    LOGGER.warn("Update executor did not terminate in time");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            updateExecutor = null;
-        }
+        running.set(false);
+        LOGGER.info("MapUpdater stopped");
     }
 }
