@@ -126,7 +126,7 @@ public class MapPacketHandler {
         clearSyncData();
         XaeroReflectionHelper.clearCache();
         XaeroMapDataHandler.clearRegionTracking();
-        ClientMetaScanner.shutdown();
+        ManifestClient.shutdown();
         ClientSyncWriteQueue.shutdown();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
@@ -232,7 +232,7 @@ public class MapPacketHandler {
             return;
         }
 
-        ClientMetaScanner.computeMetaForSyncAsync(serverDir, result -> {
+        ManifestClient.computeMetaForSyncAsync(serverDir, result -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
                 if (!session.isCurrent(generation)) {

@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.client.ClientMetaScanner;
+import com.mapsyncer.client.ManifestClient;
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.client.XaeroMapDataHandler;
 import com.mapsyncer.config.ModConfig;
@@ -68,7 +68,7 @@ public class PlayerJoinHandlerLogic {
         MapPacketHandler.clearReceivedChunks();
         XaeroMapDataHandler.clearRegionTracking();
         BlockPropertyResolver.clearCache();
-        ClientMetaScanner.shutdown();
+        ManifestClient.shutdown();
 
         LOGGER.info("Singleton cache cleanup completed");
     }

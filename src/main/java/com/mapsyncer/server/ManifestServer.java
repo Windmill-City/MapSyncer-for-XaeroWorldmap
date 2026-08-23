@@ -13,11 +13,11 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ManifestCache {
+public class ManifestServer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestCache.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestServer.class);
 
-    private static final ManifestCache INSTANCE = new ManifestCache();
+    private static final ManifestServer INSTANCE = new ManifestServer();
 
     private volatile Map<String, Long> manifest = Map.of();
 
@@ -27,7 +27,7 @@ public class ManifestCache {
 
     private volatile boolean valid = false;
 
-    public static ManifestCache get() {
+    public static ManifestServer get() {
         return INSTANCE;
     }
 

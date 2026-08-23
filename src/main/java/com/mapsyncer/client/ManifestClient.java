@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientMetaScanner {
+public class ManifestClient {
 
     public record MetaScanResult(
             Map<String, RegionMeta> meta, boolean success, int failedFiles, @Nullable String failureReason) {
@@ -37,7 +37,7 @@ public class ClientMetaScanner {
         }
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClientMetaScanner.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
 
     private static volatile @Nullable ExecutorService executor;
 
@@ -46,7 +46,7 @@ public class ClientMetaScanner {
     private static ExecutorService getExecutor() {
         ExecutorService exec = executor;
         if (exec == null || exec.isShutdown()) {
-            synchronized (ClientMetaScanner.class) {
+            synchronized (ManifestClient.class) {
                 exec = executor;
                 if (exec == null || exec.isShutdown()) {
                     exec = Executors.newSingleThreadExecutor(r -> {
@@ -107,7 +107,7 @@ public class ClientMetaScanner {
                 String fileName = zipPath.getFileName().toString();
                 if (!fileName.endsWith(".zip")) continue;
 
-                String relativePath = buildRelativePath(zipPath, serverDir);
+                String relativePath = build(zipPath, serverDir);
                 long timestampMillis = getFileModificationTime(zipPath);
                 LOGGER.debug("Region {}: ts={}ms (mtime)", relativePath, timestampMillis);
 
@@ -153,7 +153,7 @@ public class ClientMetaScanner {
         }
     }
 
-    private static String buildRelativePath(Path zipPath, Path serverDir) {
+    static String build(Path zipPath, Path serverDir) {
 
         String relative = serverDir.relativize(zipPath).toString();
         relative = relative.replace("\\", "/");
@@ -230,7 +230,7 @@ public class ClientMetaScanner {
     }
 
     public static void shutdown() {
-        synchronized (ClientMetaScanner.class) {
+        synchronized (ManifestClient.class) {
             if (poolUsers.get() > 0) {
                 LOGGER.debug("Deferring scan executor shutdown, {} active scans", poolUsers.get());
                 return;
