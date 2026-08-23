@@ -172,7 +172,7 @@ public class MapPacketHandler {
                 }
                 manifestParts.clear();
                 manifestTotalParts = 0;
-                resolved = new SyncManifestPayload(merged, ref.worldId(), ref.status());
+                resolved = new SyncManifestPayload(merged, ref.worldId());
             }
 
             handleManifestReceived(resolved, generationAtEnqueue);
@@ -200,19 +200,7 @@ public class MapPacketHandler {
             return;
         }
 
-        String status = payload.status();
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-
-        if ("no_cache".equals(status) || "dim_not_available".equals(status)) {
-            LOGGER.info("Server returned error status: {}, aborting sync", status);
-            if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance()
-                        .player
-                        .displayClientMessage(ChatUtils.desc("mapsyncer.autosync.no_server_map"), false);
-            }
-            clearSyncData();
-            return;
-        }
 
         if (serverDir == null) {
             LOGGER.error("Unable to resolve server directory, cannot compute diff sync");

@@ -65,7 +65,7 @@ public class ServerSyncHandlerLogic {
         }
 
         int worldId = readWorldIdFromXaeroMap(player);
-        for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId, "ok")) {
+        for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId)) {
             SyncTransferScheduler.enqueueManifest(player, part);
         }
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
@@ -73,7 +73,7 @@ public class ServerSyncHandlerLogic {
 
     private static void pushNoCacheManifest(ServerPlayer player) {
         int worldId = readWorldIdFromXaeroMap(player);
-        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId));
     }
 
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
@@ -90,7 +90,7 @@ public class ServerSyncHandlerLogic {
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         if (!Files.exists(cacheDir)) {
             int worldId = readWorldIdFromXaeroMap(serverPlayer);
-            NetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+            NetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId));
             return;
         }
 
@@ -109,11 +109,11 @@ public class ServerSyncHandlerLogic {
         Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
 
         if (manifest.isEmpty()) {
-            NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+            NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId));
             return;
         }
 
-        SyncManifestPayload[] parts = SyncManifestPayload.split(manifest, worldId, "ok");
+        SyncManifestPayload[] parts = SyncManifestPayload.split(manifest, worldId);
         for (SyncManifestPayload part : parts) {
             SyncTransferScheduler.enqueueManifest(player, part);
         }

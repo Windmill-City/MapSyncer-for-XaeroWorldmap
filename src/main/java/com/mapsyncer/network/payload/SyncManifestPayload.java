@@ -14,21 +14,17 @@ public class SyncManifestPayload {
 
     private final int worldId;
 
-    private final String status;
-
     private final int partIndex;
 
     private final int totalParts;
 
-    public SyncManifestPayload(Map<String, Long> timestamps, int worldId, String status) {
-        this(timestamps, worldId, status, 0, 0);
+    public SyncManifestPayload(Map<String, Long> timestamps, int worldId) {
+        this(timestamps, worldId, 0, 0);
     }
 
-    public SyncManifestPayload(
-            Map<String, Long> timestamps, int worldId, String status, int partIndex, int totalParts) {
+    public SyncManifestPayload(Map<String, Long> timestamps, int worldId, int partIndex, int totalParts) {
         this.timestamps = timestamps != null ? timestamps : Map.of();
         this.worldId = worldId;
-        this.status = status != null ? status : "";
         this.partIndex = partIndex;
         this.totalParts = totalParts;
     }
@@ -41,10 +37,6 @@ public class SyncManifestPayload {
         return worldId;
     }
 
-    public String status() {
-        return status;
-    }
-
     public int partIndex() {
         return partIndex;
     }
@@ -55,10 +47,10 @@ public class SyncManifestPayload {
 
     private static final int ESTIMATED_ENTRY_BYTES = 80;
 
-    public static SyncManifestPayload[] split(Map<String, Long> timestamps, int worldId, String status) {
+    public static SyncManifestPayload[] split(Map<String, Long> timestamps, int worldId) {
         int maxEntriesPerPart = Math.max(1, MAX_PAYLOAD_BYTES / ESTIMATED_ENTRY_BYTES);
         if (timestamps.size() <= maxEntriesPerPart) {
-            return new SyncManifestPayload[] {new SyncManifestPayload(timestamps, worldId, status)};
+            return new SyncManifestPayload[] {new SyncManifestPayload(timestamps, worldId)};
         }
 
         List<Map.Entry<String, Long>> entries = new ArrayList<>(timestamps.entrySet());
@@ -72,7 +64,7 @@ public class SyncManifestPayload {
             for (int j = start; j < end; j++) {
                 partMap.put(entries.get(j).getKey(), entries.get(j).getValue());
             }
-            parts[i] = new SyncManifestPayload(partMap, worldId, status, i, totalParts);
+            parts[i] = new SyncManifestPayload(partMap, worldId, i, totalParts);
         }
         return parts;
     }
@@ -84,7 +76,6 @@ public class SyncManifestPayload {
             buf.writeLong(entry.getValue());
         }
         buf.writeInt(payload.worldId());
-        buf.writeUtf(payload.status());
         buf.writeBoolean(payload.totalParts() > 1);
         if (payload.totalParts() > 1) {
             buf.writeInt(payload.partIndex());
@@ -101,7 +92,6 @@ public class SyncManifestPayload {
             timestamps.put(path, timestampMillis);
         }
         int worldId = buf.readInt();
-        String status = buf.readUtf();
 
         int partIndex = 0;
         int totalParts = 0;
@@ -111,6 +101,6 @@ public class SyncManifestPayload {
             totalParts = buf.readInt();
         }
 
-        return new SyncManifestPayload(timestamps, worldId, status, partIndex, totalParts);
+        return new SyncManifestPayload(timestamps, worldId, partIndex, totalParts);
     }
 }
