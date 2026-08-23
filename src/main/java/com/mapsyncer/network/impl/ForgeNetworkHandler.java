@@ -238,7 +238,7 @@ public class ForgeNetworkHandler {
         buf.writeInt(data.regionZ);
         buf.writeUtf(data.dimension);
         buf.writeByteArray(data.data);
-        buf.writeLong(data.timestampSeconds);
+        buf.writeLong(data.timestampMillis);
 
         boolean hasCaveLayer = data.caveLayer != Integer.MAX_VALUE;
         buf.writeBoolean(hasCaveLayer);
@@ -257,7 +257,7 @@ public class ForgeNetworkHandler {
         int regionZ = buf.readInt();
         String dimension = buf.readUtf();
         byte[] data = buf.readByteArray();
-        long timestampSeconds = buf.readLong();
+        long timestampMillis = buf.readLong();
 
         int caveLayer = Integer.MAX_VALUE;
         if (buf.isReadable()) {
@@ -277,6 +277,6 @@ public class ForgeNetworkHandler {
             }
         }
 
-        return new ChunkMapData(regionX, regionZ, dimension, data, timestampSeconds, caveLayer, partIndex, totalParts);
+        return new ChunkMapData(regionX, regionZ, dimension, data, timestampMillis, caveLayer, partIndex, totalParts);
     }
 }

@@ -104,8 +104,6 @@ public class BlockPropertyResolver {
         private static final BlockState AIR = Blocks.AIR.defaultBlockState();
         private static final FluidState EMPTY = Fluids.EMPTY.defaultFluidState();
 
-        private PlaceholderBlockGetter() {}
-
         @Override
         public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
             return null;

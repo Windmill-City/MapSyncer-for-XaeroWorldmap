@@ -19,8 +19,6 @@ public final class XaeroMapDataHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapDataHandler.class);
 
-    private XaeroMapDataHandler() {}
-
     private static final Set<RegionCoord> updatedRegions = ConcurrentHashMap.newKeySet();
 
     private static final Set<RegionCoord> preUnloadedRegions = ConcurrentHashMap.newKeySet();

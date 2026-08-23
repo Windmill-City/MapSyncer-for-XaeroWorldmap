@@ -97,8 +97,8 @@ public class SyncManifestPayload {
         Map<String, Long> timestamps = new HashMap<>();
         for (int i = 0; i < size; i++) {
             String path = buf.readUtf();
-            long timestampSeconds = buf.readLong();
-            timestamps.put(path, timestampSeconds);
+            long timestampMillis = buf.readLong();
+            timestamps.put(path, timestampMillis);
         }
         int worldId = buf.readInt();
         String status = buf.readUtf();

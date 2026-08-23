@@ -8,8 +8,6 @@ import javax.annotation.Nullable;
 
 public final class BiomeQuartResolver {
 
-    private BiomeQuartResolver() {}
-
     public static @Nullable String resolve(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz) {
         return resolve(chunk, lx, absoluteY, lz, false);
     }

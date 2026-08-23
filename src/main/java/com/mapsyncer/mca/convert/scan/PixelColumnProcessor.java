@@ -16,8 +16,6 @@ import java.util.List;
 
 public final class PixelColumnProcessor {
 
-    private PixelColumnProcessor() {}
-
     public static boolean processColumn(
             ChunkDataParser.ChunkInfo chunk,
             ChunkSectionParser.SectionData section,

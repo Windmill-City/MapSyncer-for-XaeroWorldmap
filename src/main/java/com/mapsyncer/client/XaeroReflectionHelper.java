@@ -46,8 +46,6 @@ public final class XaeroReflectionHelper {
     private static @Nullable Method getPrimaryClientConfigManagerMethod;
     private static @Nullable Method getEffectiveMethod;
 
-    private XaeroReflectionHelper() {}
-
     public static boolean initialize() {
         if (initialized) return true;
 

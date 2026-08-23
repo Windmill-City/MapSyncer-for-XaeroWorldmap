@@ -2,7 +2,7 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.DimensionPathMapping;
+import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,10 +68,9 @@ public class RegionScanner {
             if (!Files.exists(worldRoot)) return null;
             worldRoot = worldRoot.toRealPath();
 
-            DimensionPathMapping mapping = DimensionPathMapping.getInstance();
             String dimId = ApiHelper.getDimId(level.dimension());
 
-            Path regionDir = mapping.detectRegionDir(worldRoot, dimId);
+            Path regionDir = PathMapping.detectRegionDir(worldRoot, dimId);
 
             if (regionDir != null && Files.exists(regionDir)) {
                 return regionDir.toRealPath();
@@ -87,10 +86,9 @@ public class RegionScanner {
 
     private static RegionScanResult scanRegionDir(
             Path worldRoot, net.minecraft.resources.ResourceKey<Level> dimensionKey) {
-        DimensionPathMapping mapping = DimensionPathMapping.getInstance();
         String dimId = ApiHelper.getDimId(dimensionKey);
 
-        Path regionDir = mapping.detectRegionDir(worldRoot, dimId);
+        Path regionDir = PathMapping.detectRegionDir(worldRoot, dimId);
 
         if (regionDir == null || !Files.exists(regionDir)) {
             LOGGER.warn("Region directory not found for dimension: {}", dimId);

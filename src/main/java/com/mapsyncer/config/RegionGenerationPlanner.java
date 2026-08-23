@@ -13,8 +13,6 @@ public final class RegionGenerationPlanner {
 
     private static final int CAVE_LAYER_DEPTH = 15;
 
-    private RegionGenerationPlanner() {}
-
     public static List<RegionScanPass> plan(DimensionScanConfig config, DimensionTypeInfo info) {
         return plan(config.layerPlan(), info);
     }

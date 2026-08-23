@@ -42,8 +42,6 @@ public final class SyncTransferScheduler {
 
     private static final Map<UUID, PlayerQueue> queues = new ConcurrentHashMap<>();
 
-    private SyncTransferScheduler() {}
-
     private static final class PendingResponse {
         final List<ChunkMapData> parts;
         final int worldId;

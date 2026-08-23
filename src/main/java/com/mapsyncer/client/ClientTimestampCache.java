@@ -118,8 +118,8 @@ public class ClientTimestampCache {
         }
     }
 
-    public void update(String relativePath, long timestampSeconds) {
-        cache.put(relativePath, new RegionMeta(timestampSeconds));
+    public void update(String relativePath, long timestampMillis) {
+        cache.put(relativePath, new RegionMeta(timestampMillis));
     }
 
     public void remove(String relativePath) {

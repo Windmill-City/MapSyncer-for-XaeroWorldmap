@@ -21,8 +21,6 @@ public final class ClientSyncWriteQueue {
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
 
-    private ClientSyncWriteQueue() {}
-
     private static ExecutorService getExecutor() {
         ExecutorService current = executor;
         if (current != null && !current.isShutdown()) {
@@ -51,7 +49,6 @@ public final class ClientSyncWriteQueue {
             ChunkMapData chunk,
             Path serverDir,
             int worldId,
-            @Nullable ClientTimestampCache tsCache,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
@@ -59,9 +56,6 @@ public final class ClientSyncWriteQueue {
             try {
                 result = XaeroMapDataHandler.writeChunkData(chunk, serverDir, worldId);
                 if (result != null) {
-                    if (tsCache != null) {
-                        tsCache.update(XaeroMapDataHandler.buildRelativePathForCache(chunk), chunk.timestampSeconds);
-                    }
                     XaeroMapDataHandler.clearRegionCacheFiles(
                             result.mwDir(),
                             new XaeroMapDataHandler.RegionCoord(chunk.regionX, chunk.regionZ, chunk.caveLayer));
@@ -92,23 +86,6 @@ public final class ClientSyncWriteQueue {
             callback.accept(result);
         } catch (Exception e) {
             LOGGER.error("Sync write callback failed for ({}, {})", chunk.regionX, chunk.regionZ, e);
-        }
-    }
-
-    public static void saveTimestampCacheAsync(@Nullable ClientTimestampCache tsCache) {
-        if (tsCache == null) {
-            return;
-        }
-        try {
-            getExecutor().execute(() -> {
-                try {
-                    tsCache.save();
-                } catch (Exception e) {
-                    LOGGER.warn("Async timestamp cache save failed", e);
-                }
-            });
-        } catch (RejectedExecutionException e) {
-            LOGGER.warn("Async timestamp cache save rejected", e);
         }
     }
 

@@ -58,8 +58,7 @@ public class McaTimestampCache {
             for (String key : props.stringPropertyNames()) {
                 try {
 
-                    long timestampSeconds = Long.parseLong(props.getProperty(key));
-                    long timestampMillis = timestampSeconds * 1000;
+                    long timestampMillis = Long.parseLong(props.getProperty(key));
 
                     String[] parts = key.split("/");
                     if (parts.length == 2) {
@@ -94,8 +93,7 @@ public class McaTimestampCache {
 
                     String key = dimension + "/" + regionEntry.getKey();
 
-                    long timestampSeconds = regionEntry.getValue() / 1000;
-                    props.setProperty(key, String.valueOf(timestampSeconds));
+                    props.setProperty(key, String.valueOf(regionEntry.getValue()));
                 }
             }
 
@@ -103,7 +101,7 @@ public class McaTimestampCache {
             try (OutputStream os = Files.newOutputStream(tempFile)) {
                 props.store(
                         os,
-                        "MCA file modification timestamps (seconds since epoch)\nFormat: dimension/region_x_z = timestamp");
+                        "MCA file modification timestamps (millis since epoch)\nFormat: dimension/region_x_z = timestamp");
             }
             Files.move(tempFile, cacheFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 
@@ -205,19 +203,16 @@ public class McaTimestampCache {
             long currentTimestamp = entry.lastModifiedMillis();
             Long cachedTimestamp = dimCache.get(regionKey);
 
-            long currentSeconds = currentTimestamp / 1000;
-            long cachedSeconds = cachedTimestamp != null ? cachedTimestamp / 1000 : 0;
-
-            if (cachedTimestamp == null || currentSeconds > cachedSeconds) {
+            if (cachedTimestamp == null || currentTimestamp > cachedTimestamp) {
                 needsRegeneration.add(coords);
                 dimCache.put(regionKey, currentTimestamp);
                 if (cachedTimestamp != null) {
                     LOGGER.info(
-                            "Detected update in {} / {}: cached={}s, current={}s",
+                            "Detected update in {} / {}: cached={}ms, current={}ms",
                             dimension,
                             regionKey,
-                            cachedSeconds,
-                            currentSeconds);
+                            cachedTimestamp,
+                            currentTimestamp);
                 }
             }
         }

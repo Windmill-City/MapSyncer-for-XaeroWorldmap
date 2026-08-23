@@ -10,8 +10,6 @@ public final class OverlayAccumulator {
 
     public static final int MAX_LAYERS = 10;
 
-    private OverlayAccumulator() {}
-
     public static void add(
             ArrayList<OverlayEntry> list,
             BlockState blockState,

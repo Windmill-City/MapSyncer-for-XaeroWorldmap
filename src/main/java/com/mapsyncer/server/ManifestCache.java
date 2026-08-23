@@ -1,10 +1,9 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.util.RegionMeta;
-import com.mapsyncer.util.DimensionPathMapping;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -27,8 +26,6 @@ public class ManifestCache {
 
     private volatile boolean valid = false;
 
-    private ManifestCache() {}
-
     public static ManifestCache getInstance() {
         ManifestCache current = instance;
         if (current == null) {
@@ -43,15 +40,11 @@ public class ManifestCache {
         return current;
     }
 
-    public Map<String, Long> buildManifest(
-            Path absCacheDir,
-            Set<String> requestedDimensions,
-            DimensionPathMapping dimMapping,
-            GenerationCache genCache) {
+    public Map<String, Long> buildManifest(Path absCacheDir, Set<String> requestedDimensions) {
         if (!isValid(absCacheDir)) {
             synchronized (this) {
                 if (!isValid(absCacheDir)) {
-                    rebuild(absCacheDir, dimMapping, genCache);
+                    rebuild(absCacheDir);
                 }
             }
         }
@@ -72,14 +65,13 @@ public class ManifestCache {
         return valid && builtCacheDir != null && absCacheDir.equals(builtCacheDir);
     }
 
-    private void rebuild(Path absCacheDir, DimensionPathMapping dimMapping, GenerationCache genCache) {
+    private void rebuild(Path absCacheDir) {
         Map<String, Long> rebuilt = new HashMap<>();
         Map<String, Path> rebuiltPaths = new HashMap<>();
         try (Stream<Path> stream = Files.walk(absCacheDir)) {
             stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
-                String normalizedPath = ServerSyncHandlerLogic.toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
-                RegionMeta meta = genCache.getMeta(normalizedPath);
-                long timestamp = meta != null ? meta.timestampSeconds() : System.currentTimeMillis() / 1000;
+                String normalizedPath = ServerSyncHandlerLogic.toNormalizedServerPath(absCacheDir, zipPath);
+                long timestamp = readMtimeMillis(zipPath);
                 rebuilt.put(normalizedPath, timestamp);
                 rebuiltPaths.put(normalizedPath, zipPath);
             });
@@ -91,6 +83,16 @@ public class ManifestCache {
         zipPaths = rebuiltPaths;
         valid = true;
         LOGGER.info("Manifest cache built for {} with {} entries", absCacheDir, rebuilt.size());
+    }
+
+    private static long readMtimeMillis(Path zipPath) {
+        try {
+            FileTime mtime = Files.getLastModifiedTime(zipPath);
+            return mtime.toMillis();
+        } catch (IOException e) {
+            LOGGER.warn("Failed to read mtime for {}, using current time", zipPath);
+            return System.currentTimeMillis();
+        }
     }
 
     public @Nullable Path resolveZipPath(String normalizedPath) {

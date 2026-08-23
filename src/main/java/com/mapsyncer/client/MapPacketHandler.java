@@ -6,8 +6,8 @@ import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
+import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionMeta;
-import com.mapsyncer.util.DimensionPathMapping;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -129,7 +129,6 @@ public class MapPacketHandler {
         XaeroMapDataHandler.clearRegionTracking();
         ClientMetaScanner.shutdown();
         ClientSyncWriteQueue.shutdown();
-        ClientTimestampCache.resetInstance();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
@@ -204,8 +203,6 @@ public class MapPacketHandler {
 
         String status = payload.status();
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-        ClientTimestampCache tsCache =
-                serverDir != null && serverDir.toFile().exists() ? ClientTimestampCache.getInstance(serverDir) : null;
 
         if ("no_cache".equals(status) || "dim_not_available".equals(status)) {
             LOGGER.info("Server returned error status: {}, aborting sync", status);
@@ -232,7 +229,7 @@ public class MapPacketHandler {
         Map<String, Long> serverTimestamps = payload.timestamps();
         if (serverTimestamps.isEmpty()) {
             LOGGER.info("Server manifest is empty, nothing to sync");
-            finishUpToDate(tsCache);
+            finishUpToDate();
             return;
         }
 
@@ -264,7 +261,7 @@ public class MapPacketHandler {
                     String path = entry.getKey();
                     long serverTs = entry.getValue();
                     RegionMeta local = localMeta.get(path);
-                    if (local != null && local.timestampSeconds() >= serverTs) {
+                    if (local != null && local.timestampMillis() >= serverTs) {
                         upToDateCount++;
                     } else {
                         diff.put(path, local != null ? local : new RegionMeta(0));
@@ -278,7 +275,7 @@ public class MapPacketHandler {
                         diff.size());
 
                 if (diff.isEmpty()) {
-                    finishUpToDate(tsCache);
+                    finishUpToDate();
                     return;
                 }
 
@@ -366,10 +363,6 @@ public class MapPacketHandler {
 
             Minecraft mc = Minecraft.getInstance();
             Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-            ClientTimestampCache tsCache =
-                    serverDir != null && serverDir.toFile().exists()
-                            ? ClientTimestampCache.getInstance(serverDir)
-                            : null;
 
             cleanStaleParts();
 
@@ -392,16 +385,14 @@ public class MapPacketHandler {
                         new XaeroMapDataHandler.RegionCoord(assembled.regionX, assembled.regionZ, assembled.caveLayer);
                 updatedRegionCoords.add(coord);
 
-                boolean syncingCaveDimension =
-                        DimensionPathMapping.getInstance().isNether(assembled.dimension);
+                boolean syncingCaveDimension = PathMapping.isNether(assembled.dimension);
                 boolean shouldProcess = syncingCaveDimension ? !assembled.isSurfaceLayer() : assembled.isSurfaceLayer();
 
                 syncPendingWrites.incrementAndGet();
                 final int gen = generationAtEnqueue;
-                final ClientTimestampCache batchTsCache = tsCache;
                 final boolean processRegion = shouldProcess;
 
-                ClientSyncWriteQueue.submit(assembled, serverDir, payload.worldId(), tsCache, writeResult -> {
+                ClientSyncWriteQueue.submit(assembled, serverDir, payload.worldId(), writeResult -> {
                     mc.execute(() -> {
                         try {
                             if (!session.isCurrent(gen)) {
@@ -415,9 +406,6 @@ public class MapPacketHandler {
                                         assembled.regionZ,
                                         assembled.data.length);
                                 syncFailed++;
-                                if (batchTsCache != null) {
-                                    batchTsCache.remove(XaeroMapDataHandler.buildRelativePathForCache(assembled));
-                                }
                             } else if (processRegion && !session.reflectionFailed()) {
                                 triggerSingleRegionLoad(coord);
                             }
@@ -504,8 +492,6 @@ public class MapPacketHandler {
 
     private static void completeSync() {
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
-        ClientTimestampCache tsCache =
-                serverDir != null && serverDir.toFile().exists() ? ClientTimestampCache.getInstance(serverDir) : null;
 
         int totalReceived = updatedRegionCoords.size();
         LOGGER.info(
@@ -543,20 +529,13 @@ public class MapPacketHandler {
             XaeroMapDataHandler.recordUpdatedRegionCoords(updatedRegionCoords);
         }
 
-        if (tsCache != null) {
-            ClientSyncWriteQueue.saveTimestampCacheAsync(tsCache);
-        }
-
         clearSyncData();
         XaeroReflectionHelper.clearCache();
     }
 
-    private static void finishUpToDate(@Nullable ClientTimestampCache tsCache) {
+    private static void finishUpToDate() {
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
-        }
-        if (tsCache != null) {
-            ClientSyncWriteQueue.saveTimestampCacheAsync(tsCache);
         }
         clearSyncData();
         XaeroReflectionHelper.clearCache();
@@ -701,7 +680,7 @@ public class MapPacketHandler {
 
         ChunkMapData first = parts[0];
         return new ChunkMapData(
-                first.regionX, first.regionZ, first.dimension, assembled, first.timestampSeconds, first.caveLayer);
+                first.regionX, first.regionZ, first.dimension, assembled, first.timestampMillis, first.caveLayer);
     }
 
     private static int countNonNull(ChunkMapData[] parts) {

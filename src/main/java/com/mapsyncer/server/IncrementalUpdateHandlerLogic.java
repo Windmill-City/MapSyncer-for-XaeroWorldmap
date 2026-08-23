@@ -27,8 +27,6 @@ public class IncrementalUpdateHandlerLogic {
 
     private volatile boolean emptyModeTriggered = false;
 
-    private IncrementalUpdateHandlerLogic() {}
-
     public static IncrementalUpdateHandlerLogic getInstance() {
         IncrementalUpdateHandlerLogic current = instance;
         if (current == null) {

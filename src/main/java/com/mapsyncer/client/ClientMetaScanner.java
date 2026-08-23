@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.util.DimensionPathMapping;
+import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionMeta;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,7 +10,6 @@ import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -90,10 +89,6 @@ public class ClientMetaScanner {
             return MetaScanResult.failure("server_dir", 0);
         }
 
-        ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        Map<String, RegionMeta> cachedTimestamps = tsCache != null ? tsCache.getAll() : Map.of();
-        LOGGER.info("Loaded {} cached timestamps from previous sync", cachedTimestamps.size());
-
         java.util.List<Path> zipFiles;
         try (Stream<Path> walk = Files.walk(mapDir)) {
             zipFiles = walk.filter(p -> p.toString().endsWith(".zip")).toList();
@@ -113,15 +108,10 @@ public class ClientMetaScanner {
                 if (!fileName.endsWith(".zip")) continue;
 
                 String relativePath = buildRelativePath(zipPath, serverDir);
-                RegionMeta cached = cachedTimestamps.get(relativePath);
-                long timestampSeconds = resolveSyncTimestamp(zipPath, cached);
-                LOGGER.debug(
-                        "Region {}: ts={}s (cache-first={})",
-                        relativePath,
-                        timestampSeconds,
-                        cached != null);
+                long timestampMillis = getFileModificationTime(zipPath);
+                LOGGER.debug("Region {}: ts={}ms (mtime)", relativePath, timestampMillis);
 
-                metaMap.put(relativePath, new RegionMeta(timestampSeconds));
+                metaMap.put(relativePath, new RegionMeta(timestampMillis));
             } catch (Exception e) {
                 failedFiles++;
                 LOGGER.warn("Failed to scan region file: {}", zipPath, e);
@@ -133,66 +123,9 @@ public class ClientMetaScanner {
             return MetaScanResult.failure("partial_error", failedFiles);
         }
 
-        addMissingCacheEntries(metaMap, cachedTimestamps, collectDimPrefixes(mapDir, serverDir));
-
         LOGGER.info("Found {} regions with metadata", metaMap.size());
 
         return MetaScanResult.ok(metaMap);
-    }
-
-    private static long resolveSyncTimestamp(Path zipPath, @Nullable RegionMeta cached) {
-        long fileTs = getFileModificationTime(zipPath) / 1000;
-        if (cached != null) {
-            return Math.max(cached.timestampSeconds(), fileTs);
-        }
-        return fileTs;
-    }
-
-    private static void addMissingCacheEntries(
-            Map<String, RegionMeta> metaMap, Map<String, RegionMeta> cachedTimestamps, Set<String> dimPrefixes) {
-        if (dimPrefixes.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<String, RegionMeta> entry : cachedTimestamps.entrySet()) {
-            String key = entry.getKey();
-            if (metaMap.containsKey(key)) {
-                continue;
-            }
-            for (String prefix : dimPrefixes) {
-                if (key.startsWith(prefix)) {
-                    metaMap.put(key, new RegionMeta(entry.getValue().timestampSeconds()));
-                    LOGGER.warn("Region {} in cache but file missing, will request re-sync", key);
-                    break;
-                }
-            }
-        }
-    }
-
-    private static Set<String> collectDimPrefixes(Path mapDir, Path serverDir) {
-        Set<String> prefixes = new java.util.HashSet<>();
-        Path current = mapDir;
-        while (current != null && !current.equals(serverDir)) {
-            String name = current.getFileName() != null ? current.getFileName().toString() : "";
-            if (name.startsWith("mw$")) {
-                Path dimDir = current.getParent();
-                if (dimDir != null) {
-                    prefixes.add(dimDir.getFileName().toString() + "/");
-                }
-                break;
-            }
-            current = current.getParent();
-        }
-        if (prefixes.isEmpty() && mapDir.equals(serverDir)) {
-            try (Stream<Path> dirs = Files.list(serverDir)) {
-                dirs.filter(Files::isDirectory)
-                        .map(p -> p.getFileName().toString())
-                        .filter(n -> !n.startsWith("_"))
-                        .forEach(n -> prefixes.add(n + "/"));
-            } catch (IOException e) {
-                LOGGER.warn("Failed to list dimension dirs under {}", serverDir, e);
-            }
-        }
-        return prefixes;
     }
 
     private static @Nullable Path findServerDir(Path mapDir) {
@@ -257,7 +190,7 @@ public class ClientMetaScanner {
             LOGGER.debug("Path has caves layer: {}", relative);
         }
 
-        String xaeroDim = ensureCorrectXaeroFormat(dirName, serverDir);
+        String xaeroDim = ensureCorrectXaeroFormat(dirName);
 
         String serverPath;
         if (caveLayer == Integer.MAX_VALUE) {
@@ -272,7 +205,7 @@ public class ClientMetaScanner {
         return serverPath;
     }
 
-    private static String ensureCorrectXaeroFormat(String dirName, Path serverDir) {
+    private static String ensureCorrectXaeroFormat(String dirName) {
 
         if (dirName.equals("null") || dirName.equals("DIM-1") || dirName.equals("DIM1")) {
             return dirName;
@@ -286,23 +219,7 @@ public class ClientMetaScanner {
             return dirName;
         }
 
-        ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        for (String cacheKey : tsCache != null ? tsCache.getAll().keySet() : Set.<String>of()) {
-            int slashIndex = cacheKey.indexOf('/');
-            if (slashIndex > 0) {
-                String cachedDim = cacheKey.substring(0, slashIndex);
-
-                if (cachedDim.contains("$")) {
-                    String pathPart = cachedDim.substring(cachedDim.indexOf('$') + 1);
-                    if (pathPart.equals(dirName)) {
-                        LOGGER.info("Found correct xaeroDim from cache: {} -> {}", dirName, cachedDim);
-                        return cachedDim;
-                    }
-                }
-            }
-        }
-
-        String converted = DimensionPathMapping.getInstance().toXaeroDimension(dirName);
+        String converted = PathMapping.toXaeroDimension(dirName);
         if (!converted.equals(dirName)) {
             LOGGER.info("Converted xaeroDim via mapping: {} -> {}", dirName, converted);
             return converted;

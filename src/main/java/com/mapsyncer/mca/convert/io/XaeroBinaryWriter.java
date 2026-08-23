@@ -68,8 +68,6 @@ public final class XaeroBinaryWriter {
         dos.writeByte(0);
     }
 
-    private XaeroBinaryWriter() {}
-
     public static byte[] serialize(MapRegionData data, int minBuildHeight, BlockPropertyLookup blockLookup)
             throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

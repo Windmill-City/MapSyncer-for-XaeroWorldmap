@@ -19,8 +19,6 @@ public final class McaRegionLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(McaRegionLoader.class);
 
-    private McaRegionLoader() {}
-
     public record PassMapData(RegionScanPass pass, MapRegionData data) {}
 
     public static List<PassMapData> loadMulti(
@@ -75,8 +73,8 @@ public final class McaRegionLoader {
 
     private static ChunkDataParser.ChunkInfo[][] readAllChunks(McaReader reader, int worldHeightRange)
             throws IOException {
-        ChunkDataParser.ChunkInfo[][] grid = new ChunkDataParser.ChunkInfo[RegionConverter.CHUNKS_PER_REGION]
-                [RegionConverter.CHUNKS_PER_REGION];
+        ChunkDataParser.ChunkInfo[][] grid =
+                new ChunkDataParser.ChunkInfo[RegionConverter.CHUNKS_PER_REGION][RegionConverter.CHUNKS_PER_REGION];
 
         for (int localX = 0; localX < RegionConverter.CHUNKS_PER_REGION; localX++) {
             for (int localZ = 0; localZ < RegionConverter.CHUNKS_PER_REGION; localZ++) {

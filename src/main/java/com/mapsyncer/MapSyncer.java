@@ -10,7 +10,6 @@ import com.mapsyncer.server.DimensionRegistry;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
 import com.mapsyncer.server.SyncTransferScheduler;
-import com.mapsyncer.util.DimensionPathMapping;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -40,9 +39,6 @@ public class MapSyncer {
     public MapSyncer() {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
-
-        DimensionPathMapping.getInstance().initialize();
-        LOGGER.info("DimensionPathMapping initialized");
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
 

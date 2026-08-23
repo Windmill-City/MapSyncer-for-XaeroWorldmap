@@ -16,8 +16,6 @@ public final class DimensionConfigParser {
     private static volatile @Nullable String cachedKey;
     private static volatile @Nullable List<DimensionScanConfig> cachedResult;
 
-    private DimensionConfigParser() {}
-
     public static String formatEntry(String dimension, LayerPlan layerPlan) {
         if (dimension == null || dimension.isBlank()) {
             return "";

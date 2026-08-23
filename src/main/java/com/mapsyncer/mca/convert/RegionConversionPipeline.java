@@ -16,8 +16,6 @@ import java.util.List;
 
 public final class RegionConversionPipeline {
 
-    private RegionConversionPipeline() {}
-
     public static List<RegionConverter.LayerConvertedRegion> convertMulti(
             Path mcaPath,
             int regionX,

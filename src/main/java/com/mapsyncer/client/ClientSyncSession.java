@@ -11,8 +11,6 @@ public final class ClientSyncSession {
     private volatile long startedAt = 0;
     private volatile boolean reflectionFailed = false;
 
-    private ClientSyncSession() {}
-
     public static ClientSyncSession get() {
         return INSTANCE;
     }

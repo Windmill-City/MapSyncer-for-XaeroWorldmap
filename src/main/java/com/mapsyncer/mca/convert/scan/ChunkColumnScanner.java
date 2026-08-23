@@ -63,8 +63,6 @@ public final class ChunkColumnScanner {
         }
     }
 
-    private ChunkColumnScanner() {}
-
     public static void scan(
             MapRegionData data,
             ChunkDataParser.ChunkInfo chunk,

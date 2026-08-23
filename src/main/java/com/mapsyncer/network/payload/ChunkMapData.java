@@ -12,7 +12,7 @@ public class ChunkMapData {
 
     public final byte[] data;
 
-    public final long timestampSeconds;
+    public final long timestampMillis;
 
     public final int caveLayer;
 
@@ -20,8 +20,8 @@ public class ChunkMapData {
 
     public final int totalParts;
 
-    public ChunkMapData(int regionX, int regionZ, String dimension, byte[] data, long timestampSeconds, int caveLayer) {
-        this(regionX, regionZ, dimension, data, timestampSeconds, caveLayer, 0, 0);
+    public ChunkMapData(int regionX, int regionZ, String dimension, byte[] data, long timestampMillis, int caveLayer) {
+        this(regionX, regionZ, dimension, data, timestampMillis, caveLayer, 0, 0);
     }
 
     public ChunkMapData(
@@ -29,7 +29,7 @@ public class ChunkMapData {
             int regionZ,
             String dimension,
             byte[] data,
-            long timestampSeconds,
+            long timestampMillis,
             int caveLayer,
             int partIndex,
             int totalParts) {
@@ -37,7 +37,7 @@ public class ChunkMapData {
         this.regionZ = regionZ;
         this.dimension = dimension;
         this.data = data;
-        this.timestampSeconds = timestampSeconds;
+        this.timestampMillis = timestampMillis;
         this.caveLayer = caveLayer;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
@@ -63,7 +63,7 @@ public class ChunkMapData {
                     original.regionZ,
                     original.dimension,
                     partData,
-                    original.timestampSeconds,
+                    original.timestampMillis,
                     original.caveLayer,
                     i,
                     totalParts);

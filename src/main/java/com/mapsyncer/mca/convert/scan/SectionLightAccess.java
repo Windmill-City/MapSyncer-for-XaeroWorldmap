@@ -10,8 +10,6 @@ import javax.annotation.Nullable;
 
 public final class SectionLightAccess {
 
-    private SectionLightAccess() {}
-
     public static @Nullable ChunkSectionParser.SectionData findSectionAt(ChunkDataParser.ChunkInfo chunk, int worldY) {
         ChunkSectionParser.SectionData[] lookup = chunk.sectionLookup();
         if (lookup == null) {

@@ -6,8 +6,8 @@ import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
+import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionMeta;
-import com.mapsyncer.util.DimensionPathMapping;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -41,7 +41,7 @@ public class ServerSyncHandlerLogic {
     private record RegionSyncInfo(
             Path zipPath,
             String normalizedPath,
-            long timestampSeconds,
+            long timestampMillis,
             int regionX,
             int regionZ,
             String dimension,
@@ -62,8 +62,6 @@ public class ServerSyncHandlerLogic {
         }
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
-        DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
-        GenerationCache genCache = GenerationCache.getInstance(cacheDir);
 
         Set<String> dimensions = discoverDimensionsFromCache(absCacheDir);
         if (dimensions.isEmpty()) {
@@ -72,9 +70,7 @@ public class ServerSyncHandlerLogic {
             return;
         }
 
-        Map<String, Long> manifest =
-                ManifestCache.getInstance().buildManifest(absCacheDir, dimensions, dimMapping, genCache);
-        genCache.save();
+        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(absCacheDir, dimensions);
         if (manifest.isEmpty()) {
             LOGGER.debug("Manifest is empty, pushing no_cache manifest to player {}", player.getUUID());
             pushNoCacheManifest(player);
@@ -125,15 +121,13 @@ public class ServerSyncHandlerLogic {
         }
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
-        DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
-        GenerationCache genCache = GenerationCache.getInstance(cacheDir);
 
         if (isManifestRequest(clientMeta)) {
-            sendManifest(serverPlayer, syncAll, targetDimension, silent, absCacheDir, dimMapping, genCache);
+            sendManifest(serverPlayer, syncAll, targetDimension, silent, absCacheDir);
             return;
         }
 
-        serveRequestedRegions(serverPlayer, clientMeta, absCacheDir, dimMapping);
+        serveRequestedRegions(serverPlayer, clientMeta, absCacheDir);
     }
 
     private static void sendManifest(
@@ -141,9 +135,7 @@ public class ServerSyncHandlerLogic {
             boolean syncAll,
             String targetDimension,
             boolean silent,
-            Path absCacheDir,
-            DimensionPathMapping dimMapping,
-            GenerationCache genCache) {
+            Path absCacheDir) {
         int worldId = readWorldIdFromXaeroMap(player);
 
         Set<String> requestedDimensions = new HashSet<>();
@@ -154,18 +146,16 @@ public class ServerSyncHandlerLogic {
             requestedDimensions.add(targetDimension);
             LOGGER.debug("Single-dimension sync: {}", targetDimension);
         } else {
-            requestedDimensions.add(dimMapping.toXaeroDimension(
+            requestedDimensions.add(PathMapping.toXaeroDimension(
                     ApiHelper.getDimId(player.level().dimension())));
         }
 
-        Map<String, Long> manifest =
-                ManifestCache.getInstance().buildManifest(absCacheDir, requestedDimensions, dimMapping, genCache);
-        genCache.save();
+        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(absCacheDir, requestedDimensions);
 
         if (manifest.isEmpty()) {
             if (!silent) {
                 if (targetDimension != null && !targetDimension.isEmpty()) {
-                    String friendlyDim = dimMapping.toServerDimension(targetDimension);
+                    String friendlyDim = PathMapping.toServerDimension(targetDimension);
                     player.sendSystemMessage(ChatUtils.error(
                             "mapsyncer.server.dim_not_available",
                             friendlyDim,
@@ -192,7 +182,7 @@ public class ServerSyncHandlerLogic {
     }
 
     private static void serveRequestedRegions(
-            ServerPlayer player, Map<String, RegionMeta> requested, Path absCacheDir, DimensionPathMapping dimMapping) {
+            ServerPlayer player, Map<String, RegionMeta> requested, Path absCacheDir) {
         ManifestCache manifestCache = ManifestCache.getInstance();
         int worldId = readWorldIdFromXaeroMap(player);
 
@@ -294,7 +284,7 @@ public class ServerSyncHandlerLogic {
     }
 
     private static @Nullable RegionSyncInfo parseRegionInfo(
-            Path zipPath, String normalizedPath, long timestampSeconds) {
+            Path zipPath, String normalizedPath, long timestampMillis) {
         try {
             String[] parts = normalizedPath.split("[/\\\\]");
 
@@ -316,7 +306,7 @@ public class ServerSyncHandlerLogic {
             int regionZ = Integer.parseInt(coords[1]);
 
             return new RegionSyncInfo(
-                    zipPath, normalizedPath, timestampSeconds, regionX, regionZ, dimension, caveLayer);
+                    zipPath, normalizedPath, timestampMillis, regionX, regionZ, dimension, caveLayer);
         } catch (NumberFormatException e) {
             LOGGER.error("Failed to parse path: {}", normalizedPath, e);
             return null;
@@ -327,7 +317,7 @@ public class ServerSyncHandlerLogic {
         try {
             byte[] data = Files.readAllBytes(info.zipPath());
             return new ChunkMapData(
-                    info.regionX(), info.regionZ(), info.dimension(), data, info.timestampSeconds(), info.caveLayer());
+                    info.regionX(), info.regionZ(), info.dimension(), data, info.timestampMillis(), info.caveLayer());
         } catch (IOException e) {
             LOGGER.error("Failed to read zip file: {}", info.zipPath(), e);
             return null;
@@ -346,7 +336,7 @@ public class ServerSyncHandlerLogic {
         return path;
     }
 
-    static String toNormalizedServerPath(Path absCacheDir, Path zipPath, DimensionPathMapping dimMapping) {
+    static String toNormalizedServerPath(Path absCacheDir, Path zipPath) {
         String relativePath = absCacheDir.relativize(zipPath).toString();
         String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
         normalizedPath = stripMwWorldId(normalizedPath);
@@ -354,7 +344,7 @@ public class ServerSyncHandlerLogic {
         String[] parts = normalizedPath.split("[/\\\\]");
         String xaeroDimName = parts.length > 1 ? parts[0] : "unknown";
 
-        String normalizedXaeroDim = dimMapping.toXaeroDimension(xaeroDimName);
+        String normalizedXaeroDim = PathMapping.toXaeroDimension(xaeroDimName);
         if (!normalizedXaeroDim.equals(xaeroDimName)) {
             normalizedPath = normalizedXaeroDim + normalizedPath.substring(xaeroDimName.length());
         }

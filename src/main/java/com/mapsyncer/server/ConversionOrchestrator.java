@@ -11,7 +11,7 @@ import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.DimensionRegions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.DimensionPathMapping;
+import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.XaeroPathResolver;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -168,15 +168,6 @@ public class ConversionOrchestrator {
         }
     }
 
-    private static void clearGenerationCacheEntries(String xaeroDimName) {
-        int removed = GenerationCache.getInstance(getCacheDir()).removeByPrefix(xaeroDimName + "/");
-        if (removed > 0) {
-            LOGGER.debug("Cleared {} generation_cache entries for dimension: {}", removed, xaeroDimName);
-        } else {
-            LOGGER.debug("No generation_cache entries found for dimension: {}", xaeroDimName);
-        }
-    }
-
     private static McaTimestampCache getTimestampCache() {
         McaTimestampCache cache = timestampCache;
         if (cache == null) {
@@ -291,10 +282,9 @@ public class ConversionOrchestrator {
         }
 
         String fullDimId = dimKey.location().toString();
-        String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
+        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
         Path dimCacheDir = getCacheDir().resolve(xaeroDimName);
         clearDimensionCache(dimCacheDir);
-        clearGenerationCacheEntries(xaeroDimName);
 
         RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
         List<RegionCoords> regions = scanResult.regions();
@@ -357,7 +347,7 @@ public class ConversionOrchestrator {
 
         DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
 
-        String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
+        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
 
         Path regionDir = RegionScanner.getRegionDir(level);
 
@@ -430,7 +420,7 @@ public class ConversionOrchestrator {
 
         DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
 
-        String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
+        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
         Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
 
@@ -461,7 +451,6 @@ public class ConversionOrchestrator {
                 passes.size());
 
         McaTimestampCache mcaCache = getTimestampCache();
-        GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
         List<RegionCoords> needsUpdate = force
                 ? dimRegions.regions()
                 : (!dimRegions.fileEntries().isEmpty()
@@ -483,7 +472,6 @@ public class ConversionOrchestrator {
         skippedCount.set(0);
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
-        long generationTimeSeconds = System.currentTimeMillis() / 1000;
 
         ExecutorService executor = getOrCreateExecutor();
 
@@ -498,8 +486,6 @@ public class ConversionOrchestrator {
                 dimTypeInfo,
                 passes,
                 mcaCache,
-                genCache,
-                generationTimeSeconds,
                 failedRegions,
                 true);
         waitForCompletion(futures, "Region conversion");
@@ -516,8 +502,6 @@ public class ConversionOrchestrator {
                     dimTypeInfo,
                     passes,
                     mcaCache,
-                    genCache,
-                    generationTimeSeconds,
                     failedRegions);
             waitForCompletion(futures, "New region conversion");
         }
@@ -539,12 +523,11 @@ public class ConversionOrchestrator {
                 skippedEmptyContentCount.get(),
                 failedRegions.size());
 
-        String friendlyName = DimensionPathMapping.getInstance()
-                .getFriendlyName(dimRegions.dimension().location().toString());
+        String friendlyName =
+                PathMapping.getFriendlyName(dimRegions.dimension().location().toString());
         completedDimensions.add(friendlyName);
 
         mcaCache.saveCache();
-        genCache.save();
     }
 
     private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
@@ -574,8 +557,6 @@ public class ConversionOrchestrator {
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
-            GenerationCache genCache,
-            long generationTimeSeconds,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
             boolean logProgress) {
 
@@ -594,8 +575,6 @@ public class ConversionOrchestrator {
                     dimTypeInfo,
                     passes,
                     mcaCache,
-                    genCache,
-                    generationTimeSeconds,
                     failedRegions,
                     logProgress,
                     "Converted"));
@@ -616,8 +595,6 @@ public class ConversionOrchestrator {
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
-            GenerationCache genCache,
-            long generationTimeSeconds,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
 
         List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
@@ -649,8 +626,6 @@ public class ConversionOrchestrator {
                     dimTypeInfo,
                     passes,
                     mcaCache,
-                    genCache,
-                    generationTimeSeconds,
                     failedRegions,
                     true,
                     "Generated new"));
@@ -669,8 +644,6 @@ public class ConversionOrchestrator {
             DimensionTypeInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
-            GenerationCache genCache,
-            long generationTimeSeconds,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
             boolean logProgress,
             String logPrefix) {
@@ -686,7 +659,7 @@ public class ConversionOrchestrator {
             for (RegionScanPass pass : passes) {
                 Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
                 String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
-                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath, genCache);
+                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
             }
             ManifestCache.getInstance().invalidate();
             skippedEmptyContentCount.incrementAndGet();
@@ -717,7 +690,7 @@ public class ConversionOrchestrator {
                     layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
 
             if (single == null || single.xaeroData() == null || single.xaeroData().length == 0) {
-                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath, genCache);
+                purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
                 anyPurged = true;
                 if (logProgress) {
                     processedCountAtomic.incrementAndGet();
@@ -727,7 +700,6 @@ public class ConversionOrchestrator {
 
             try {
                 XaeroWriter.writeRegionFile(outputDir, single);
-                genCache.update(relativePath, generationTimeSeconds);
                 anyWritten = true;
                 if (logProgress) {
                     int convertedSoFar = convertedCountAtomic.incrementAndGet();
@@ -836,7 +808,7 @@ public class ConversionOrchestrator {
             String dimPath = dimRegions.dimension().location().getPath();
 
             DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
-            String xaeroDimName = DimensionPathMapping.getInstance().toXaeroDimension(fullDimId);
+            String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {
@@ -882,11 +854,9 @@ public class ConversionOrchestrator {
 
         try {
             McaTimestampCache mcaCache = getTimestampCache();
-            GenerationCache genCache = GenerationCache.getInstance(getCacheDir());
             int totalUpdated = 0;
             totalCount = 0;
             processedCountAtomic.set(0);
-            long generationTimeSeconds = System.currentTimeMillis() / 1000;
             ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
             ExecutorService executor = getOrCreateExecutor();
 
@@ -937,8 +907,6 @@ public class ConversionOrchestrator {
                         dimTypeInfo,
                         passes,
                         mcaCache,
-                        genCache,
-                        generationTimeSeconds,
                         failedRegions,
                         true);
                 waitForCompletion(futures, "Incremental update");
@@ -948,7 +916,6 @@ public class ConversionOrchestrator {
             if (totalUpdated > 0) {
                 LOGGER.info("Incremental scan completed: {} regions updated", totalUpdated);
                 mcaCache.saveCache();
-                genCache.save();
             }
         } finally {
             isRunning.set(false);
@@ -998,7 +965,6 @@ public class ConversionOrchestrator {
 
     public static List<DimensionCacheStats> getCacheStats() {
         List<DimensionCacheStats> stats = new ArrayList<>();
-        DimensionPathMapping dimMapping = DimensionPathMapping.getInstance();
 
         if (!Files.exists(getCacheDir())) {
             return stats;
@@ -1009,7 +975,7 @@ public class ConversionOrchestrator {
                 if (!dimDir.toFile().isDirectory()) continue;
 
                 String dimName = dimDir.getFileName().toString();
-                String friendlyName = dimMapping.getFriendlyName(dimName);
+                String friendlyName = PathMapping.getFriendlyName(dimName);
 
                 int regionCount = 0;
                 long totalSize = 0;
@@ -1041,8 +1007,7 @@ public class ConversionOrchestrator {
         return stats;
     }
 
-    private static void purgeGeneratedArtifacts(
-            Path outputDir, int regionX, int regionZ, String relativePath, GenerationCache genCache) {
+    private static void purgeGeneratedArtifacts(Path outputDir, int regionX, int regionZ, String relativePath) {
         Path zip = outputDir.resolve(regionX + "_" + regionZ + ".zip");
         Path temp = outputDir.resolve(regionX + "_" + regionZ + ".zip.temp");
         try {
@@ -1050,9 +1015,6 @@ public class ConversionOrchestrator {
             Files.deleteIfExists(temp);
         } catch (IOException e) {
             LOGGER.warn("Failed to delete empty region zip {}: {}", zip, e.getMessage());
-        }
-        if (genCache != null && relativePath != null) {
-            genCache.remove(relativePath);
         }
         LOGGER.debug("Purged empty region artifacts for {}", relativePath);
     }

@@ -5,15 +5,12 @@ import com.mapsyncer.config.LayerPlan;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.DimensionPathMapping;
-import java.nio.file.Path;
 import java.util.*;
 import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +28,6 @@ public class DimensionRegistry {
         }
 
         LOGGER.info("Starting dimension registration on first map generation...");
-
-        Path worldRoot = server.getWorldPath(LevelResource.ROOT);
-
-        DimensionPathMapping mapping = DimensionPathMapping.getInstance();
-        mapping.scanAndRegisterDimensions(worldRoot);
 
         List<? extends String> currentConfigs = new ArrayList<>(ModConfig.SERVER.dimensionConfigs.get());
 
@@ -110,7 +102,6 @@ public class DimensionRegistry {
 
     public static void resetRegistration() {
         hasRegistered = false;
-        DimensionPathMapping.resetInstance();
         LOGGER.info("Dimension registration state reset");
     }
 

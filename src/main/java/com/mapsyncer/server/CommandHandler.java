@@ -7,7 +7,7 @@ import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
 import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.DimensionPathMapping;
+import com.mapsyncer.util.PathMapping;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -410,7 +410,7 @@ public class CommandHandler {
     }
 
     public static String getFriendlyDimensionName(ResourceKey<Level> dimension) {
-        return DimensionPathMapping.getInstance().getFriendlyName(ApiHelper.getDimId(dimension));
+        return PathMapping.getFriendlyName(ApiHelper.getDimId(dimension));
     }
 
     public static String getDimensionId(ResourceKey<Level> dimension) {

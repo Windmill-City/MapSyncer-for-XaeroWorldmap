@@ -61,7 +61,7 @@ public class SyncRequestPayload {
         buf.writeInt(payload.clientMeta().size());
         for (var entry : payload.clientMeta().entrySet()) {
             buf.writeUtf(entry.getKey());
-            buf.writeLong(entry.getValue().timestampSeconds());
+            buf.writeLong(entry.getValue().timestampMillis());
         }
         buf.writeBoolean(payload.totalParts() > 1);
         if (payload.totalParts() > 1) {
@@ -80,8 +80,8 @@ public class SyncRequestPayload {
         Map<String, RegionMeta> metaMap = new HashMap<>();
         for (int i = 0; i < size; i++) {
             String path = buf.readUtf();
-            long timestampSeconds = buf.readLong();
-            metaMap.put(path, new RegionMeta(timestampSeconds));
+            long timestampMillis = buf.readLong();
+            metaMap.put(path, new RegionMeta(timestampMillis));
         }
 
         int partIndex = 0;
