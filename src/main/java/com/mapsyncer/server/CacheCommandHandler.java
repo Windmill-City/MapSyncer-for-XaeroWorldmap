@@ -8,7 +8,6 @@ import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.DimensionPathMapping;
-import com.mapsyncer.util.ModLogConfig;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -388,7 +387,6 @@ public class CacheCommandHandler {
     public static boolean reloadConfig(MinecraftServer server) {
         try {
             ModConfig.reloadServerFromDisk();
-            ModLogConfig.applyDebugLogging();
             DimensionRegistry.resetRegistration();
             DimensionConfigParser.invalidateCache();
 

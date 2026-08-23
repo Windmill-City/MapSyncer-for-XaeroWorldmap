@@ -92,8 +92,6 @@ public class MapSyncer {
 
             DimensionRegistry.registerAllDimensions(event.getServer());
 
-            com.mapsyncer.util.ModLogConfig.applyDebugLogging();
-
             UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
             if (mode != UpdateMode.DISABLED) {
                 IncrementalUpdateHandlerLogic.getInstance().start(event.getServer());

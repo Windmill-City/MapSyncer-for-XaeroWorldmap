@@ -4,7 +4,6 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import java.nio.file.Path;
 import java.util.List;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.EnumValue;
 import net.minecraftforge.common.ForgeConfigSpec.IntValue;
@@ -127,8 +126,6 @@ public class ModConfig {
 
     public static class ServerConfig {
 
-        public final BooleanValue enableDebugLogging;
-
         public final IntValue maxConcurrentRegions;
 
         public final IntValue maxSyncPacketSize;
@@ -151,8 +148,6 @@ public class ModConfig {
             builder.push("general");
             builder.comment("通用设置 / General settings");
 
-            enableDebugLogging = builder.comment("启用调试日志记录（用于地图生成过程调试）", "Enable debug logging for map generation")
-                    .define("enableDebugLogging", false);
             maxConcurrentRegions = builder.comment(
                             "同时转换的最大区域数；0 = 自动（逻辑处理器数 - 2，最小 1，最大 16）",
                             "Max regions to convert concurrently; 0 = auto (logical CPUs - 2, min 1, max 16)")
