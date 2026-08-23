@@ -216,7 +216,7 @@ public class CommandHandler {
     public static void disableIncremental() {
         ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.DISABLED);
         ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.get().stop();
+        UpdateHandler.get().stop();
     }
 
     public static void setIncrementalOnEmpty() {
@@ -229,7 +229,7 @@ public class CommandHandler {
             ModConfig.reloadServerFromDisk();
             DimensionConfigParser.invalidateCache();
 
-            IncrementalUpdateHandlerLogic.get().stop();
+            UpdateHandler.get().stop();
 
             LOGGER.info("Server configuration reloaded");
             return true;

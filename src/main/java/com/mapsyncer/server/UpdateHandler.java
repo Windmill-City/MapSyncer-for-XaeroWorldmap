@@ -11,17 +11,17 @@ import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IncrementalUpdateHandlerLogic {
+public class UpdateHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(UpdateHandler.class);
 
-    private static final IncrementalUpdateHandlerLogic INSTANCE = new IncrementalUpdateHandlerLogic();
+    private static final UpdateHandler INSTANCE = new UpdateHandler();
 
     private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
 
     private volatile @Nullable ExecutorService updateExecutor = null;
 
-    public static IncrementalUpdateHandlerLogic get() {
+    public static UpdateHandler get() {
         return INSTANCE;
     }
 

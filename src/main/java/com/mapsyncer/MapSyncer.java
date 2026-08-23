@@ -13,7 +13,7 @@ import com.mapsyncer.network.SyncRequestPayload;
 import com.mapsyncer.network.SyncResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
-import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
+import com.mapsyncer.server.UpdateHandler;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
 
 import net.minecraft.resources.ResourceLocation;
@@ -129,7 +129,7 @@ public class MapSyncer {
 
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
-            IncrementalUpdateHandlerLogic.get().stop();
+            UpdateHandler.get().stop();
         }
 
         @SubscribeEvent

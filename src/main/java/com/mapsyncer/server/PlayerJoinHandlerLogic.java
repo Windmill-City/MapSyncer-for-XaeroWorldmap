@@ -32,14 +32,14 @@ public class PlayerJoinHandlerLogic {
         MinecraftServer server = player.getServer();
         if (server == null) return;
 
-        IncrementalUpdateHandlerLogic.get().onPlayerLoggedOut(server);
+        UpdateHandler.get().onPlayerLoggedOut(server);
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         LOGGER.info("Server stopped, cleaning up singleton cache instances");
 
-        IncrementalUpdateHandlerLogic.get().stop();
+        UpdateHandler.get().stop();
 
         LOGGER.info("Singleton cache cleanup completed");
     }
