@@ -90,21 +90,6 @@ tasks.named('jarJar') {
     enabled = false
 }
 
-tasks.register('collectJars', Copy) {
-    group = 'distribution'
-    into layout.projectDirectory.dir('output')
-    from(layout.buildDirectory.dir('libs')) {
-        include '*.jar'
-        exclude '*-sources.jar', '*-javadoc.jar'
-    }
-    outputs.upToDateWhen { false }
-}
-
-tasks.register('buildAll') {
-    dependsOn 'build'
-    finalizedBy 'collectJars'
-}
-
 publishing {
     publications {
         register('forge120MavenJava', MavenPublication) {
