@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -78,7 +78,7 @@ public class ManifestCache {
         try (Stream<Path> stream = Files.walk(absCacheDir)) {
             stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
                 String normalizedPath = ServerSyncHandlerLogic.toNormalizedServerPath(absCacheDir, zipPath, dimMapping);
-                ClientMeta meta = genCache.getMeta(normalizedPath);
+                RegionMeta meta = genCache.getMeta(normalizedPath);
                 long timestamp = meta != null ? meta.timestampSeconds() : System.currentTimeMillis() / 1000;
                 rebuilt.put(normalizedPath, timestamp);
                 rebuiltPaths.put(normalizedPath, zipPath);

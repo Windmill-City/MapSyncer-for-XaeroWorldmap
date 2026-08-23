@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.PropertiesCacheIO;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ public class GenerationCache {
 
     private final Path cacheFile;
 
-    private final Map<String, ClientMeta> cache = new ConcurrentHashMap<>();
+    private final Map<String, RegionMeta> cache = new ConcurrentHashMap<>();
 
     private GenerationCache(Path cacheDir) {
         this.cacheFile = cacheDir.resolve("generation_cache.properties");
@@ -45,7 +45,7 @@ public class GenerationCache {
     }
 
     private void load() {
-        Map<String, ClientMeta> loaded = PropertiesCacheIO.load(cacheFile, PropertiesCacheIO::parseTimestampHash);
+        Map<String, RegionMeta> loaded = PropertiesCacheIO.load(cacheFile, PropertiesCacheIO::parseTimestampHash);
         cache.putAll(loaded);
     }
 
@@ -53,12 +53,12 @@ public class GenerationCache {
         PropertiesCacheIO.save(
                 cacheFile,
                 new HashMap<>(cache),
-                ClientMeta::format,
+                RegionMeta::format,
                 "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds:hash\nHash is CRC32 of file content");
     }
 
     public void update(String relativePath, long timestampSeconds, String hash) {
-        cache.put(relativePath, new ClientMeta(timestampSeconds, hash));
+        cache.put(relativePath, new RegionMeta(timestampSeconds, hash));
         trimIfOverLimit();
     }
 
@@ -84,7 +84,7 @@ public class GenerationCache {
         LOGGER.info("Cache trimmed to {} entries", cache.size());
     }
 
-    public @Nullable ClientMeta getMeta(String relativePath) {
+    public @Nullable RegionMeta getMeta(String relativePath) {
         return cache.get(relativePath);
     }
 
@@ -96,7 +96,7 @@ public class GenerationCache {
 
     public long getLastGenerationTime() {
         return cache.values().stream()
-                .mapToLong(ClientMeta::timestampSeconds)
+                .mapToLong(RegionMeta::timestampSeconds)
                 .max()
                 .orElse(0);
     }

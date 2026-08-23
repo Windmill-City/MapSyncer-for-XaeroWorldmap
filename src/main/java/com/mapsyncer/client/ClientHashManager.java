@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
 import java.io.IOException;
@@ -25,9 +25,9 @@ import org.slf4j.LoggerFactory;
 public class ClientHashManager {
 
     public record MetaScanResult(
-            Map<String, ClientMeta> meta, boolean success, int failedFiles, @Nullable String failureReason) {
+            Map<String, RegionMeta> meta, boolean success, int failedFiles, @Nullable String failureReason) {
 
-        public static MetaScanResult ok(Map<String, ClientMeta> meta) {
+        public static MetaScanResult ok(Map<String, RegionMeta> meta) {
             return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, 0, null);
         }
 
@@ -110,7 +110,7 @@ public class ClientHashManager {
     }
 
     private static MetaScanResult computeMetaForSyncWorker(Path mapDir) {
-        Map<String, ClientMeta> metaMap = new ConcurrentHashMap<>();
+        Map<String, RegionMeta> metaMap = new ConcurrentHashMap<>();
 
         if (mapDir == null || !Files.exists(mapDir)) {
             LOGGER.info("Map directory does not exist or is null, will request all regions from server");
@@ -124,7 +124,7 @@ public class ClientHashManager {
         }
 
         ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        Map<String, ClientMeta> cachedTimestamps = tsCache != null ? tsCache.getAll() : Map.of();
+        Map<String, RegionMeta> cachedTimestamps = tsCache != null ? tsCache.getAll() : Map.of();
         LOGGER.info("Loaded {} cached timestamps from previous sync", cachedTimestamps.size());
 
         java.util.List<Path> zipFiles;
@@ -152,7 +152,7 @@ public class ClientHashManager {
                             if (!fileName.endsWith(".zip")) return;
 
                             String relativePath = buildRelativePath(zipPath, serverDir);
-                            ClientMeta cached = cachedTimestamps.get(relativePath);
+                            RegionMeta cached = cachedTimestamps.get(relativePath);
                             String hash = resolveSyncHash(zipPath, cached);
 
                             long timestampSeconds = resolveSyncTimestamp(zipPath, cached);
@@ -167,7 +167,7 @@ public class ClientHashManager {
                                         "Region {}: ts={}s, hash={} (no cache)", relativePath, timestampSeconds, hash);
                             }
 
-                            metaMap.put(relativePath, new ClientMeta(timestampSeconds, hash));
+                            metaMap.put(relativePath, new RegionMeta(timestampSeconds, hash));
 
                         } catch (Exception e) {
                             failedFiles.incrementAndGet();
@@ -192,7 +192,7 @@ public class ClientHashManager {
         return MetaScanResult.ok(metaMap);
     }
 
-    private static String resolveSyncHash(Path zipPath, @Nullable ClientMeta cached) {
+    private static String resolveSyncHash(Path zipPath, @Nullable RegionMeta cached) {
         if (zipPath == null || !Files.exists(zipPath)) {
             if (cached != null) {
                 LOGGER.warn(
@@ -207,7 +207,7 @@ public class ClientHashManager {
         return HashUtils.computeFileHash(zipPath);
     }
 
-    private static long resolveSyncTimestamp(Path zipPath, @Nullable ClientMeta cached) {
+    private static long resolveSyncTimestamp(Path zipPath, @Nullable RegionMeta cached) {
         long fileTs = getFileModificationTime(zipPath) / 1000;
         if (cached != null) {
             return Math.max(cached.timestampSeconds(), fileTs);
@@ -216,18 +216,18 @@ public class ClientHashManager {
     }
 
     private static void addMissingCacheEntries(
-            Map<String, ClientMeta> metaMap, Map<String, ClientMeta> cachedTimestamps, Set<String> dimPrefixes) {
+            Map<String, RegionMeta> metaMap, Map<String, RegionMeta> cachedTimestamps, Set<String> dimPrefixes) {
         if (dimPrefixes.isEmpty()) {
             return;
         }
-        for (Map.Entry<String, ClientMeta> entry : cachedTimestamps.entrySet()) {
+        for (Map.Entry<String, RegionMeta> entry : cachedTimestamps.entrySet()) {
             String key = entry.getKey();
             if (metaMap.containsKey(key)) {
                 continue;
             }
             for (String prefix : dimPrefixes) {
                 if (key.startsWith(prefix)) {
-                    metaMap.put(key, new ClientMeta(entry.getValue().timestampSeconds(), HashUtils.DEFAULT_HASH));
+                    metaMap.put(key, new RegionMeta(entry.getValue().timestampSeconds(), HashUtils.DEFAULT_HASH));
                     LOGGER.warn("Region {} in cache but file missing, will request re-sync", key);
                     break;
                 }

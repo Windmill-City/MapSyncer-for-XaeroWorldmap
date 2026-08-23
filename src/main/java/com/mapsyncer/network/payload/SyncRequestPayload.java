@@ -1,12 +1,12 @@
 package com.mapsyncer.network.payload;
 
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncRequestPayload {
-    private final Map<String, ClientMeta> clientMeta;
+    private final Map<String, RegionMeta> clientMeta;
     private final int partIndex;
     private final int totalParts;
     private final boolean syncAll;
@@ -14,12 +14,12 @@ public class SyncRequestPayload {
     private final boolean silent;
 
     public SyncRequestPayload(
-            Map<String, ClientMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
+            Map<String, RegionMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
         this(clientMeta, 0, 0, syncAll, targetDimension, silent);
     }
 
     public SyncRequestPayload(
-            Map<String, ClientMeta> clientMeta,
+            Map<String, RegionMeta> clientMeta,
             int partIndex,
             int totalParts,
             boolean syncAll,
@@ -33,7 +33,7 @@ public class SyncRequestPayload {
         this.silent = silent;
     }
 
-    public Map<String, ClientMeta> clientMeta() {
+    public Map<String, RegionMeta> clientMeta() {
         return clientMeta;
     }
 
@@ -78,12 +78,12 @@ public class SyncRequestPayload {
 
     public static SyncRequestPayload read(FriendlyByteBuf buf) {
         int size = buf.readInt();
-        Map<String, ClientMeta> metaMap = new HashMap<>();
+        Map<String, RegionMeta> metaMap = new HashMap<>();
         for (int i = 0; i < size; i++) {
             String path = buf.readUtf();
             long timestampSeconds = buf.readLong();
             String hash = buf.readUtf();
-            metaMap.put(path, new ClientMeta(timestampSeconds, hash));
+            metaMap.put(path, new RegionMeta(timestampSeconds, hash));
         }
 
         int partIndex = 0;

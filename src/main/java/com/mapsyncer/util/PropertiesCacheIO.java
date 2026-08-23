@@ -70,7 +70,7 @@ public final class PropertiesCacheIO {
         }
     }
 
-    public static @Nullable ClientMeta parseTimestampHash(String value) {
+    public static @Nullable RegionMeta parseTimestampHash(String value) {
         if (value == null || value.isEmpty()) {
             return null;
         }
@@ -79,7 +79,7 @@ public final class PropertiesCacheIO {
         if (parts.length == 2) {
             try {
                 long ts = Long.parseLong(parts[0]);
-                return new ClientMeta(ts, parts[1]);
+                return new RegionMeta(ts, parts[1]);
             } catch (NumberFormatException e) {
                 return null;
             }

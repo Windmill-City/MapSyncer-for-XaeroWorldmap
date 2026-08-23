@@ -6,7 +6,7 @@ import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -34,7 +34,7 @@ public class ServerSyncHandlerLogic {
 
     private static boolean warnedXaeromapFallback;
 
-    private static boolean isManifestRequest(Map<String, ClientMeta> clientMeta) {
+    private static boolean isManifestRequest(Map<String, RegionMeta> clientMeta) {
         return clientMeta == null || clientMeta.isEmpty();
     }
 
@@ -99,7 +99,7 @@ public class ServerSyncHandlerLogic {
         Player player = ForgeNetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;
 
-        Map<String, ClientMeta> clientMeta = payload.clientMeta();
+        Map<String, RegionMeta> clientMeta = payload.clientMeta();
         boolean syncAll = payload.syncAll();
         String targetDimension = payload.targetDimension();
         boolean silent = payload.silent();
@@ -192,7 +192,7 @@ public class ServerSyncHandlerLogic {
     }
 
     private static void serveRequestedRegions(
-            ServerPlayer player, Map<String, ClientMeta> requested, Path absCacheDir, DimensionPathMapping dimMapping) {
+            ServerPlayer player, Map<String, RegionMeta> requested, Path absCacheDir, DimensionPathMapping dimMapping) {
         ManifestCache manifestCache = ManifestCache.getInstance();
         int worldId = readWorldIdFromXaeroMap(player);
 

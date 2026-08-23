@@ -6,7 +6,7 @@ import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.ClientMeta;
+import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.DimensionPathMapping;
 import com.mapsyncer.util.HashUtils;
 import java.nio.file.Path;
@@ -258,17 +258,17 @@ public class MapPacketHandler {
                     return;
                 }
 
-                Map<String, ClientMeta> localMeta = result.meta();
-                Map<String, ClientMeta> diff = new HashMap<>();
+                Map<String, RegionMeta> localMeta = result.meta();
+                Map<String, RegionMeta> diff = new HashMap<>();
                 int upToDateCount = 0;
                 for (Map.Entry<String, Long> entry : serverTimestamps.entrySet()) {
                     String path = entry.getKey();
                     long serverTs = entry.getValue();
-                    ClientMeta local = localMeta.get(path);
+                    RegionMeta local = localMeta.get(path);
                     if (local != null && local.timestampSeconds() >= serverTs) {
                         upToDateCount++;
                     } else {
-                        diff.put(path, local != null ? local : new ClientMeta(0, HashUtils.DEFAULT_HASH));
+                        diff.put(path, local != null ? local : new RegionMeta(0, HashUtils.DEFAULT_HASH));
                     }
                 }
 
@@ -469,8 +469,8 @@ public class MapPacketHandler {
         }
 
         regionRequestInFlight = true;
-        Map<String, ClientMeta> single = new HashMap<>();
-        single.put(path, new ClientMeta(0, HashUtils.DEFAULT_HASH));
+        Map<String, RegionMeta> single = new HashMap<>();
+        single.put(path, new RegionMeta(0, HashUtils.DEFAULT_HASH));
         ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(single, false, "", true));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
