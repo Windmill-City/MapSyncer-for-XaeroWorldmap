@@ -12,8 +12,8 @@ import com.mapsyncer.network.SyncManifestPayload;
 import com.mapsyncer.network.SyncRequestPayload;
 import com.mapsyncer.network.SyncResponsePayload;
 import com.mapsyncer.server.CommandHandler;
-import com.mapsyncer.server.ConversionOrchestrator;
-import com.mapsyncer.server.UpdateHandler;
+import com.mapsyncer.server.MapConverter;
+import com.mapsyncer.server.MapUpdater;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
 
 import net.minecraft.resources.ResourceLocation;
@@ -124,12 +124,12 @@ public class MapSyncer {
     public static class ForgeEvents {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
-            ConversionOrchestrator.cleanupCacheDir();
+            MapConverter.cleanupCacheDir();
         }
 
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
-            UpdateHandler.get().stop();
+            MapUpdater.get().stop();
         }
 
         @SubscribeEvent

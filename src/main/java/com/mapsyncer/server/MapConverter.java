@@ -33,9 +33,9 @@ import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ConversionOrchestrator {
+public class MapConverter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConversionOrchestrator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MapConverter.class);
 
     private static final AtomicBoolean isRunning = new AtomicBoolean(false);
 

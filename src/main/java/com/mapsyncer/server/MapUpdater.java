@@ -11,17 +11,17 @@ import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UpdateHandler {
+public class MapUpdater {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(UpdateHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MapUpdater.class);
 
-    private static final UpdateHandler INSTANCE = new UpdateHandler();
+    private static final MapUpdater INSTANCE = new MapUpdater();
 
     private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
 
     private volatile @Nullable ExecutorService updateExecutor = null;
 
-    public static UpdateHandler get() {
+    public static MapUpdater get() {
         return INSTANCE;
     }
 
@@ -59,7 +59,7 @@ public class UpdateHandler {
 
         getUpdateExecutor().submit(() -> {
             try {
-                ConversionOrchestrator.performIncrementalScan(server);
+                MapConverter.performIncrementalScan(server);
             } catch (RuntimeException e) {
                 LOGGER.error("Error during incremental update", e);
             } finally {
@@ -88,7 +88,7 @@ public class UpdateHandler {
     }
 
     public void stop() {
-        ConversionOrchestrator.requestCancel();
+        MapConverter.requestCancel();
         updateInProgress.set(false);
         shutdownExecutor();
         LOGGER.info("Incremental update handler stopped");

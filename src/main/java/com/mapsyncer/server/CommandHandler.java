@@ -3,7 +3,7 @@ package com.mapsyncer.server;
 import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
+import com.mapsyncer.server.MapConverter.DimensionCacheStats;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mojang.brigadier.Command;
@@ -80,7 +80,7 @@ public class CommandHandler {
     }
 
     private static int stopConversion(CommandContext<CommandSourceStack> ctx) {
-        if (ConversionOrchestrator.requestCancel()) {
+        if (MapConverter.requestCancel()) {
             ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
         } else {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_not_running"));
@@ -161,11 +161,11 @@ public class CommandHandler {
     }
 
     public static MutableComponent generationStatusMessage() {
-        if (ConversionOrchestrator.isRunning()) {
+        if (MapConverter.isRunning()) {
             return ChatUtils.message(
                     "mapsyncer.generate.in_progress",
-                    ConversionOrchestrator.getProcessedCount(),
-                    ConversionOrchestrator.getTotalCount());
+                    MapConverter.getProcessedCount(),
+                    MapConverter.getTotalCount());
         }
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }
@@ -180,7 +180,7 @@ public class CommandHandler {
     }
 
     public static boolean generateAll(MinecraftServer server, Runnable onSuccess) {
-        if (ConversionOrchestrator.isRunning()) {
+        if (MapConverter.isRunning()) {
             LOGGER.warn("Conversion already in progress, rejecting generateAll command");
             return false;
         }
@@ -188,7 +188,7 @@ public class CommandHandler {
         server.saveEverything(false, true, true);
         Thread worker = new Thread(
                 () -> {
-                    if (ConversionOrchestrator.generateAll(server) && onSuccess != null) {
+                    if (MapConverter.generateAll(server) && onSuccess != null) {
                         onSuccess.run();
                     }
                 },
@@ -198,25 +198,25 @@ public class CommandHandler {
     }
 
     public static List<DimensionCacheStats> getCacheStats() {
-        return ConversionOrchestrator.getCacheStats();
+        return MapConverter.getCacheStats();
     }
 
     public static List<String> getCompletedDimensions() {
-        return ConversionOrchestrator.getCompletedDimensions();
+        return MapConverter.getCompletedDimensions();
     }
 
     public static int getProcessedCount() {
-        return ConversionOrchestrator.getProcessedCount();
+        return MapConverter.getProcessedCount();
     }
 
     public static int getTotalCount() {
-        return ConversionOrchestrator.getTotalCount();
+        return MapConverter.getTotalCount();
     }
 
     public static void disableIncremental() {
         ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.DISABLED);
         ModConfig.SERVER_SPEC.save();
-        UpdateHandler.get().stop();
+        MapUpdater.get().stop();
     }
 
     public static void setIncrementalOnEmpty() {
@@ -229,7 +229,7 @@ public class CommandHandler {
             ModConfig.reloadServerFromDisk();
             DimensionConfigParser.invalidateCache();
 
-            UpdateHandler.get().stop();
+            MapUpdater.get().stop();
 
             LOGGER.info("Server configuration reloaded");
             return true;

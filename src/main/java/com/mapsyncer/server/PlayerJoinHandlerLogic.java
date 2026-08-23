@@ -19,8 +19,8 @@ public class PlayerJoinHandlerLogic {
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
 
-        if (ConversionOrchestrator.isRunning()) {
-            ConversionOrchestrator.requestCancel();
+        if (MapConverter.isRunning()) {
+            MapConverter.requestCancel();
         }
 
         ServerSyncHandlerLogic.pushManifestOnJoin(player);
@@ -32,14 +32,14 @@ public class PlayerJoinHandlerLogic {
         MinecraftServer server = player.getServer();
         if (server == null) return;
 
-        UpdateHandler.get().onPlayerLoggedOut(server);
+        MapUpdater.get().onPlayerLoggedOut(server);
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
         LOGGER.info("Server stopped, cleaning up singleton cache instances");
 
-        UpdateHandler.get().stop();
+        MapUpdater.get().stop();
 
         LOGGER.info("Singleton cache cleanup completed");
     }
