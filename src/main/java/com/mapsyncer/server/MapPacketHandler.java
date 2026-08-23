@@ -50,6 +50,7 @@ public class MapPacketHandler {
 
             serveRequestedRegions(serverPlayer, requested);
         });
+        context.get().setPacketHandled(true);
     }
 
     private static void serveRequestedRegions(ServerPlayer player, List<RegionRef> requested) {

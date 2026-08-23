@@ -64,6 +64,7 @@ public class MapPacketHandler {
         MapSyncer.enqueueWork(context, () -> {
             handleManifestReceived(payload);
         });
+        context.get().setPacketHandled(true);
     }
 
     private static void handleManifestReceived(ManifestPayload payload) {
@@ -286,6 +287,7 @@ public class MapPacketHandler {
                 requestNextRegion();
             }
         });
+        context.get().setPacketHandled(true);
     }
 
     private static void requestNextRegion() {
