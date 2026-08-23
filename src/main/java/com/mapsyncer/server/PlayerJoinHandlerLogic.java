@@ -1,8 +1,5 @@
 package com.mapsyncer.server;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -10,6 +7,8 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @EventBusSubscriber(value = Dist.DEDICATED_SERVER, bus = EventBusSubscriber.Bus.FORGE)
 public class PlayerJoinHandlerLogic {
@@ -31,8 +30,7 @@ public class PlayerJoinHandlerLogic {
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         MinecraftServer server = player.getServer();
-        if (server == null)
-            return;
+        if (server == null) return;
 
         IncrementalUpdateHandlerLogic.get().onPlayerLoggedOut(server);
     }

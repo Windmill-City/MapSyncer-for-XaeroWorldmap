@@ -28,6 +28,7 @@ public final class XaeroReflectionHelper {
     private static @Nullable Method cancelRefreshMethod;
     private static @Nullable Method setHasHadTerrainMethod;
     private static @Nullable Method setRegionDetectionCompleteMethod;
+    private static @Nullable Method getCurrentWorldIdMethod;
 
     private static @Nullable Field loadStateField;
     private static @Nullable Field shouldCacheField;
@@ -70,7 +71,8 @@ public final class XaeroReflectionHelper {
             cancelRefreshMethod = mapRegionClass.getMethod("cancelRefresh", mapProcessorClass);
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
             setRegionDetectionCompleteMethod = mapSaveLoadClass.getMethod("setRegionDetectionComplete", boolean.class);
-            LOGGER.info("成功缓存 {} 个反射方法", 8);
+            getCurrentWorldIdMethod = mapProcessorClass.getMethod("getCurrentWorldId");
+            LOGGER.info("成功缓存 {} 个反射方法", 9);
 
             LOGGER.debug("获取并缓存反射字段...");
             loadStateField = mapRegionClass.getDeclaredField("loadState");
@@ -296,6 +298,19 @@ public final class XaeroReflectionHelper {
             return (String) worldIdField.get(mapRegion);
         } catch (Exception e) {
             LOGGER.warn("Failed to get worldId", e);
+            return null;
+        }
+    }
+
+    public static @Nullable String getCurrentWorldId() {
+        if (!initialized || getCurrentWorldIdMethod == null) return null;
+
+        try {
+            Object processor = getMapProcessor();
+            if (processor == null) return null;
+            return (String) getCurrentWorldIdMethod.invoke(processor);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get current world id", e);
             return null;
         }
     }

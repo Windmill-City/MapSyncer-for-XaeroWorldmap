@@ -20,7 +20,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class NetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "4";
+    private static final String PROTOCOL_VERSION = "5";
     private static @Nullable SimpleChannel CHANNEL;
 
     private static @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
@@ -151,7 +151,6 @@ public final class NetworkHandler {
         }
 
         public static void encode(ForgeSyncResponseMessage msg, FriendlyByteBuf buf) {
-            buf.writeInt(msg.data.worldId());
             buf.writeInt(msg.data.chunks().size());
             for (ChunkMapData chunk : msg.data.chunks()) {
                 encodeChunkMapData(buf, chunk);
@@ -161,7 +160,6 @@ public final class NetworkHandler {
         }
 
         public static ForgeSyncResponseMessage decode(FriendlyByteBuf buf) {
-            int worldId = buf.readInt();
             int size = buf.readInt();
             List<ChunkMapData> chunks = new ArrayList<>();
             for (int i = 0; i < size; i++) {
@@ -169,7 +167,7 @@ public final class NetworkHandler {
             }
             boolean isComplete = buf.readBoolean();
             String status = buf.readUtf();
-            return new ForgeSyncResponseMessage(new SyncResponsePayload(chunks, isComplete, worldId, status));
+            return new ForgeSyncResponseMessage(new SyncResponsePayload(chunks, isComplete, status));
         }
     }
 

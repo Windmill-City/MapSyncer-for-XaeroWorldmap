@@ -53,7 +53,8 @@ public final class PathMapping {
         return xaeroDim + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
     }
 
-    public static String toServerDimension(String dimPath) {        if (dimPath == null || dimPath.isEmpty()) {
+    public static String toServerDimension(String dimPath) {
+        if (dimPath == null || dimPath.isEmpty()) {
             return "overworld";
         }
 

@@ -167,15 +167,7 @@ public class ConversionOrchestrator {
         skippedEmptyContentCount.set(0);
 
         runConversionTasks(
-                needsUpdate,
-                regions,
-                regionDir,
-                baseOutputDir,
-                xaeroDimName,
-                dimTypeInfo,
-                passes,
-                failedRegions,
-                true);
+                needsUpdate, regions, regionDir, baseOutputDir, xaeroDimName, dimTypeInfo, passes, failedRegions, true);
 
         if (!force) {
             runNewRegionTasks(

@@ -46,7 +46,10 @@ public final class ClientSyncWriteQueue {
     }
 
     public static void submit(
-            ChunkMapData chunk, Path serverDir, int worldId, Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
+            ChunkMapData chunk,
+            Path serverDir,
+            String worldId,
+            Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
             XaeroMapDataHandler.RegionWriteResult result = null;

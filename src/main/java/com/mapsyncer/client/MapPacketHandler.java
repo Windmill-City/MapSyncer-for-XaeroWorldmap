@@ -166,13 +166,12 @@ public class MapPacketHandler {
                     return;
                 }
                 Map<String, Long> merged = new HashMap<>();
-                SyncManifestPayload ref = manifestParts.values().iterator().next();
                 for (SyncManifestPayload part : manifestParts.values()) {
                     merged.putAll(part.timestamps());
                 }
                 manifestParts.clear();
                 manifestTotalParts = 0;
-                resolved = new SyncManifestPayload(merged, ref.worldId());
+                resolved = new SyncManifestPayload(merged);
             }
 
             handleManifestReceived(resolved, generationAtEnqueue);
@@ -313,10 +312,9 @@ public class MapPacketHandler {
             }
 
             LOGGER.info(
-                    "[SYNC] <- response: chunks={}, complete={}, worldId={}, status={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
+                    "[SYNC] <- response: chunks={}, complete={}, status={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
                     payload.chunks().size(),
                     payload.isComplete(),
-                    payload.worldId(),
                     payload.status(),
                     session.isReceiving(),
                     regionRequestInFlight,
@@ -353,6 +351,24 @@ public class MapPacketHandler {
 
             cleanStaleParts();
 
+            if (!XaeroReflectionHelper.isInitialized() && !initializeReflectionCache()) {
+                session.markReflectionFailed();
+            }
+
+            String worldId = XaeroReflectionHelper.getCurrentWorldId();
+            if (worldId == null || worldId.isEmpty()) {
+                LOGGER.error(
+                        "Unable to resolve current world id from Xaero, skipping {} received chunks",
+                        payload.chunks().size());
+                syncFailed += payload.chunks().size();
+                if (payload.isComplete()) {
+                    regionRequestInFlight = false;
+                    syncProcessed++;
+                    requestNextRegion(generationAtEnqueue);
+                }
+                return;
+            }
+
             for (ChunkMapData chunk : payload.chunks()) {
                 ChunkMapData assembled = assemblePart(chunk);
                 if (assembled == null) {
@@ -379,7 +395,7 @@ public class MapPacketHandler {
                 final int gen = generationAtEnqueue;
                 final boolean processRegion = shouldProcess;
 
-                ClientSyncWriteQueue.submit(assembled, serverDir, payload.worldId(), writeResult -> {
+                ClientSyncWriteQueue.submit(assembled, serverDir, worldId, writeResult -> {
                     mc.execute(() -> {
                         try {
                             if (!session.isCurrent(gen)) {

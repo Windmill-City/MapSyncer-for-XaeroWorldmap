@@ -45,7 +45,7 @@ public final class XaeroMapDataHandler {
 
     public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
-    public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, int worldId) {
+    public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, String worldId) {
         String xaeroDim = chunk.dimension;
         Path dimDir = serverDir.resolve(xaeroDim);
         Path mwDir = dimDir.resolve("mw$" + worldId);
