@@ -50,8 +50,8 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
 
-    compileOnly files('libs/[Xaero的世界地图] xaeroworldmap-forge-1.20.1-1.45.0.jar')
-    runtimeOnly files('libs/[Xaero的世界地图] xaeroworldmap-forge-1.20.1-1.45.0.jar')
+    compileOnly fg.deobf('xaeroworldmap-forge-1.20.1:xaeroworldmap-forge-1.20.1:1.45.0')
+    runtimeOnly fg.deobf('xaeroworldmap-forge-1.20.1:xaeroworldmap-forge-1.20.1:1.45.0')
 
     compileOnly 'org.spongepowered:mixin:0.8.5'
     compileOnly 'org.ow2.asm:asm:9.7'
