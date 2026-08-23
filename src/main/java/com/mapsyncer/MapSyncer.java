@@ -14,7 +14,7 @@ import com.mapsyncer.network.SyncResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.MapUpdater;
-import com.mapsyncer.server.ServerSyncHandlerLogic;
+import com.mapsyncer.server.MapPacketHandler;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -63,7 +63,7 @@ public class MapSyncer {
                 SyncRequestPayload.class,
                 (msg, buf) -> SyncRequestPayload.write(buf, msg),
                 SyncRequestPayload::read,
-                ServerSyncHandlerLogic::handleSyncRequest);
+                MapPacketHandler::handleSyncRequest);
         CHANNEL.registerMessage(
                 1,
                 SyncResponsePayload.class,

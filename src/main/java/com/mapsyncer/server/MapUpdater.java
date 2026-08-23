@@ -29,7 +29,7 @@ public class MapUpdater {
     }
 
     public void onPlayerLoggedOut(MinecraftServer server) {
-        if (server.isStopped())
+        if (server == null || server.isStopped())
             return;
 
         if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY)
