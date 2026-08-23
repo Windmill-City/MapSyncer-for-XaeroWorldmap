@@ -2,7 +2,7 @@ package com.mapsyncer.config;
 
 import com.mapsyncer.mca.DimensionTypeInfo;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.RegionConverterStandalone.CaveModeParams;
+import com.mapsyncer.mca.RegionConverter.CaveModeParams;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

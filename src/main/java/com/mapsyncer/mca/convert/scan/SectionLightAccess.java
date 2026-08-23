@@ -6,12 +6,13 @@ import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public final class SectionLightAccess {
 
     private SectionLightAccess() {}
 
-    public static ChunkSectionParser.SectionData findSectionAt(ChunkDataParser.ChunkInfo chunk, int worldY) {
+    public static @Nullable ChunkSectionParser.SectionData findSectionAt(ChunkDataParser.ChunkInfo chunk, int worldY) {
         ChunkSectionParser.SectionData[] lookup = chunk.sectionLookup();
         if (lookup == null) {
             return null;

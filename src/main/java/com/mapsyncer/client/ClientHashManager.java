@@ -18,12 +18,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClientHashManager {
 
-    public record MetaScanResult(Map<String, ClientMeta> meta, boolean success, int failedFiles, String failureReason) {
+    public record MetaScanResult(
+            Map<String, ClientMeta> meta, boolean success, int failedFiles, @Nullable String failureReason) {
 
         public static MetaScanResult ok(Map<String, ClientMeta> meta) {
             return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, 0, null);
@@ -40,7 +42,7 @@ public class ClientHashManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientHashManager.class);
 
-    private static volatile ForkJoinPool sharedPool;
+    private static volatile @Nullable ForkJoinPool sharedPool;
 
     private static volatile int currentPoolThreads;
 
@@ -60,25 +62,28 @@ public class ClientHashManager {
 
     private static ForkJoinPool getSharedPool() {
         int configuredThreads = getConfiguredThreads();
+        ForkJoinPool pool = sharedPool;
 
-        if (sharedPool == null || sharedPool.isShutdown() || currentPoolThreads != configuredThreads) {
+        if (pool == null || pool.isShutdown() || currentPoolThreads != configuredThreads) {
             synchronized (ClientHashManager.class) {
-                if (sharedPool == null || sharedPool.isShutdown() || currentPoolThreads != configuredThreads) {
+                pool = sharedPool;
+                if (pool == null || pool.isShutdown() || currentPoolThreads != configuredThreads) {
 
-                    if (sharedPool != null && !sharedPool.isShutdown()) {
-                        sharedPool.shutdown();
+                    if (pool != null && !pool.isShutdown()) {
+                        pool.shutdown();
                         try {
-                            if (!sharedPool.awaitTermination(5, TimeUnit.SECONDS)) {
-                                sharedPool.shutdownNow();
+                            if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+                                pool.shutdownNow();
                             }
                         } catch (InterruptedException e) {
-                            sharedPool.shutdownNow();
+                            pool.shutdownNow();
                             Thread.currentThread().interrupt();
                         }
                         LOGGER.info("Shutting down old ForkJoinPool (threads={})", currentPoolThreads);
                     }
 
-                    sharedPool = new ForkJoinPool(configuredThreads);
+                    pool = new ForkJoinPool(configuredThreads);
+                    sharedPool = pool;
                     currentPoolThreads = configuredThreads;
                     LOGGER.info(
                             "Created new ForkJoinPool with {} threads (configured via client settings)",
@@ -87,7 +92,7 @@ public class ClientHashManager {
             }
         }
 
-        return sharedPool;
+        return pool;
     }
 
     public static void computeMetaForSyncAsync(Path mapDir, Consumer<MetaScanResult> onComplete) {
@@ -119,7 +124,7 @@ public class ClientHashManager {
         }
 
         ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        Map<String, ClientMeta> cachedTimestamps = tsCache.getAll();
+        Map<String, ClientMeta> cachedTimestamps = tsCache != null ? tsCache.getAll() : Map.of();
         LOGGER.info("Loaded {} cached timestamps from previous sync", cachedTimestamps.size());
 
         java.util.List<Path> zipFiles;
@@ -187,7 +192,7 @@ public class ClientHashManager {
         return MetaScanResult.ok(metaMap);
     }
 
-    private static String resolveSyncHash(Path zipPath, ClientMeta cached) {
+    private static String resolveSyncHash(Path zipPath, @Nullable ClientMeta cached) {
         if (zipPath == null || !Files.exists(zipPath)) {
             if (cached != null) {
                 LOGGER.warn(
@@ -202,7 +207,7 @@ public class ClientHashManager {
         return HashUtils.computeFileHash(zipPath);
     }
 
-    private static long resolveSyncTimestamp(Path zipPath, ClientMeta cached) {
+    private static long resolveSyncTimestamp(Path zipPath, @Nullable ClientMeta cached) {
         long fileTs = getFileModificationTime(zipPath) / 1000;
         if (cached != null) {
             return Math.max(cached.timestampSeconds(), fileTs);
@@ -257,7 +262,7 @@ public class ClientHashManager {
         return prefixes;
     }
 
-    private static Path findServerDir(Path mapDir) {
+    private static @Nullable Path findServerDir(Path mapDir) {
         Path current = mapDir;
 
         while (current != null) {
@@ -349,7 +354,7 @@ public class ClientHashManager {
         }
 
         ClientTimestampCache tsCache = ClientTimestampCache.getInstance(serverDir);
-        for (String cacheKey : tsCache.getAll().keySet()) {
+        for (String cacheKey : tsCache != null ? tsCache.getAll().keySet() : Set.<String>of()) {
             int slashIndex = cacheKey.indexOf('/');
             if (slashIndex > 0) {
                 String cachedDim = cacheKey.substring(0, slashIndex);

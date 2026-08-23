@@ -2,7 +2,6 @@ package com.mapsyncer.mca;
 
 public enum LightMode {
     SURFACE,
-
     CAVE;
 
     public byte calculateEffectiveLight(

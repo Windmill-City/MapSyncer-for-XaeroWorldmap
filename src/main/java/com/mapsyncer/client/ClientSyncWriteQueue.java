@@ -7,6 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,7 @@ public final class ClientSyncWriteQueue {
 
     private static final int IO_THREADS = Math.max(2, Runtime.getRuntime().availableProcessors() / 4);
 
-    private static volatile ExecutorService executor = null;
+    private static volatile @Nullable ExecutorService executor = null;
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
 
@@ -30,14 +31,15 @@ public final class ClientSyncWriteQueue {
         synchronized (ClientSyncWriteQueue.class) {
             current = executor;
             if (current == null || current.isShutdown()) {
-                executor = Executors.newFixedThreadPool(IO_THREADS, r -> {
+                current = Executors.newFixedThreadPool(IO_THREADS, r -> {
                     Thread t = new Thread(r, "mapsyncer-sync-io");
                     t.setDaemon(true);
                     return t;
                 });
+                executor = current;
                 LOGGER.debug("ClientSyncWriteQueue executor (re)created");
             }
-            return executor;
+            return current;
         }
     }
 
@@ -49,7 +51,7 @@ public final class ClientSyncWriteQueue {
             ChunkMapData chunk,
             Path serverDir,
             int worldId,
-            ClientTimestampCache tsCache,
+            @Nullable ClientTimestampCache tsCache,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
@@ -88,7 +90,7 @@ public final class ClientSyncWriteQueue {
     private static void invokeCallback(
             ChunkMapData chunk,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback,
-            XaeroMapDataHandler.RegionWriteResult result) {
+            @Nullable XaeroMapDataHandler.RegionWriteResult result) {
         try {
             callback.accept(result);
         } catch (Exception e) {
@@ -96,7 +98,7 @@ public final class ClientSyncWriteQueue {
         }
     }
 
-    public static void saveTimestampCacheAsync(ClientTimestampCache tsCache) {
+    public static void saveTimestampCacheAsync(@Nullable ClientTimestampCache tsCache) {
         if (tsCache == null) {
             return;
         }

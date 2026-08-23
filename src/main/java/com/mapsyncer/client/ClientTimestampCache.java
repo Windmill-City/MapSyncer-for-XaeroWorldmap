@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,9 +18,9 @@ public class ClientTimestampCache {
 
     private static final String CACHE_FILE_NAME = "sync_timestamps.cache";
 
-    private static volatile ClientTimestampCache instance;
+    private static volatile @Nullable ClientTimestampCache instance;
 
-    private static volatile Path lastBaseDir = null;
+    private static volatile @Nullable Path lastBaseDir = null;
 
     private final Path cacheFile;
 
@@ -30,21 +31,24 @@ public class ClientTimestampCache {
         load();
     }
 
-    public static ClientTimestampCache getInstance(Path baseDir) {
+    public static @Nullable ClientTimestampCache getInstance(Path baseDir) {
         if (baseDir == null) {
             return instance;
         }
 
-        if (instance == null || lastBaseDir == null || !lastBaseDir.equals(baseDir)) {
+        ClientTimestampCache current = instance;
+        if (current == null || lastBaseDir == null || !lastBaseDir.equals(baseDir)) {
             synchronized (ClientTimestampCache.class) {
-                if (instance == null || lastBaseDir == null || !lastBaseDir.equals(baseDir)) {
-                    instance = new ClientTimestampCache(baseDir);
+                current = instance;
+                if (current == null || lastBaseDir == null || !lastBaseDir.equals(baseDir)) {
+                    current = new ClientTimestampCache(baseDir);
+                    instance = current;
                     lastBaseDir = baseDir;
                     LOGGER.info("ClientTimestampCache initialized for baseDir: {}", baseDir);
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     public static void resetInstance() {

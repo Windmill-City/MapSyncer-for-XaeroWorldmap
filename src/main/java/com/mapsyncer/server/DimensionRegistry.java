@@ -8,6 +8,7 @@ import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.DimensionPathMapping;
 import java.nio.file.Path;
 import java.util.*;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -117,7 +118,7 @@ public class DimensionRegistry {
         return dimId.replace("minecraft:", "").toLowerCase();
     }
 
-    private static ServerLevel getLevelForDimension(MinecraftServer server, String dimId) {
+    private static @Nullable ServerLevel getLevelForDimension(MinecraftServer server, String dimId) {
         for (ServerLevel level : server.getAllLevels()) {
             if (ApiHelper.getDimId(level.dimension()).equals(dimId)) {
                 return level;

@@ -1,23 +1,24 @@
 package com.mapsyncer.mca.convert.biome;
 
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
+import static com.mapsyncer.mca.RegionConverter.DEFAULT_BIOME;
 
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
+import javax.annotation.Nullable;
 
 public final class BiomeQuartResolver {
 
     private BiomeQuartResolver() {}
 
-    public static String resolve(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz) {
+    public static @Nullable String resolve(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz) {
         return resolve(chunk, lx, absoluteY, lz, false);
     }
 
-    public static String resolveAtY(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz) {
+    public static @Nullable String resolveAtY(ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz) {
         return resolveAtY(chunk, lx, absoluteY, lz, false);
     }
 
-    public static String resolveAtY(
+    public static @Nullable String resolveAtY(
             ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         String biome = resolveBiomeAtAbsoluteY(chunk, lx, absoluteY, lz, smoothBoundary);
         if (isValidBiome(biome)) {
@@ -53,7 +54,7 @@ public final class BiomeQuartResolver {
         return DEFAULT_BIOME;
     }
 
-    public static String resolve(
+    public static @Nullable String resolve(
             ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         String biome = resolveBiomeAtAbsoluteY(chunk, lx, absoluteY, lz, smoothBoundary);
         if (isValidBiome(biome)) {
@@ -98,7 +99,7 @@ public final class BiomeQuartResolver {
         return DEFAULT_BIOME;
     }
 
-    private static String resolveBiomeAtAbsoluteY(
+    private static @Nullable String resolveBiomeAtAbsoluteY(
             ChunkDataParser.ChunkInfo chunk, int lx, int absoluteY, int lz, boolean smoothBoundary) {
         if (!smoothBoundary && chunk.biomeGrid() != null) {
             String gridBiome = chunk.biomeGrid().lookup(lx, absoluteY, lz);
@@ -142,7 +143,7 @@ public final class BiomeQuartResolver {
         return null;
     }
 
-    static boolean isValidBiome(String biome) {
+    static boolean isValidBiome(@Nullable String biome) {
         return biome != null && !biome.equals(DEFAULT_BIOME);
     }
 }

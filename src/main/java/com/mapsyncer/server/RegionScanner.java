@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -61,7 +62,7 @@ public class RegionScanner {
         return scanRegionDir(worldRoot, level.dimension());
     }
 
-    public static Path getRegionDir(ServerLevel level) {
+    public static @Nullable Path getRegionDir(ServerLevel level) {
         try {
             Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
             if (!Files.exists(worldRoot)) return null;

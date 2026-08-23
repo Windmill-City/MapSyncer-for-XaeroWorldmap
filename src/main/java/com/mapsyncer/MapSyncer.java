@@ -4,7 +4,7 @@ import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.network.impl.ForgeNetworkHandler;
-import com.mapsyncer.server.CacheCommandHandler;
+import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.DimensionRegistry;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
@@ -118,7 +118,7 @@ public class MapSyncer {
 
         @SubscribeEvent
         public static void onRegisterCommands(RegisterCommandsEvent event) {
-            CacheCommandHandler.register(event.getDispatcher(), "mapsyncer");
+            CommandHandler.register(event.getDispatcher(), "mapsyncer");
         }
     }
 }

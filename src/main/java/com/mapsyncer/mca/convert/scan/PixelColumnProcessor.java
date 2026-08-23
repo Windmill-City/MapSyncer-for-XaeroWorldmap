@@ -1,6 +1,6 @@
 package com.mapsyncer.mca.convert.scan;
 
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;

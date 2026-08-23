@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 public class ChunkDataParser {
 
@@ -21,7 +22,7 @@ public class ChunkDataParser {
             "heightmaps",
             "full");
 
-    private static boolean shouldSkipChunk(String status) {
+    private static boolean shouldSkipChunk(@Nullable String status) {
         if (status == null || status.isEmpty()) {
             return true;
         }
@@ -42,18 +43,21 @@ public class ChunkDataParser {
             BiomeQuartGrid biomeGrid) {}
 
     private static final class HeightmapFields {
+        @Nullable
         long[] worldSurface;
+
+        @Nullable
         long[] motionBlocking;
     }
 
-    public static ChunkInfo parseChunk(int localX, int localZ, byte[] nbtData, int worldHeightRange)
+    public static @Nullable ChunkInfo parseChunk(int localX, int localZ, byte[] nbtData, int worldHeightRange)
             throws IOException {
         try (NbtStream stream = new NbtStream(new ByteArrayInputStream(nbtData))) {
             return parseChunk(localX, localZ, stream, worldHeightRange);
         }
     }
 
-    private static ChunkInfo parseChunk(int localX, int localZ, NbtStream stream, int worldHeightRange)
+    private static @Nullable ChunkInfo parseChunk(int localX, int localZ, NbtStream stream, int worldHeightRange)
             throws IOException {
         byte rootType = stream.readTagType();
         if (rootType != NbtStream.TAG_COMPOUND) {
@@ -232,7 +236,7 @@ public class ChunkDataParser {
         }
     }
 
-    public static String getBiomeAt(ChunkInfo chunk, int x, int worldY, int z, boolean smoothBoundary) {
+    public static @Nullable String getBiomeAt(ChunkInfo chunk, int x, int worldY, int z, boolean smoothBoundary) {
         int sectionY = worldY >> 4;
         int localY = worldY & 0xF;
         ChunkSectionParser.SectionData[] lookup = chunk.sectionLookup();

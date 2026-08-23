@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,15 +24,15 @@ import net.minecraftforge.network.simple.SimpleChannel;
 public class ForgeNetworkHandler {
 
     private static final String PROTOCOL_VERSION = "2";
-    private static SimpleChannel CHANNEL;
+    private static @Nullable SimpleChannel CHANNEL;
 
-    private static volatile ForgeNetworkHandler INSTANCE;
+    private static volatile @Nullable ForgeNetworkHandler INSTANCE;
 
     static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
 
-    private BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
-    private BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
-    private BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
+    private @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
+    private @Nullable BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
+    private @Nullable BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
 
     private boolean registered = false;
 
@@ -52,27 +53,28 @@ public class ForgeNetworkHandler {
     public void init() {
         if (CHANNEL != null) return;
 
-        CHANNEL = NetworkRegistry.newSimpleChannel(
+        SimpleChannel channel = NetworkRegistry.newSimpleChannel(
                 new ResourceLocation(MapSyncer.MOD_ID, "main"),
                 () -> PROTOCOL_VERSION,
                 NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
                 NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
+        CHANNEL = channel;
 
-        CHANNEL.registerMessage(
+        channel.registerMessage(
                 0,
                 ForgeSyncRequestMessage.class,
                 ForgeSyncRequestMessage::encode,
                 ForgeSyncRequestMessage::decode,
                 this::handleSyncRequest);
 
-        CHANNEL.registerMessage(
+        channel.registerMessage(
                 1,
                 ForgeSyncResponseMessage.class,
                 ForgeSyncResponseMessage::encode,
                 ForgeSyncResponseMessage::decode,
                 this::handleSyncResponse);
 
-        CHANNEL.registerMessage(
+        channel.registerMessage(
                 2,
                 ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
@@ -109,17 +111,24 @@ public class ForgeNetworkHandler {
     }
 
     public void sendToServer(SyncRequestPayload payload) {
-        CHANNEL.sendToServer(new ForgeSyncRequestMessage(payload));
+        channel().sendToServer(new ForgeSyncRequestMessage(payload));
     }
 
     public void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncResponseMessage(payload));
+        channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncResponseMessage(payload));
     }
 
     public void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
+        channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
+    }
+
+    private static SimpleChannel channel() {
+        if (CHANNEL == null) {
+            throw new IllegalStateException("ForgeNetworkHandler channel not initialized");
+        }
+        return CHANNEL;
     }
 
     public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {

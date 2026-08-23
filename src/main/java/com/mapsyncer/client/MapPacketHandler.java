@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
@@ -168,12 +169,9 @@ public class MapPacketHandler {
                     return;
                 }
                 Map<String, Long> merged = new HashMap<>();
-                SyncManifestPayload ref = null;
+                SyncManifestPayload ref = manifestParts.values().iterator().next();
                 for (SyncManifestPayload part : manifestParts.values()) {
                     merged.putAll(part.timestamps());
-                    if (ref == null) {
-                        ref = part;
-                    }
                 }
                 manifestParts.clear();
                 manifestTotalParts = 0;
@@ -554,7 +552,7 @@ public class MapPacketHandler {
         XaeroReflectionHelper.clearCache();
     }
 
-    private static void finishUpToDate(ClientTimestampCache tsCache) {
+    private static void finishUpToDate(@Nullable ClientTimestampCache tsCache) {
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
         }
@@ -644,7 +642,7 @@ public class MapPacketHandler {
         return chunk.regionX + "," + chunk.regionZ + "," + chunk.dimension + "," + chunk.caveLayer;
     }
 
-    private static ChunkMapData assemblePart(ChunkMapData chunk) {
+    private static @Nullable ChunkMapData assemblePart(ChunkMapData chunk) {
         if (chunk.totalParts <= 1) {
             return chunk;
         }

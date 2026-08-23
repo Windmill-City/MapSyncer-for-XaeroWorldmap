@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert.scan;
 
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.RegionConverterStandalone.CaveModeParams;
+import com.mapsyncer.mca.RegionConverter.CaveModeParams;
 
 public record RegionScanPass(
         int caveLayer, LightMode lightMode, CaveModeParams caveParams, ScanVerticalBounds verticalBounds) {

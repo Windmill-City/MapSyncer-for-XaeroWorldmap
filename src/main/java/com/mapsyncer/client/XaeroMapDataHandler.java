@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedOutputStream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public final class XaeroMapDataHandler {
 
     public record RegionWriteResult(Path mwDir, Path outputFile, String crc32Hash) {}
 
-    public static RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, int worldId) {
+    public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, int worldId) {
         String xaeroDim = chunk.dimension;
         Path dimDir = serverDir.resolve(xaeroDim);
         Path mwDir = dimDir.resolve("mw$" + worldId);

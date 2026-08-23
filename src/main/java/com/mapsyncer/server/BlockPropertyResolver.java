@@ -5,49 +5,18 @@ import com.mapsyncer.mca.BlockPropertyLookup;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.AttachedStemBlock;
-import net.minecraft.world.level.block.BambooSaplingBlock;
-import net.minecraft.world.level.block.BambooStalkBlock;
-import net.minecraft.world.level.block.BaseCoralPlantBlock;
-import net.minecraft.world.level.block.BigDripleafBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.BushBlock;
-import net.minecraft.world.level.block.CactusBlock;
-import net.minecraft.world.level.block.CaveVinesBlock;
-import net.minecraft.world.level.block.CaveVinesPlantBlock;
-import net.minecraft.world.level.block.ChorusFlowerBlock;
-import net.minecraft.world.level.block.ChorusPlantBlock;
-import net.minecraft.world.level.block.CropBlock;
-import net.minecraft.world.level.block.DeadBushBlock;
 import net.minecraft.world.level.block.DoublePlantBlock;
-import net.minecraft.world.level.block.FlowerBlock;
-import net.minecraft.world.level.block.GrowingPlantBlock;
-import net.minecraft.world.level.block.GrowingPlantBodyBlock;
-import net.minecraft.world.level.block.GrowingPlantHeadBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.LiquidBlock;
-import net.minecraft.world.level.block.MushroomBlock;
-import net.minecraft.world.level.block.NetherWartBlock;
-import net.minecraft.world.level.block.PitcherCropBlock;
 import net.minecraft.world.level.block.RenderShape;
-import net.minecraft.world.level.block.SaplingBlock;
-import net.minecraft.world.level.block.SmallDripleafBlock;
-import net.minecraft.world.level.block.StemBlock;
-import net.minecraft.world.level.block.SugarCaneBlock;
-import net.minecraft.world.level.block.TallFlowerBlock;
-import net.minecraft.world.level.block.TallGrassBlock;
-import net.minecraft.world.level.block.TorchflowerCropBlock;
-import net.minecraft.world.level.block.TwistingVinesBlock;
-import net.minecraft.world.level.block.TwistingVinesPlantBlock;
-import net.minecraft.world.level.block.WaterlilyBlock;
-import net.minecraft.world.level.block.WeepingVinesBlock;
-import net.minecraft.world.level.block.WeepingVinesPlantBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -138,7 +107,7 @@ public class BlockPropertyResolver {
         private PlaceholderBlockGetter() {}
 
         @Override
-        public BlockEntity getBlockEntity(BlockPos pos) {
+        public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
             return null;
         }
 
@@ -416,40 +385,7 @@ public class BlockPropertyResolver {
     }
 
     private static boolean checkIsFlower(Block block, BlockState state) {
-
-        if (state.is(BlockTags.FLOWERS)) {
-            return true;
-        }
-
-        if (block instanceof FlowerBlock) {
-            return true;
-        }
-
-        if (block instanceof TallFlowerBlock) {
-            return true;
-        }
-
-        if (block instanceof MushroomBlock) {
-            return true;
-        }
-
-        if (block instanceof WaterlilyBlock) {
-            return true;
-        }
-
-        if (block == Blocks.BROWN_MUSHROOM || block == Blocks.RED_MUSHROOM) {
-            return true;
-        }
-
-        if (block instanceof PitcherCropBlock) {
-            return true;
-        }
-
-        if (block instanceof TorchflowerCropBlock) {
-            return true;
-        }
-
-        return false;
+        return state.is(BlockTags.FLOWERS);
     }
 
     private static boolean checkIsPlant(Block block, BlockState state, boolean isFlower) {
@@ -458,99 +394,7 @@ public class BlockPropertyResolver {
             return true;
         }
 
-        if (block instanceof BushBlock) {
-            return true;
-        }
-
-        if (block instanceof CropBlock) {
-            return true;
-        }
-
-        if (block instanceof StemBlock) {
-            return true;
-        }
-
-        if (block instanceof AttachedStemBlock) {
-            return true;
-        }
-
-        if (block instanceof SaplingBlock) {
-            return true;
-        }
-
-        if (block instanceof TallGrassBlock) {
-            return true;
-        }
-
-        if (block instanceof DeadBushBlock) {
-            return true;
-        }
-
-        if (block instanceof CactusBlock) {
-            return true;
-        }
-
-        if (block instanceof SugarCaneBlock) {
-            return true;
-        }
-
-        if (block instanceof BambooStalkBlock || block instanceof BambooSaplingBlock) {
-            return true;
-        }
-
-        if (block instanceof NetherWartBlock) {
-            return true;
-        }
-
-        if (block instanceof GrowingPlantBlock
-                || block instanceof GrowingPlantBodyBlock
-                || block instanceof GrowingPlantHeadBlock) {
-            return true;
-        }
-
-        if (block instanceof CaveVinesBlock || block instanceof CaveVinesPlantBlock) {
-            return true;
-        }
-
-        if (block instanceof TwistingVinesBlock || block instanceof TwistingVinesPlantBlock) {
-            return true;
-        }
-
-        if (block instanceof WeepingVinesBlock || block instanceof WeepingVinesPlantBlock) {
-            return true;
-        }
-
-        if (block instanceof ChorusPlantBlock || block instanceof ChorusFlowerBlock) {
-            return true;
-        }
-
-        if (block instanceof BaseCoralPlantBlock) {
-            return true;
-        }
-
-        if (block instanceof BigDripleafBlock || block instanceof SmallDripleafBlock) {
-            return true;
-        }
-
         if (state.is(BlockTags.CROPS)) {
-            return true;
-        }
-
-        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
-        if (blockId.contains("plant")
-                || blockId.contains("crop")
-                || blockId.contains("sapling")
-                || blockId.contains("seed")
-                || blockId.contains("vine")
-                || blockId.contains("fern")
-                || blockId.contains("bush")
-                || blockId.contains("grass")
-                || blockId.contains("cactus")
-                || blockId.contains("reed")
-                || blockId.contains("stem")
-                || blockId.contains("leaf")
-                || blockId.contains("mushroom")
-                || blockId.contains("fungus")) {
             return true;
         }
 
@@ -563,28 +407,6 @@ public class BlockPropertyResolver {
             if (prop.getName().equals("waterlogged")) {
                 return true;
             }
-        }
-
-        String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
-        if (blockId.contains("fence_gate")
-                || blockId.contains("stairs")
-                || blockId.contains("slab")
-                || blockId.contains("wall")
-                || blockId.contains("door")
-                || blockId.contains("trapdoor")
-                || blockId.contains("lantern")
-                || blockId.contains("chain")
-                || blockId.contains("coral")
-                || blockId.contains("grate")
-                || blockId.contains("sign")
-                || blockId.contains("banner")
-                || blockId.contains("bed")
-                || blockId.contains("scaffolding")
-                || blockId.contains("conduit")
-                || blockId.contains("light")
-                || blockId.contains("sea_pickle")
-                || blockId.contains("kelp")) {
-            return true;
         }
 
         return false;

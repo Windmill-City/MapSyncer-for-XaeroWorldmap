@@ -8,6 +8,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,17 +23,20 @@ public class McaTimestampCache {
 
     private final Path cacheFilePath;
 
-    private static volatile McaTimestampCache instance;
+    private static volatile @Nullable McaTimestampCache instance;
 
     public static McaTimestampCache getInstance(Path baseDir) {
-        if (instance == null) {
+        McaTimestampCache current = instance;
+        if (current == null) {
             synchronized (McaTimestampCache.class) {
-                if (instance == null) {
-                    instance = new McaTimestampCache(baseDir);
+                current = instance;
+                if (current == null) {
+                    current = new McaTimestampCache(baseDir);
+                    instance = current;
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     private McaTimestampCache(Path baseDir) {

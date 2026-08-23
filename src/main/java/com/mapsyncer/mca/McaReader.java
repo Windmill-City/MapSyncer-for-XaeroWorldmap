@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +108,7 @@ public class McaReader implements AutoCloseable {
         return new ChunkLocation(packed >>> 8, packed & 0xFF);
     }
 
-    public byte[] readChunkData(int localX, int localZ) throws IOException {
+    public @Nullable byte[] readChunkData(int localX, int localZ) throws IOException {
         ChunkLocation loc = getChunkLocation(localX, localZ);
         if (!loc.exists()) {
             return null;

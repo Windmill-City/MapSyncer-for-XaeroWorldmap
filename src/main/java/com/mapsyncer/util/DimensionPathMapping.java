@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ public class DimensionPathMapping {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DimensionPathMapping.class);
 
-    private static volatile DimensionPathMapping instance;
+    private static volatile @Nullable DimensionPathMapping instance;
 
     private final Map<String, String> pathToFolder = new ConcurrentHashMap<>();
 
@@ -48,14 +49,17 @@ public class DimensionPathMapping {
     }
 
     public static DimensionPathMapping getInstance() {
-        if (instance == null) {
+        DimensionPathMapping current = instance;
+        if (current == null) {
             synchronized (DimensionPathMapping.class) {
-                if (instance == null) {
-                    instance = new DimensionPathMapping();
+                current = instance;
+                if (current == null) {
+                    current = new DimensionPathMapping();
+                    instance = current;
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     public static void resetInstance() {
@@ -65,7 +69,7 @@ public class DimensionPathMapping {
         LOGGER.info("DimensionPathMapping instance reset");
     }
 
-    public Path detectRegionDir(Path worldRoot, String dimPath) {
+    public @Nullable Path detectRegionDir(Path worldRoot, String dimPath) {
         if (worldRoot == null || !Files.exists(worldRoot)) {
             return null;
         }
@@ -108,7 +112,7 @@ public class DimensionPathMapping {
         return null;
     }
 
-    private String buildModDimensionPath(String normalized) {
+    private @Nullable String buildModDimensionPath(String normalized) {
         String[] parts = normalized.split(":", 2);
         if (parts.length == 2) {
             return "dimensions/" + parts[0] + "/" + parts[1];

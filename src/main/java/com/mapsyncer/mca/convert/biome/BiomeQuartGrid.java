@@ -2,6 +2,7 @@ package com.mapsyncer.mca.convert.biome;
 
 import com.mapsyncer.mca.ChunkSectionParser;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public final class BiomeQuartGrid {
 
@@ -54,7 +55,7 @@ public final class BiomeQuartGrid {
         return new BiomeQuartGrid(minSectionY, grids);
     }
 
-    public String lookup(int lx, int absoluteY, int lz) {
+    public @Nullable String lookup(int lx, int absoluteY, int lz) {
         int sectionIdx = (absoluteY >> 4) - minSectionY;
         if (sectionIdx < 0 || sectionIdx >= sectionVoxels.length) {
             return null;

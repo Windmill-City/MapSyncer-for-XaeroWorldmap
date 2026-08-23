@@ -2,6 +2,7 @@ package com.mapsyncer.client;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,37 +14,37 @@ public final class XaeroReflectionHelper {
 
     private static volatile boolean initialized = false;
 
-    private static Class<?> worldMapSessionClass;
-    private static Class<?> mapProcessorClass;
-    private static Class<?> mapSaveLoadClass;
-    private static Class<?> mapRegionClass;
-    private static Class<?> leveledRegionClass;
+    private static @Nullable Class<?> worldMapSessionClass;
+    private static @Nullable Class<?> mapProcessorClass;
+    private static @Nullable Class<?> mapSaveLoadClass;
+    private static @Nullable Class<?> mapRegionClass;
+    private static @Nullable Class<?> leveledRegionClass;
 
-    private static Method getCurrentSessionMethod;
-    private static Method getMapProcessorMethod;
-    private static Method getMapSaveLoadMethod;
-    private static Method getLeafMapRegionMethod;
-    private static Method requestLoadMethod;
-    private static Method cancelRefreshMethod;
-    private static Method setHasHadTerrainMethod;
-    private static Method setRegionDetectionCompleteMethod;
+    private static @Nullable Method getCurrentSessionMethod;
+    private static @Nullable Method getMapProcessorMethod;
+    private static @Nullable Method getMapSaveLoadMethod;
+    private static @Nullable Method getLeafMapRegionMethod;
+    private static @Nullable Method requestLoadMethod;
+    private static @Nullable Method cancelRefreshMethod;
+    private static @Nullable Method setHasHadTerrainMethod;
+    private static @Nullable Method setRegionDetectionCompleteMethod;
 
-    private static Field loadStateField;
-    private static Field shouldCacheField;
-    private static Field worldIdField;
-    private static Field dimIdField;
-    private static Field mwIdField;
+    private static @Nullable Field loadStateField;
+    private static @Nullable Field shouldCacheField;
+    private static @Nullable Field worldIdField;
+    private static @Nullable Field dimIdField;
+    private static @Nullable Field mwIdField;
 
-    private static Object cachedSession;
-    private static Object cachedMapProcessor;
-    private static Object cachedMapSaveLoad;
+    private static @Nullable Object cachedSession;
+    private static @Nullable Object cachedMapProcessor;
+    private static @Nullable Object cachedMapSaveLoad;
 
     private static volatile boolean configReflectionInitialized = false;
-    private static Field worldMapInstanceField;
-    private static Field differentiateByServerAddressField;
-    private static Method getConfigsMethod;
-    private static Method getPrimaryClientConfigManagerMethod;
-    private static Method getEffectiveMethod;
+    private static @Nullable Field worldMapInstanceField;
+    private static @Nullable Field differentiateByServerAddressField;
+    private static @Nullable Method getConfigsMethod;
+    private static @Nullable Method getPrimaryClientConfigManagerMethod;
+    private static @Nullable Method getEffectiveMethod;
 
     private XaeroReflectionHelper() {}
 
@@ -108,7 +109,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static Object getSession() {
+    public static @Nullable Object getSession() {
         if (!initialized || getCurrentSessionMethod == null) return null;
 
         try {
@@ -120,8 +121,8 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static Object getMapProcessor() {
-        if (!initialized) return null;
+    public static @Nullable Object getMapProcessor() {
+        if (!initialized || getMapProcessorMethod == null) return null;
 
         try {
             if (cachedMapProcessor == null) {
@@ -136,8 +137,8 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static Object getMapSaveLoad() {
-        if (!initialized) return null;
+    public static @Nullable Object getMapSaveLoad() {
+        if (!initialized || getMapSaveLoadMethod == null) return null;
 
         try {
             if (cachedMapSaveLoad == null) {
@@ -152,7 +153,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static Object getLeafMapRegion(int caveLayer, int regionX, int regionZ, boolean createIfMissing) {
+    public static @Nullable Object getLeafMapRegion(int caveLayer, int regionX, int regionZ, boolean createIfMissing) {
         if (!initialized || getLeafMapRegionMethod == null) return null;
 
         try {
@@ -290,7 +291,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static String getWorldId(Object mapRegion) {
+    public static @Nullable String getWorldId(Object mapRegion) {
         if (!initialized || worldIdField == null) return null;
 
         try {
@@ -301,7 +302,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static String getDimId(Object mapRegion) {
+    public static @Nullable String getDimId(Object mapRegion) {
         if (!initialized || dimIdField == null) return null;
 
         try {
@@ -312,7 +313,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static String getMwId(Object mapRegion) {
+    public static @Nullable String getMwId(Object mapRegion) {
         if (!initialized || mwIdField == null) return null;
 
         try {
@@ -327,8 +328,13 @@ public final class XaeroReflectionHelper {
         return initialized;
     }
 
-    public static Boolean getDifferentiateByServerAddress() {
-        if (!initConfigReflection()) {
+    public static @Nullable Boolean getDifferentiateByServerAddress() {
+        if (!initConfigReflection()
+                || worldMapInstanceField == null
+                || getConfigsMethod == null
+                || getPrimaryClientConfigManagerMethod == null
+                || getEffectiveMethod == null
+                || differentiateByServerAddressField == null) {
             return null;
         }
         try {

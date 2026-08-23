@@ -8,9 +8,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RegionConverterStandalone {
+public class RegionConverter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverterStandalone.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverter.class);
 
     public static final String DEFAULT_BLOCK = "minecraft:air";
     public static final String DEFAULT_BIOME = "minecraft:the_void";

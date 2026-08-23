@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +15,13 @@ public class IncrementalUpdateHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
 
-    private static volatile IncrementalUpdateHandlerLogic instance;
+    private static volatile @Nullable IncrementalUpdateHandlerLogic instance;
 
-    private volatile MinecraftServer server;
+    private volatile @Nullable MinecraftServer server;
 
     private volatile boolean running = false;
 
-    private volatile ExecutorService updateExecutor = null;
+    private volatile @Nullable ExecutorService updateExecutor = null;
 
     private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
 
@@ -29,14 +30,17 @@ public class IncrementalUpdateHandlerLogic {
     private IncrementalUpdateHandlerLogic() {}
 
     public static IncrementalUpdateHandlerLogic getInstance() {
-        if (instance == null) {
+        IncrementalUpdateHandlerLogic current = instance;
+        if (current == null) {
             synchronized (IncrementalUpdateHandlerLogic.class) {
-                if (instance == null) {
-                    instance = new IncrementalUpdateHandlerLogic();
+                current = instance;
+                if (current == null) {
+                    current = new IncrementalUpdateHandlerLogic();
+                    instance = current;
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     public void start(MinecraftServer server) {
@@ -79,19 +83,22 @@ public class IncrementalUpdateHandlerLogic {
     }
 
     private ExecutorService getUpdateExecutor() {
-        if (updateExecutor == null) {
+        ExecutorService current = updateExecutor;
+        if (current == null) {
             synchronized (this) {
-                if (updateExecutor == null) {
-                    updateExecutor = Executors.newSingleThreadExecutor(r -> {
+                current = updateExecutor;
+                if (current == null) {
+                    current = Executors.newSingleThreadExecutor(r -> {
                         Thread t = new Thread(r, "mapsyncer-incremental-update");
                         t.setPriority(Thread.MIN_PRIORITY);
                         t.setDaemon(true);
                         return t;
                     });
+                    updateExecutor = current;
                 }
             }
         }
-        return updateExecutor;
+        return current;
     }
 
     private void shutdownExecutor() {
@@ -125,7 +132,10 @@ public class IncrementalUpdateHandlerLogic {
     private void checkEmptyMode() {
         if (updateInProgress.get()) return;
 
-        int playerCount = server.getPlayerList().getPlayerCount();
+        MinecraftServer currentServer = server;
+        if (currentServer == null) return;
+
+        int playerCount = currentServer.getPlayerList().getPlayerCount();
         if (playerCount > 0) {
             emptyModeTriggered = false;
             return;
@@ -145,15 +155,20 @@ public class IncrementalUpdateHandlerLogic {
 
         LOGGER.info("Performing incremental update: {}", reason);
 
+        MinecraftServer currentServer = server;
+        if (currentServer == null) {
+            updateInProgress.set(false);
+            return;
+        }
+
         try {
-            server.saveEverything(false, true, true);
+            currentServer.saveEverything(false, true, true);
         } catch (RuntimeException e) {
             LOGGER.error("Runtime error saving chunks for incremental scan", e);
             updateInProgress.set(false);
             return;
         }
 
-        final MinecraftServer currentServer = this.server;
         getUpdateExecutor().submit(() -> {
             try {
                 ConversionOrchestrator.performIncrementalScan(currentServer);

@@ -26,29 +26,29 @@ import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CacheCommandHandler {
+public class CommandHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CacheCommandHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandler.class);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, String prefix) {
         dispatcher.register(Commands.literal(prefix)
                 .requires(ApiHelper.admin())
                 .executes(ctx -> showHelp(ctx, prefix))
                 .then(Commands.literal("generate")
-                        .executes(CacheCommandHandler::generateAll)
+                        .executes(CommandHandler::generateAll)
                         .then(Commands.argument("dimension", DimensionArgument.dimension())
-                                .executes(CacheCommandHandler::generateDimension)
-                                .then(Commands.literal("--force").executes(CacheCommandHandler::generateDimensionForce))
+                                .executes(CommandHandler::generateDimension)
+                                .then(Commands.literal("--force").executes(CommandHandler::generateDimensionForce))
                                 .then(Commands.argument("x", IntegerArgumentType.integer())
                                         .then(Commands.argument("z", IntegerArgumentType.integer())
-                                                .executes(CacheCommandHandler::generateSingleRegion)))))
-                .then(Commands.literal("stop").executes(CacheCommandHandler::stopConversion))
-                .then(Commands.literal("status").executes(CacheCommandHandler::showStatus))
+                                                .executes(CommandHandler::generateSingleRegion)))))
+                .then(Commands.literal("stop").executes(CommandHandler::stopConversion))
+                .then(Commands.literal("status").executes(CommandHandler::showStatus))
                 .then(Commands.literal("incremental")
-                        .executes(CacheCommandHandler::showIncrementalMode)
-                        .then(Commands.literal("off").executes(CacheCommandHandler::setIncrementalOff))
-                        .then(Commands.literal("onempty").executes(CacheCommandHandler::setIncrementalOnEmpty)))
-                .then(Commands.literal("reloadconfig").executes(CacheCommandHandler::reloadConfig))
+                        .executes(CommandHandler::showIncrementalMode)
+                        .then(Commands.literal("off").executes(CommandHandler::setIncrementalOff))
+                        .then(Commands.literal("onempty").executes(CommandHandler::setIncrementalOnEmpty)))
+                .then(Commands.literal("reloadconfig").executes(CommandHandler::reloadConfig))
                 .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
     }
 
@@ -179,8 +179,8 @@ public class CacheCommandHandler {
     }
 
     private static int showStatus(CommandContext<CommandSourceStack> ctx) {
-        ctx.getSource().sendSuccess(CacheCommandHandler::generationStatusMessage, false);
-        ctx.getSource().sendSuccess(CacheCommandHandler::incrementalStatusMessage, false);
+        ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
+        ctx.getSource().sendSuccess(CommandHandler::incrementalStatusMessage, false);
 
         List<DimensionCacheStats> cacheStats = getCacheStats();
         if (!cacheStats.isEmpty()) {

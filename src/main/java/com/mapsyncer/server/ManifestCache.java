@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,27 +17,30 @@ public class ManifestCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestCache.class);
 
-    private static volatile ManifestCache instance;
+    private static volatile @Nullable ManifestCache instance;
 
     private volatile Map<String, Long> manifest = Map.of();
 
     private volatile Map<String, Path> zipPaths = Map.of();
 
-    private volatile Path builtCacheDir;
+    private volatile @Nullable Path builtCacheDir;
 
     private volatile boolean valid = false;
 
     private ManifestCache() {}
 
     public static ManifestCache getInstance() {
-        if (instance == null) {
+        ManifestCache current = instance;
+        if (current == null) {
             synchronized (ManifestCache.class) {
-                if (instance == null) {
-                    instance = new ManifestCache();
+                current = instance;
+                if (current == null) {
+                    current = new ManifestCache();
+                    instance = current;
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     public Map<String, Long> buildManifest(
@@ -65,7 +69,7 @@ public class ManifestCache {
     }
 
     private boolean isValid(Path absCacheDir) {
-        return valid && absCacheDir.equals(builtCacheDir);
+        return valid && builtCacheDir != null && absCacheDir.equals(builtCacheDir);
     }
 
     private void rebuild(Path absCacheDir, DimensionPathMapping dimMapping, GenerationCache genCache) {
@@ -89,11 +93,11 @@ public class ManifestCache {
         LOGGER.info("Manifest cache built for {} with {} entries", absCacheDir, rebuilt.size());
     }
 
-    public Path resolveZipPath(String normalizedPath) {
+    public @Nullable Path resolveZipPath(String normalizedPath) {
         return zipPaths.get(normalizedPath);
     }
 
-    public Long getTimestamp(String normalizedPath) {
+    public @Nullable Long getTimestamp(String normalizedPath) {
         return manifest.get(normalizedPath);
     }
 

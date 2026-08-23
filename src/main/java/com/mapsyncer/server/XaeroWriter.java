@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
+import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;

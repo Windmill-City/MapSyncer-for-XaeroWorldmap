@@ -1,13 +1,13 @@
 package com.mapsyncer.mca.convert.io;
 
-import static com.mapsyncer.mca.RegionConverterStandalone.BLOCKS_PER_TILE;
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BIOME;
-import static com.mapsyncer.mca.RegionConverterStandalone.DEFAULT_BLOCK;
-import static com.mapsyncer.mca.RegionConverterStandalone.MAJOR_VERSION;
-import static com.mapsyncer.mca.RegionConverterStandalone.MINOR_VERSION;
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
-import static com.mapsyncer.mca.RegionConverterStandalone.TILES_PER_TILE_CHUNK;
-import static com.mapsyncer.mca.RegionConverterStandalone.TILE_CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverter.BLOCKS_PER_TILE;
+import static com.mapsyncer.mca.RegionConverter.DEFAULT_BIOME;
+import static com.mapsyncer.mca.RegionConverter.DEFAULT_BLOCK;
+import static com.mapsyncer.mca.RegionConverter.MAJOR_VERSION;
+import static com.mapsyncer.mca.RegionConverter.MINOR_VERSION;
+import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverter.TILES_PER_TILE_CHUNK;
+import static com.mapsyncer.mca.RegionConverter.TILE_CHUNKS_PER_REGION;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 
 public final class XaeroBinaryWriter {
 
@@ -196,8 +197,8 @@ public final class XaeroBinaryWriter {
         writeBiomeRef(dos, biomeName, biomePalette);
     }
 
-    private static void writeBiomeRef(DataOutputStream dos, String biomeName, Map<String, Integer> biomePalette)
-            throws IOException {
+    private static void writeBiomeRef(
+            DataOutputStream dos, @Nullable String biomeName, Map<String, Integer> biomePalette) throws IOException {
         if (biomeName == null) {
             return;
         }
@@ -271,7 +272,7 @@ public final class XaeroBinaryWriter {
             dos.writeByte(topHeight & 0xFF);
         }
 
-        if (hasOverlays) {
+        if (overlays != null && !overlays.isEmpty()) {
             dos.writeByte(overlays.size());
             for (OverlayEntry overlay : overlays) {
                 serializeOverlay(overlay, dos, blockPalette, blockLookup);

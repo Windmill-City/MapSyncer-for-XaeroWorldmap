@@ -2,6 +2,7 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.util.XaeroPathResolver;
 import java.nio.file.Path;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
@@ -30,7 +31,7 @@ public class XaeroMapIntegrator {
         return rawIP;
     }
 
-    private static String getCurrentServerIP() {
+    private static @Nullable String getCurrentServerIP() {
         Minecraft mc = Minecraft.getInstance();
         ClientPacketListener connection = mc.getConnection();
         if (connection == null) {
@@ -52,7 +53,7 @@ public class XaeroMapIntegrator {
         return "Unknown";
     }
 
-    public static Path getCurrentServerDirectory() {
+    public static @Nullable Path getCurrentServerDirectory() {
         String serverIP = getCurrentServerIP();
         if (serverIP == null) {
             return null;

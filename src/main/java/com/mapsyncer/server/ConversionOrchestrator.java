@@ -4,9 +4,9 @@ import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
 import com.mapsyncer.mca.DimensionTypeInfo;
-import com.mapsyncer.mca.RegionConverterStandalone;
-import com.mapsyncer.mca.RegionConverterStandalone.ConvertedRegion;
-import com.mapsyncer.mca.RegionConverterStandalone.LayerConvertedRegion;
+import com.mapsyncer.mca.RegionConverter;
+import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
+import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.DimensionRegions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -43,7 +44,7 @@ public class ConversionOrchestrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConversionOrchestrator.class);
 
-    private static volatile ExecutorService conversionExecutor = null;
+    private static volatile @Nullable ExecutorService conversionExecutor = null;
 
     private static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -62,7 +63,7 @@ public class ConversionOrchestrator {
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
     private static final Path DEFAULT_CACHE_DIR = Path.of("server_map_cache");
-    private static volatile Path effectiveCacheDir = null;
+    private static volatile @Nullable Path effectiveCacheDir = null;
 
     public static Path getCacheDir() {
         return effectiveCacheDir != null ? effectiveCacheDir : DEFAULT_CACHE_DIR;
@@ -75,17 +76,18 @@ public class ConversionOrchestrator {
 
     public static void tryInitIntegratedServerCache(MinecraftServer server, Path gameDir) {
         if (!server.isDedicatedServer()) {
-            String worldName = server.getWorldPath(LevelResource.ROOT)
-                    .getParent()
-                    .getFileName()
-                    .toString();
-            setCacheDir(XaeroPathResolver.getWorldMapDir(gameDir).resolve(worldName));
+            Path worldRoot = server.getWorldPath(LevelResource.ROOT);
+            Path worldRootParent = worldRoot.getParent();
+            if (worldRootParent != null) {
+                String worldName = worldRootParent.getFileName().toString();
+                setCacheDir(XaeroPathResolver.getWorldMapDir(gameDir).resolve(worldName));
+            }
         }
 
         XaeroWriter.cleanStaleTempFiles(getCacheDir());
     }
 
-    private static McaTimestampCache timestampCache;
+    private static @Nullable McaTimestampCache timestampCache;
 
     public enum SingleRegionResult {
         SUCCESS,
@@ -116,14 +118,15 @@ public class ConversionOrchestrator {
     }
 
     private static ExecutorService getOrCreateExecutor() {
-        if (conversionExecutor == null || conversionExecutor.isShutdown()) {
+        ExecutorService executor = conversionExecutor;
+        if (executor == null || executor.isShutdown()) {
             int maxConcurrent = ModConfig.resolveConcurrentRegions(ModConfig.SERVER.maxConcurrentRegions.get());
-            conversionExecutor =
-                    Executors.newFixedThreadPool(maxConcurrent, new NamedThreadFactory("mapsyncer-converter"));
+            executor = Executors.newFixedThreadPool(maxConcurrent, new NamedThreadFactory("mapsyncer-converter"));
+            conversionExecutor = executor;
             LOGGER.info(
                     "Created conversion thread pool with {} threads (resolved maxConcurrentRegions)", maxConcurrent);
         }
-        return conversionExecutor;
+        return executor;
     }
 
     public static void shutdownExecutor() {
@@ -175,10 +178,12 @@ public class ConversionOrchestrator {
     }
 
     private static McaTimestampCache getTimestampCache() {
-        if (timestampCache == null) {
-            timestampCache = McaTimestampCache.getInstance(getCacheDir());
+        McaTimestampCache cache = timestampCache;
+        if (cache == null) {
+            cache = McaTimestampCache.getInstance(getCacheDir());
+            timestampCache = cache;
         }
-        return timestampCache;
+        return cache;
     }
 
     public static boolean generateAll(MinecraftServer server) {
@@ -306,7 +311,7 @@ public class ConversionOrchestrator {
         return true;
     }
 
-    public static Path checkMcaFileExists(
+    public static @Nullable Path checkMcaFileExists(
             MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
         ServerLevel level = server.getLevel(dimension);
         if (level == null) return null;
@@ -381,7 +386,7 @@ public class ConversionOrchestrator {
                 Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
             }
             totalCount = passes.size();
-            List<LayerConvertedRegion> converted = RegionConverterStandalone.convertRegionMulti(
+            List<LayerConvertedRegion> converted = RegionConverter.convertRegionMulti(
                     mcaPath, regionX, regionZ, dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
             int written = 0;
             for (int i = 0; i < passes.size(); i++) {
@@ -389,7 +394,7 @@ public class ConversionOrchestrator {
                 LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
                 ConvertedRegion single =
                         layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
-                if (isEmptyConverted(single)) {
+                if (single == null || single.xaeroData() == null || single.xaeroData().length == 0) {
                     continue;
                 }
                 Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
@@ -691,7 +696,7 @@ public class ConversionOrchestrator {
             return;
         }
 
-        List<LayerConvertedRegion> converted = RegionConverterStandalone.convertRegionMulti(
+        List<LayerConvertedRegion> converted = RegionConverter.convertRegionMulti(
                 mcaPath, coords.x(), coords.z(), dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
 
         if (converted.isEmpty()) {
@@ -711,7 +716,7 @@ public class ConversionOrchestrator {
             ConvertedRegion single =
                     layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
 
-            if (isEmptyConverted(single)) {
+            if (single == null || single.xaeroData() == null || single.xaeroData().length == 0) {
                 purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath, genCache);
                 anyPurged = true;
                 if (logProgress) {
@@ -778,7 +783,7 @@ public class ConversionOrchestrator {
         }
     }
 
-    public static ResourceKey<Level> parseDimensionId(String id, MinecraftServer server) {
+    public static @Nullable ResourceKey<Level> parseDimensionId(String id, MinecraftServer server) {
         String normalized = id.toLowerCase();
 
         switch (normalized) {
@@ -1034,10 +1039,6 @@ public class ConversionOrchestrator {
         }
 
         return stats;
-    }
-
-    private static boolean isEmptyConverted(ConvertedRegion converted) {
-        return converted == null || converted.xaeroData() == null || converted.xaeroData().length == 0;
     }
 
     private static void purgeGeneratedArtifacts(

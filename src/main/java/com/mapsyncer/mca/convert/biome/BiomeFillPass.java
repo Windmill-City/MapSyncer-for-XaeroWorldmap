@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert.biome;
 
-import static com.mapsyncer.mca.RegionConverterStandalone.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverter.CHUNKS_PER_REGION;
+import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.LightMode;

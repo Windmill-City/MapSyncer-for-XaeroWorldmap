@@ -1,6 +1,7 @@
 plugins {
     id 'net.minecraftforge.gradle' version '[6.0.24,6.2)'
     id 'com.diffplug.spotless' version '7.0.2'
+    id 'net.ltgt.errorprone' version '4.1.0'
     id 'maven-publish'
 }
 
@@ -46,12 +47,23 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
 
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+
+    errorprone 'com.google.errorprone:error_prone_core:2.18.0'
+    errorprone 'com.uber.nullaway:nullaway:0.10.19'
+
     runtimeOnly fg.deobf('packet_profiler:packet_profiler:1.0.0')
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs += ['-Xlint:all']
+    options.errorprone.enabled = true
+    options.errorprone.errorproneArgs.addAll([
+            '-XepDisableAllChecks',
+            '-Xep:NullAway:WARN',
+            '-XepOpt:NullAway:AnnotatedPackages=com.mapsyncer'
+    ])
 }
 
 processResources {

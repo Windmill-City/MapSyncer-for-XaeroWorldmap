@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,7 @@ public class GenerationCache {
 
     private static final int MAX_CACHE_REGIONS = ModConfig.MAX_REGION_META_CACHE;
 
-    private static volatile GenerationCache instance;
+    private static volatile @Nullable GenerationCache instance;
 
     private final Path cacheFile;
 
@@ -30,14 +31,17 @@ public class GenerationCache {
     }
 
     public static GenerationCache getInstance(Path cacheDir) {
-        if (instance == null) {
+        GenerationCache current = instance;
+        if (current == null) {
             synchronized (GenerationCache.class) {
-                if (instance == null) {
-                    instance = new GenerationCache(cacheDir);
+                current = instance;
+                if (current == null) {
+                    current = new GenerationCache(cacheDir);
+                    instance = current;
                 }
             }
         }
-        return instance;
+        return current;
     }
 
     private void load() {
@@ -80,7 +84,7 @@ public class GenerationCache {
         LOGGER.info("Cache trimmed to {} entries", cache.size());
     }
 
-    public ClientMeta getMeta(String relativePath) {
+    public @Nullable ClientMeta getMeta(String relativePath) {
         return cache.get(relativePath);
     }
 

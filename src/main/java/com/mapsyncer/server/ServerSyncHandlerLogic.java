@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
@@ -116,7 +117,7 @@ public class ServerSyncHandlerLogic {
             int worldId = readWorldIdFromXaeroMap(serverPlayer);
             if (!silent) {
                 serverPlayer.sendSystemMessage(
-                        ChatUtils.message("mapsyncer.server.no_cache", CacheCommandHandler.serverCommandPrefix()));
+                        ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
             }
             ForgeNetworkHandler.get()
                     .sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
@@ -168,11 +169,11 @@ public class ServerSyncHandlerLogic {
                     player.sendSystemMessage(ChatUtils.error(
                             "mapsyncer.server.dim_not_available",
                             friendlyDim,
-                            CacheCommandHandler.serverCommandPrefix(),
+                            CommandHandler.serverCommandPrefix(),
                             friendlyDim));
                 } else {
                     player.sendSystemMessage(
-                            ChatUtils.message("mapsyncer.server.no_cache", CacheCommandHandler.serverCommandPrefix()));
+                            ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
                 }
             }
             ForgeNetworkHandler.get()
@@ -255,12 +256,12 @@ public class ServerSyncHandlerLogic {
 
     private static int readWorldIdFromXaeroMap(ServerPlayer serverPlayer) {
         try {
-            Path xaeromapPath = serverPlayer
-                    .level()
-                    .getServer()
-                    .getWorldPath(LevelResource.LEVEL_DATA_FILE)
-                    .getParent()
-                    .resolve("xaeromap.txt");
+            Path levelDataFile = serverPlayer.level().getServer().getWorldPath(LevelResource.LEVEL_DATA_FILE);
+            Path worldRoot = levelDataFile.getParent();
+            if (worldRoot == null) {
+                return fallbackWorldId();
+            }
+            Path xaeromapPath = worldRoot.resolve("xaeromap.txt");
 
             if (!Files.exists(xaeromapPath)) {
                 return fallbackWorldId();
@@ -292,7 +293,8 @@ public class ServerSyncHandlerLogic {
         return 0;
     }
 
-    private static RegionSyncInfo parseRegionInfo(Path zipPath, String normalizedPath, long timestampSeconds) {
+    private static @Nullable RegionSyncInfo parseRegionInfo(
+            Path zipPath, String normalizedPath, long timestampSeconds) {
         try {
             String[] parts = normalizedPath.split("[/\\\\]");
 
@@ -321,7 +323,7 @@ public class ServerSyncHandlerLogic {
         }
     }
 
-    private static ChunkMapData readRegionData(RegionSyncInfo info) {
+    private static @Nullable ChunkMapData readRegionData(RegionSyncInfo info) {
         try {
             byte[] data = Files.readAllBytes(info.zipPath());
             return new ChunkMapData(

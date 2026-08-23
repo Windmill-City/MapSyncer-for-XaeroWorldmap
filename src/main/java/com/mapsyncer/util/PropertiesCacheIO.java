@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ public final class PropertiesCacheIO {
         }
     }
 
-    public static ClientMeta parseTimestampHash(String value) {
+    public static @Nullable ClientMeta parseTimestampHash(String value) {
         if (value == null || value.isEmpty()) {
             return null;
         }

@@ -2,7 +2,7 @@ package com.mapsyncer.mca.convert;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.DimensionTypeInfo;
-import com.mapsyncer.mca.RegionConverterStandalone;
+import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.io.McaRegionLoader;
 import com.mapsyncer.mca.convert.io.McaRegionLoader.PassMapData;
 import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
@@ -18,7 +18,7 @@ public final class RegionConversionPipeline {
 
     private RegionConversionPipeline() {}
 
-    public static List<RegionConverterStandalone.LayerConvertedRegion> convertMulti(
+    public static List<RegionConverter.LayerConvertedRegion> convertMulti(
             Path mcaPath,
             int regionX,
             int regionZ,
@@ -34,15 +34,15 @@ public final class RegionConversionPipeline {
         List<PassMapData> loaded = McaRegionLoader.loadMulti(
                 mcaPath, dimTypeInfo.minY(), dimTypeInfo.maxY(), dimTypeInfo.hasSkylight(), blockLookup, passes);
 
-        List<RegionConverterStandalone.LayerConvertedRegion> results = new ArrayList<>();
+        List<RegionConverter.LayerConvertedRegion> results = new ArrayList<>();
         for (PassMapData passData : loaded) {
             MapRegionData regionData = passData.data();
             if (!regionData.hasAnyMapData()) {
-                results.add(new RegionConverterStandalone.LayerConvertedRegion(regionX, regionZ, new byte[0]));
+                results.add(new RegionConverter.LayerConvertedRegion(regionX, regionZ, new byte[0]));
                 continue;
             }
             byte[] xaeroData = XaeroBinaryWriter.serialize(regionData, dimTypeInfo.minY(), blockLookup);
-            results.add(new RegionConverterStandalone.LayerConvertedRegion(regionX, regionZ, xaeroData));
+            results.add(new RegionConverter.LayerConvertedRegion(regionX, regionZ, xaeroData));
         }
         return results;
     }

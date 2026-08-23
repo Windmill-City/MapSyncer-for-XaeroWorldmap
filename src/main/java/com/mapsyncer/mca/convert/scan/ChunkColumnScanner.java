@@ -1,17 +1,20 @@
 package com.mapsyncer.mca.convert.scan;
 
-import static com.mapsyncer.mca.RegionConverterStandalone.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.RegionConverterStandalone;
+import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.util.ArrayList;
 
 public final class ChunkColumnScanner {
+
+    private static final ChunkSectionParser.BlockState FALLBACK_SINGLE_STATE =
+            new ChunkSectionParser.BlockState("minecraft:air", java.util.Map.of());
 
     public static final class ColumnScanContext {
 
@@ -68,7 +71,7 @@ public final class ChunkColumnScanner {
             int minBuildHeight,
             int worldTopY,
             LightMode lightMode,
-            RegionConverterStandalone.CaveModeParams caveParams,
+            RegionConverter.CaveModeParams caveParams,
             boolean worldHasSkylight,
             BlockPropertyLookup blockLookup,
             RegionScanPass.ScanVerticalBounds bounds) {
@@ -104,7 +107,7 @@ public final class ChunkColumnScanner {
 
             boolean singlePalette = section.blockPalette().size() == 1 && section.blockData() == null;
             ChunkSectionParser.BlockState singleState =
-                    singlePalette ? section.blockPalette().get(0) : null;
+                    singlePalette ? section.blockPalette().get(0) : FALLBACK_SINGLE_STATE;
 
             for (int lx = 0; lx < 16; lx++) {
                 for (int lz = 0; lz < 16; lz++) {
