@@ -8,8 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,13 +86,13 @@ public class ManifestServer {
         }
     }
 
-    public @Nullable Path resolveZipPath(RegionRef ref) {
+    public Path resolveZipPath(RegionRef ref) {
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathMapping.toServerFolderName(ref.dimId()));
         Path outputDir = ModConfig.outputDir(baseOutputDir, ref.caveLayer());
         return outputDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
     }
 
-    public @Nullable Long getTimestamp(RegionRef ref) {
+    public Long getTimestamp(RegionRef ref) {
         return manifest.get(ref);
     }
 
