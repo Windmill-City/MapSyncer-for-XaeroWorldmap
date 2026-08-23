@@ -4,25 +4,17 @@ import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.server.ConversionOrchestrator.DimensionCacheStats;
-import com.mapsyncer.server.ConversionOrchestrator.SingleRegionResult;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.PathMapping;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.commands.arguments.DimensionArgument;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,15 +27,10 @@ public class CommandHandler {
                 .requires(ApiHelper.admin())
                 .executes(ctx -> showHelp(ctx, prefix))
                 .then(Commands.literal("generate")
-                        .executes(CommandHandler::generateAll)
-                        .then(Commands.argument("dimension", DimensionArgument.dimension())
-                                .executes(CommandHandler::generateDimension)
-                                .then(Commands.literal("--force").executes(CommandHandler::generateDimensionForce))
-                                .then(Commands.argument("x", IntegerArgumentType.integer())
-                                        .then(Commands.argument("z", IntegerArgumentType.integer())
-                                                .executes(CommandHandler::generateSingleRegion)))))
-                .then(Commands.literal("stop").executes(CommandHandler::stopConversion))
-                .then(Commands.literal("status").executes(CommandHandler::showStatus))
+                        .executes(ctx -> showHelp(ctx, prefix))
+                        .then(Commands.literal("start").executes(CommandHandler::generateAll))
+                        .then(Commands.literal("stop").executes(CommandHandler::stopConversion))
+                        .then(Commands.literal("status").executes(CommandHandler::showStatus)))
                 .then(Commands.literal("incremental")
                         .executes(CommandHandler::showIncrementalMode)
                         .then(Commands.literal("off").executes(CommandHandler::setIncrementalOff))
@@ -89,83 +76,6 @@ public class CommandHandler {
             return 0;
         }
         ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_full"), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int generateDimension(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
-        ResourceKey<Level> dimension = level.dimension();
-        String dimensionId = getDimensionId(dimension);
-        String friendlyName = getFriendlyDimensionName(dimension);
-
-        if (!generateDimension(ctx.getSource().getServer(), dimensionId, () -> {
-            ctx.getSource()
-                    .sendSuccess(
-                            () -> ChatUtils.success(
-                                    "mapsyncer.generate.dim_complete",
-                                    getProcessedCount(),
-                                    getTotalCount(),
-                                    getUpdatedCount()),
-                            false);
-        })) {
-            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
-            return 0;
-        }
-        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_dim", friendlyName), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int generateDimensionForce(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
-        ResourceKey<Level> dimension = level.dimension();
-        String dimensionId = getDimensionId(dimension);
-        String friendlyName = getFriendlyDimensionName(dimension);
-
-        if (!generateDimensionForce(ctx.getSource().getServer(), dimensionId, () -> {
-            ctx.getSource()
-                    .sendSuccess(
-                            () -> ChatUtils.success(
-                                    "mapsyncer.generate.force_complete",
-                                    getProcessedCount(),
-                                    getTotalCount(),
-                                    getUpdatedCount()),
-                            false);
-        })) {
-            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
-            return 0;
-        }
-        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_force", friendlyName), false);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int generateSingleRegion(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
-        ServerLevel level = DimensionArgument.getDimension(ctx, "dimension");
-        int x = IntegerArgumentType.getInteger(ctx, "x");
-        int z = IntegerArgumentType.getInteger(ctx, "z");
-        ResourceKey<Level> dimension = level.dimension();
-        MinecraftServer server = ctx.getSource().getServer();
-
-        if (!checkRegionExists(server, dimension, x, z)) {
-            String friendlyName = getFriendlyDimensionName(dimension);
-            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.region_not_found", x, z, friendlyName));
-            return 0;
-        }
-
-        String friendlyName = getFriendlyDimensionName(dimension);
-
-        if (!generateSingleRegion(server, dimension, x, z, result -> {
-            if (result == SingleRegionResult.SUCCESS) {
-                ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.region_converted"), false);
-            } else if (result == SingleRegionResult.CONVERSION_FAILED) {
-                ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.region_conversion_failed", x, z));
-            }
-        })) {
-            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
-            return 0;
-        }
-        ctx.getSource()
-                .sendSuccess(() -> ChatUtils.message("mapsyncer.command.generating_region", x, z, friendlyName), false);
-
         return Command.SINGLE_SUCCESS;
     }
 
@@ -236,11 +146,9 @@ public class CommandHandler {
     public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_dim", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_region", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_force", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.stop", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.status", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_off", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_onempty", prefix));
@@ -289,69 +197,6 @@ public class CommandHandler {
         return true;
     }
 
-    public static boolean generateDimension(MinecraftServer server, String dimensionId, Runnable onSuccess) {
-        if (ConversionOrchestrator.isRunning()) {
-            LOGGER.warn("Conversion already in progress, rejecting generateDimension command");
-            return false;
-        }
-        server.saveEverything(false, true, true);
-        Thread worker = new Thread(
-                () -> {
-                    if (ConversionOrchestrator.generateDimension(server, dimensionId) && onSuccess != null) {
-                        onSuccess.run();
-                    }
-                },
-                "xaero-map-generator");
-        worker.start();
-        return true;
-    }
-
-    public static boolean generateDimensionForce(MinecraftServer server, String dimensionId, Runnable onSuccess) {
-        if (ConversionOrchestrator.isRunning()) {
-            LOGGER.warn("Conversion already in progress, rejecting generateDimensionForce command");
-            return false;
-        }
-        server.saveEverything(false, true, true);
-        Thread worker = new Thread(
-                () -> {
-                    if (ConversionOrchestrator.generateDimensionForce(server, dimensionId) && onSuccess != null) {
-                        onSuccess.run();
-                    }
-                },
-                "xaero-map-generator");
-        worker.start();
-        return true;
-    }
-
-    public static boolean checkRegionExists(MinecraftServer server, ResourceKey<Level> dimension, int x, int z) {
-        return ConversionOrchestrator.checkMcaFileExists(server, dimension, x, z) != null;
-    }
-
-    public static boolean generateSingleRegion(
-            MinecraftServer server,
-            ResourceKey<Level> dimension,
-            int x,
-            int z,
-            Consumer<SingleRegionResult> resultHandler) {
-        if (ConversionOrchestrator.isRunning()) {
-            LOGGER.warn("Conversion already in progress, rejecting generateSingleRegion command");
-            resultHandler.accept(SingleRegionResult.ALREADY_RUNNING);
-            return false;
-        }
-
-        server.saveEverything(false, true, true);
-        Thread worker = new Thread(
-                () -> {
-                    SingleRegionResult result = ConversionOrchestrator.generateSingleRegion(server, dimension, x, z);
-                    if (resultHandler != null) {
-                        resultHandler.accept(result);
-                    }
-                },
-                "xaero-map-generator");
-        worker.start();
-        return true;
-    }
-
     public static List<DimensionCacheStats> getCacheStats() {
         return ConversionOrchestrator.getCacheStats();
     }
@@ -366,10 +211,6 @@ public class CommandHandler {
 
     public static int getTotalCount() {
         return ConversionOrchestrator.getTotalCount();
-    }
-
-    public static int getUpdatedCount() {
-        return ConversionOrchestrator.getUpdatedCount();
     }
 
     public static void disableIncremental() {
@@ -406,13 +247,5 @@ public class CommandHandler {
             LOGGER.error("Failed to reload server configuration", e);
             return false;
         }
-    }
-
-    public static String getFriendlyDimensionName(ResourceKey<Level> dimension) {
-        return PathMapping.getFriendlyName(ApiHelper.getDimId(dimension));
-    }
-
-    public static String getDimensionId(ResourceKey<Level> dimension) {
-        return ApiHelper.getDimId(dimension);
     }
 }
