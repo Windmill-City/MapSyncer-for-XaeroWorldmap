@@ -6,7 +6,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
@@ -14,7 +13,6 @@ import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.MapUpdater;
-import com.mapsyncer.server.MapPacketHandler;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -63,19 +61,19 @@ public class MapSyncer {
                 MapRequestPayload.class,
                 (msg, buf) -> MapRequestPayload.write(buf, msg),
                 MapRequestPayload::read,
-                MapPacketHandler::handleSyncRequest);
+                com.mapsyncer.server.MapPacketHandler::handleMapRequest);
         CHANNEL.registerMessage(
                 1,
                 MapResponsePayload.class,
                 (msg, buf) -> MapResponsePayload.write(buf, msg),
                 MapResponsePayload::read,
-                MapPacketHandler::handleSyncResponse);
+                com.mapsyncer.client.MapPacketHandler::handleSyncResponse);
         CHANNEL.registerMessage(
                 2,
                 ManifestPayload.class,
                 (msg, buf) -> ManifestPayload.write(buf, msg),
                 ManifestPayload::read,
-                MapPacketHandler::handleSyncManifest);
+                com.mapsyncer.client.MapPacketHandler::handleSyncManifest);
         LOGGER.info("MapSyncer initialized");
     }
 
@@ -111,12 +109,12 @@ public class MapSyncer {
     public static class ClientEventHandler {
         @SubscribeEvent
         public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
-            MapPacketHandler.prepareJoinSync();
+            com.mapsyncer.client.MapPacketHandler.prepareJoinSync();
         }
 
         @SubscribeEvent
         public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-            MapPacketHandler.onDisconnect();
+            com.mapsyncer.client.MapPacketHandler.onDisconnect();
         }
     }
 
