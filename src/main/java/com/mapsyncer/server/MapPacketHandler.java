@@ -27,7 +27,7 @@ public class MapPacketHandler {
 
     private static final int MAX_RESPONSE_PACKET_BYTES = 256 * 1024;
 
-    public static void pushManifestOnJoin(ServerPlayer player) {
+    public static void pushManifest(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
         MapSyncer.sendToPlayer(player, new SyncManifestPayload(manifest));
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());

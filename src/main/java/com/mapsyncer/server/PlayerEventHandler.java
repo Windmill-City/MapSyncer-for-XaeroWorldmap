@@ -14,7 +14,7 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
-        MapPacketHandler.pushManifestOnJoin(player);
+        MapPacketHandler.pushManifest(player);
 
         MapUpdater.get().stop();
     }
