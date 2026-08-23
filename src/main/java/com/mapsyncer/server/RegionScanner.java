@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -33,7 +34,7 @@ public class RegionScanner {
             List<RegionCoords> regions, int skippedEmptyCount, List<RegionFileEntry> fileEntries) {}
 
     public record DimensionRegions(
-            net.minecraft.resources.ResourceKey<Level> dimension,
+            ResourceKey<Level> dimension,
             List<RegionCoords> regions,
             int skippedEmptyCount,
             List<RegionFileEntry> fileEntries) {}
@@ -79,8 +80,7 @@ public class RegionScanner {
         }
     }
 
-    private static RegionScanResult scanRegionDir(
-            Path worldRoot, net.minecraft.resources.ResourceKey<Level> dimensionKey) {
+    private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
         String dimId = ApiHelper.getDimId(dimensionKey);
 
         Path regionDir = PathMapping.detectRegionDir(worldRoot, dimId);
@@ -178,5 +178,5 @@ public class RegionScanner {
         return new RegionScanResult(regions, skippedEmpty, fileEntries);
     }
 
-    private record DimensionNames(String name, net.minecraft.resources.ResourceKey<Level> key) {}
+    private record DimensionNames(String name, ResourceKey<Level> key) {}
 }

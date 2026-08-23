@@ -299,7 +299,8 @@ public class ConversionOrchestrator {
                     break;
                 }
                 try {
-                    if (entry.lastModifiedMillis() > Files.getLastModifiedTime(zipPath).toMillis()) {
+                    if (entry.lastModifiedMillis()
+                            > Files.getLastModifiedTime(zipPath).toMillis()) {
                         needs = true;
                         break;
                     }

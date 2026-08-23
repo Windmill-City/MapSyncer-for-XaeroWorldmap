@@ -43,8 +43,8 @@ public class ServerSyncHandlerLogic {
             int caveLayer) {}
 
     public static void init() {
-        NetworkHandler.registerSyncRequestHandler((payload, context) ->
-                NetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
+        NetworkHandler.registerSyncRequestHandler(
+                (payload, context) -> NetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
     }
 
     public static void pushManifestOnJoin(ServerPlayer player) {
@@ -200,8 +200,7 @@ public class ServerSyncHandlerLogic {
         return 0;
     }
 
-    private static @Nullable RegionSyncInfo parseRegionInfo(
-            Path zipPath, String normalizedPath, long timestampMillis) {
+    private static @Nullable RegionSyncInfo parseRegionInfo(Path zipPath, String normalizedPath, long timestampMillis) {
         try {
             String[] parts = normalizedPath.split("[/\\\\]");
 
@@ -222,8 +221,7 @@ public class ServerSyncHandlerLogic {
             int regionX = Integer.parseInt(coords[0]);
             int regionZ = Integer.parseInt(coords[1]);
 
-            return new RegionSyncInfo(
-                    zipPath, normalizedPath, timestampMillis, regionX, regionZ, dimension, caveLayer);
+            return new RegionSyncInfo(zipPath, normalizedPath, timestampMillis, regionX, regionZ, dimension, caveLayer);
         } catch (NumberFormatException e) {
             LOGGER.error("Failed to parse path: {}", normalizedPath, e);
             return null;

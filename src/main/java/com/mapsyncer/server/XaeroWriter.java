@@ -18,8 +18,7 @@ public class XaeroWriter {
     public static void cleanStaleFiles(Path rootDir) {
         if (!Files.exists(rootDir)) return;
         try (var stream = Files.walk(rootDir)) {
-            long deleted = stream
-                    .filter(p -> p.getFileName().toString().endsWith(".zip.temp"))
+            long deleted = stream.filter(p -> p.getFileName().toString().endsWith(".zip.temp"))
                     .filter(p -> {
                         try {
                             boolean removed = Files.deleteIfExists(p);

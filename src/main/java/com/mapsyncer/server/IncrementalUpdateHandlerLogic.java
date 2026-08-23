@@ -1,19 +1,15 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.Nullable;
-
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
-
-import net.minecraft.server.MinecraftServer;
 
 public class IncrementalUpdateHandlerLogic {
 
@@ -104,30 +100,24 @@ public class IncrementalUpdateHandlerLogic {
     }
 
     public void onPlayerLoggedOut() {
-        if (!running || server == null)
-            return;
+        if (!running || server == null) return;
 
-        if (server.isStopped())
-            return;
+        if (server.isStopped()) return;
 
         UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.DISABLED)
-            return;
+        if (mode == UpdateMode.DISABLED) return;
 
-        if (updateInProgress.get())
-            return;
+        if (updateInProgress.get()) return;
 
         emptyModeTriggered = false;
         server.execute(this::checkEmptyMode);
     }
 
     private void checkEmptyMode() {
-        if (updateInProgress.get())
-            return;
+        if (updateInProgress.get()) return;
 
         MinecraftServer currentServer = server;
-        if (currentServer == null)
-            return;
+        if (currentServer == null) return;
 
         int playerCount = currentServer.getPlayerList().getPlayerCount();
         if (playerCount > 0) {
@@ -135,8 +125,7 @@ public class IncrementalUpdateHandlerLogic {
             return;
         }
 
-        if (emptyModeTriggered)
-            return;
+        if (emptyModeTriggered) return;
 
         emptyModeTriggered = true;
         performUpdate("ON_EMPTY mode: no players online");

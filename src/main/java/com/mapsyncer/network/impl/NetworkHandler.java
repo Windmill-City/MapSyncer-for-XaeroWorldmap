@@ -96,15 +96,18 @@ public final class NetworkHandler {
         return CHANNEL;
     }
 
-    public static void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
+    public static void registerSyncResponseHandler(
+            BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
         syncResponseHandler = handler;
     }
 
-    public static void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
+    public static void registerSyncManifestHandler(
+            BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
         syncManifestHandler = handler;
     }
 
-    public static void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
+    public static void registerSyncRequestHandler(
+            BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
         syncRequestHandler = handler;
     }
 
