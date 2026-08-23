@@ -6,8 +6,6 @@ public final class PathMapping {
     private static final String NETHER_XAERO = "DIM-1";
     private static final String END_XAERO = "DIM1";
 
-    private PathMapping() {}
-
     public static String toServerFolderName(String dimId) {
         String canonical = canonicalId(dimId);
         return canonical.replace(':', '$').replace('/', '%');
