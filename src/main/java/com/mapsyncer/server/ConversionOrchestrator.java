@@ -161,7 +161,7 @@ public class ConversionOrchestrator {
                     }
                 });
             }
-            ManifestCache.getInstance().invalidate();
+            ManifestCache.get().invalidate();
             LOGGER.info("Cleared cache directory: {}", dimCacheDir);
         } catch (IOException e) {
             LOGGER.error("Failed to clear dimension cache: {}", dimCacheDir, e);
@@ -396,7 +396,7 @@ public class ConversionOrchestrator {
                 LOGGER.warn("Could not convert region ({}, {}): all passes empty", regionX, regionZ);
                 result = SingleRegionResult.CONVERSION_FAILED;
             } else {
-                ManifestCache.getInstance().invalidate();
+                ManifestCache.get().invalidate();
                 LOGGER.info("Converted single region ({}, {}) with {} passes", regionX, regionZ, written);
             }
         } catch (IOException e) {
@@ -661,7 +661,7 @@ public class ConversionOrchestrator {
                 String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
                 purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
             }
-            ManifestCache.getInstance().invalidate();
+            ManifestCache.get().invalidate();
             skippedEmptyContentCount.incrementAndGet();
             if (logProgress) {
                 processedCountAtomic.addAndGet(passes.size());
@@ -724,7 +724,7 @@ public class ConversionOrchestrator {
             mcaCache.updateTimestamp(dimPath, coords.x(), coords.z(), mcaPath);
         }
         if (anyWritten || anyPurged) {
-            ManifestCache.getInstance().invalidate();
+            ManifestCache.get().invalidate();
         }
         if (anyFailed) {
             failedRegions.add(coords);

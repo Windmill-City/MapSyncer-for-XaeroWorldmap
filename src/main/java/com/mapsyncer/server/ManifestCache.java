@@ -7,7 +7,9 @@ import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
 import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +17,7 @@ public class ManifestCache {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestCache.class);
 
-    private static volatile @Nullable ManifestCache instance;
+    private static final ManifestCache INSTANCE = new ManifestCache();
 
     private volatile Map<String, Long> manifest = Map.of();
 
@@ -25,25 +27,15 @@ public class ManifestCache {
 
     private volatile boolean valid = false;
 
-    public static ManifestCache getInstance() {
-        ManifestCache current = instance;
-        if (current == null) {
-            synchronized (ManifestCache.class) {
-                current = instance;
-                if (current == null) {
-                    current = new ManifestCache();
-                    instance = current;
-                }
-            }
-        }
-        return current;
+    public static ManifestCache get() {
+        return INSTANCE;
     }
 
-    public Map<String, Long> buildFullManifest(Path absCacheDir) {
+    public Map<String, Long> build(Path absCacheDir) {
         if (!isValid(absCacheDir)) {
             synchronized (this) {
                 if (!isValid(absCacheDir)) {
-                    rebuild(absCacheDir);
+                    _build(absCacheDir);
                 }
             }
         }
@@ -51,10 +43,10 @@ public class ManifestCache {
     }
 
     private boolean isValid(Path absCacheDir) {
-        return valid && builtCacheDir != null && absCacheDir.equals(builtCacheDir);
+        return valid && absCacheDir.equals(builtCacheDir);
     }
 
-    private void rebuild(Path absCacheDir) {
+    private void _build(Path absCacheDir) {
         Map<String, Long> rebuilt = new HashMap<>();
         Map<String, Path> rebuiltPaths = new HashMap<>();
         try (Stream<Path> stream = Files.walk(absCacheDir)) {

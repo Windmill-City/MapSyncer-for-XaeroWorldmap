@@ -57,7 +57,7 @@ public class ServerSyncHandlerLogic {
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
 
-        Map<String, Long> manifest = ManifestCache.getInstance().buildFullManifest(absCacheDir);
+        Map<String, Long> manifest = ManifestCache.get().build(absCacheDir);
         if (manifest.isEmpty()) {
             LOGGER.debug("Manifest is empty, pushing no_cache manifest to player {}", player.getUUID());
             pushNoCacheManifest(player);
@@ -106,7 +106,7 @@ public class ServerSyncHandlerLogic {
 
     private static void sendManifest(ServerPlayer player, Path absCacheDir) {
         int worldId = readWorldIdFromXaeroMap(player);
-        Map<String, Long> manifest = ManifestCache.getInstance().buildFullManifest(absCacheDir);
+        Map<String, Long> manifest = ManifestCache.get().build(absCacheDir);
 
         if (manifest.isEmpty()) {
             ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
@@ -122,7 +122,7 @@ public class ServerSyncHandlerLogic {
 
     private static void serveRequestedRegions(
             ServerPlayer player, Map<String, RegionMeta> requested, Path absCacheDir) {
-        ManifestCache manifestCache = ManifestCache.getInstance();
+        ManifestCache manifestCache = ManifestCache.get();
         int worldId = readWorldIdFromXaeroMap(player);
 
         List<ChunkMapData> parts = new ArrayList<>();
