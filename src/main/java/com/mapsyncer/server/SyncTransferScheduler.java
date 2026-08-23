@@ -268,7 +268,7 @@ public final class SyncTransferScheduler {
                 player.getName().getString(),
                 part.timestamps().size());
         try {
-            ForgeNetworkHandler.getInstance().sendToPlayer(player, part);
+            ForgeNetworkHandler.sendToPlayer(player, part);
         } catch (Exception e) {
             LOGGER.warn("Failed to send manifest part to {}, dropping transfer", q.playerId);
             queues.remove(q.playerId);
@@ -295,7 +295,7 @@ public final class SyncTransferScheduler {
                 q.responses.size(),
                 queuedParts);
         try {
-            ForgeNetworkHandler.getInstance().sendToPlayer(player, new SyncResponsePayload(parts, complete, worldId, status));
+            ForgeNetworkHandler.sendToPlayer(player, new SyncResponsePayload(parts, complete, worldId, status));
         } catch (Exception e) {
             LOGGER.warn("Failed to send sync response to {}, dropping transfer", q.playerId);
             queues.remove(q.playerId);

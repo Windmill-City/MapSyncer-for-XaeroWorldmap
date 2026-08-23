@@ -21,36 +21,18 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
-public class ForgeNetworkHandler {
+public final class ForgeNetworkHandler {
 
     private static final String PROTOCOL_VERSION = "2";
     private static @Nullable SimpleChannel CHANNEL;
 
-    private static volatile @Nullable ForgeNetworkHandler INSTANCE;
-
     static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
 
-    private @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
-    private @Nullable BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
-    private @Nullable BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
+    private static @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
+    private static @Nullable BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
+    private static @Nullable BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> syncRequestHandler;
 
-    private boolean registered = false;
-
-    private ForgeNetworkHandler() {
-    }
-
-    public static ForgeNetworkHandler getInstance() {
-        if (INSTANCE == null) {
-            synchronized (ForgeNetworkHandler.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new ForgeNetworkHandler();
-                }
-            }
-        }
-        return INSTANCE;
-    }
-
-    public void init() {
+    public static void init() {
         if (CHANNEL != null) return;
 
         SimpleChannel channel = NetworkRegistry.newSimpleChannel(
@@ -65,24 +47,24 @@ public class ForgeNetworkHandler {
                 ForgeSyncRequestMessage.class,
                 ForgeSyncRequestMessage::encode,
                 ForgeSyncRequestMessage::decode,
-                this::handleSyncRequest);
+                ForgeNetworkHandler::handleSyncRequest);
 
         channel.registerMessage(
                 1,
                 ForgeSyncResponseMessage.class,
                 ForgeSyncResponseMessage::encode,
                 ForgeSyncResponseMessage::decode,
-                this::handleSyncResponse);
+                ForgeNetworkHandler::handleSyncResponse);
 
         channel.registerMessage(
                 2,
                 ForgeSyncManifestMessage.class,
                 ForgeSyncManifestMessage::encode,
                 ForgeSyncManifestMessage::decode,
-                this::handleSyncManifest);
+                ForgeNetworkHandler::handleSyncManifest);
     }
 
-    private void handleSyncRequest(ForgeSyncRequestMessage msg, Supplier<NetworkEvent.Context> ctx) {
+    private static void handleSyncRequest(ForgeSyncRequestMessage msg, Supplier<NetworkEvent.Context> ctx) {
         ServerPlayer sender = ctx.get().getSender();
         if (sender != null) {
             confirmPlayer(sender.getUUID());
@@ -92,34 +74,28 @@ public class ForgeNetworkHandler {
         }
     }
 
-    private void handleSyncResponse(ForgeSyncResponseMessage msg, Supplier<NetworkEvent.Context> ctx) {
+    private static void handleSyncResponse(ForgeSyncResponseMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (syncResponseHandler != null) {
             syncResponseHandler.accept(msg.getData(), ctx);
         }
     }
 
-    private void handleSyncManifest(ForgeSyncManifestMessage msg, Supplier<NetworkEvent.Context> ctx) {
+    private static void handleSyncManifest(ForgeSyncManifestMessage msg, Supplier<NetworkEvent.Context> ctx) {
         if (syncManifestHandler != null) {
             syncManifestHandler.accept(msg.getData(), ctx);
         }
     }
 
-    public void registerHandlers() {
-        if (registered) return;
-        registered = true;
-        init();
-    }
-
-    public void sendToServer(SyncRequestPayload payload) {
+    public static void sendToServer(SyncRequestPayload payload) {
         channel().sendToServer(new ForgeSyncRequestMessage(payload));
     }
 
-    public void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
+    public static void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
         channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncResponseMessage(payload));
     }
 
-    public void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
+    public static void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
         if (!confirmedPlayers.contains(player.getUUID())) return;
         channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
     }
@@ -131,16 +107,16 @@ public class ForgeNetworkHandler {
         return CHANNEL;
     }
 
-    public void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
-        this.syncResponseHandler = handler;
+    public static void registerSyncResponseHandler(BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> handler) {
+        syncResponseHandler = handler;
     }
 
-    public void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
-        this.syncManifestHandler = handler;
+    public static void registerSyncManifestHandler(BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> handler) {
+        syncManifestHandler = handler;
     }
 
-    public void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
-        this.syncRequestHandler = handler;
+    public static void registerSyncRequestHandler(BiConsumer<SyncRequestPayload, Supplier<NetworkEvent.Context>> handler) {
+        syncRequestHandler = handler;
     }
 
     public static void enqueueWork(Supplier<NetworkEvent.Context> ctx, Runnable work) {

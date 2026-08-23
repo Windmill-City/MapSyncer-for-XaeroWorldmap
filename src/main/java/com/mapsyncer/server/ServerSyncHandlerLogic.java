@@ -47,10 +47,9 @@ public class ServerSyncHandlerLogic {
             String dimension,
             int caveLayer) {}
 
-    public static void registerHandlers() {
-        ForgeNetworkHandler.getInstance()
-                .registerSyncRequestHandler((payload, context) ->
-                        ForgeNetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
+    public static void init() {
+        ForgeNetworkHandler.registerSyncRequestHandler((payload, context) ->
+                ForgeNetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
     }
 
     public static void pushManifestOnJoin(ServerPlayer player) {
@@ -88,7 +87,7 @@ public class ServerSyncHandlerLogic {
     private static void pushNoCacheManifest(ServerPlayer player) {
         ForgeNetworkHandler.confirmPlayer(player.getUUID());
         int worldId = readWorldIdFromXaeroMap(player);
-        ForgeNetworkHandler.getInstance().sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+        ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
     }
 
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
@@ -115,8 +114,7 @@ public class ServerSyncHandlerLogic {
                 serverPlayer.sendSystemMessage(
                         ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
             }
-            ForgeNetworkHandler.getInstance()
-                    .sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+            ForgeNetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
 
@@ -166,8 +164,7 @@ public class ServerSyncHandlerLogic {
                             ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
                 }
             }
-            ForgeNetworkHandler.getInstance()
-                    .sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
+            ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
             return;
         }
 
