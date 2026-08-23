@@ -41,7 +41,7 @@ public class MapSyncer {
 
     public static final Path CACHE_DIR = Path.of(MOD_ID);
 
-    private static final String PROTOCOL_VERSION = "7";
+    private static final String PROTOCOL_VERSION = "3";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(MOD_ID, "main"),
             () -> PROTOCOL_VERSION,
