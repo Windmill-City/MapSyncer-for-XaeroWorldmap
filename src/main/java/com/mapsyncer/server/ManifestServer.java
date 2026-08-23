@@ -29,10 +29,7 @@ public class ManifestServer {
 
     private static final ManifestServer INSTANCE = new ManifestServer();
 
-    private record ManifestEntry(long timestampMillis) {
-    }
-
-    private volatile Map<RegionRef, ManifestEntry> manifest = Map.of();
+    private volatile Map<RegionRef, Long> manifest = Map.of();
 
     private volatile boolean isValid = false;
 
@@ -48,13 +45,11 @@ public class ManifestServer {
                 }
             }
         }
-        Map<RegionRef, Long> timestamps = new HashMap<>(manifest.size());
-        manifest.forEach((ref, entry) -> timestamps.put(ref, entry.timestampMillis()));
-        return timestamps;
+        return manifest;
     }
 
     private void _build(MinecraftServer server) {
-        Map<RegionRef, ManifestEntry> rebuilt = new HashMap<>();
+        Map<RegionRef, Long> rebuilt = new HashMap<>();
 
         for (ServerLevel level : server.getAllLevels()) {
             String dimId = ApiHelper.getDimId(level.dimension());
@@ -71,7 +66,7 @@ public class ManifestServer {
                     int[] coords = RegionKey.coordsFromZipFileName(zipPath);
                     RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
                     long timestamp = readMtimeMillis(zipPath);
-                    rebuilt.put(ref, new ManifestEntry(timestamp));
+                    rebuilt.put(ref, timestamp);
                 });
             } catch (IOException e) {
                 LOGGER.error("Failed to walk cache directory while building manifest for {}", dimId, e);
@@ -100,8 +95,7 @@ public class ManifestServer {
     }
 
     public @Nullable Long getTimestamp(RegionRef ref) {
-        ManifestEntry entry = manifest.get(ref);
-        return entry == null ? null : entry.timestampMillis();
+        return manifest.get(ref);
     }
 
     public void invalidate() {
