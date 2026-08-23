@@ -2,6 +2,7 @@ package com.mapsyncer.client;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ public final class XaeroReflectionHelper {
     private static @Nullable Method setRegionDetectionCompleteMethod;
     private static @Nullable Method getCurrentWorldIdMethod;
     private static @Nullable Method getDimensionNameMethod;
+    private static @Nullable Method getRootFolderMethod;
 
     private static @Nullable Field loadStateField;
     private static @Nullable Field shouldCacheField;
@@ -75,7 +77,8 @@ public final class XaeroReflectionHelper {
             getCurrentWorldIdMethod = mapProcessorClass.getMethod("getCurrentWorldId");
             getDimensionNameMethod =
                     mapProcessorClass.getMethod("getDimensionName", net.minecraft.resources.ResourceKey.class);
-            LOGGER.info("成功缓存 {} 个反射方法", 10);
+            getRootFolderMethod = mapSaveLoadClass.getMethod("getRootFolder", String.class);
+            LOGGER.info("成功缓存 {} 个反射方法", 11);
 
             LOGGER.debug("获取并缓存反射字段...");
             loadStateField = mapRegionClass.getDeclaredField("loadState");
@@ -294,6 +297,26 @@ public final class XaeroReflectionHelper {
             return (String) getCurrentWorldIdMethod.invoke(processor);
         } catch (Exception e) {
             LOGGER.warn("Failed to get current world id", e);
+            return null;
+        }
+    }
+
+    public static @Nullable Path getCurrentServerDirectory() {
+        if (!initialized || getRootFolderMethod == null) return null;
+
+        String worldId = getCurrentWorldId();
+        if (worldId == null || worldId.isEmpty()) {
+            return null;
+        }
+
+        try {
+            Object result = getRootFolderMethod.invoke(null, worldId);
+            if (result instanceof Path path) {
+                return path;
+            }
+            return null;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get current server directory for world id '{}'", worldId, e);
             return null;
         }
     }

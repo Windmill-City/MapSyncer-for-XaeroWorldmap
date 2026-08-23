@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionKey;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,11 +62,11 @@ public class ManifestClient {
         return exec;
     }
 
-    public static void computeMetaForSyncAsync(Path mapDir, Set<String> dimIds, Consumer<MetaScanResult> onComplete) {
+    public static void computeMetaForSyncAsync(Set<String> dimIds, Consumer<MetaScanResult> onComplete) {
         poolUsers.incrementAndGet();
         getExecutor().submit(() -> {
             try {
-                onComplete.accept(computeMetaForSyncWorker(mapDir, dimIds));
+                onComplete.accept(computeMetaForSyncWorker(dimIds));
             } catch (Exception e) {
                 LOGGER.error("Failed to scan map asynchronously", e);
                 onComplete.accept(MetaScanResult.failure("async_error", 0));
@@ -77,18 +76,13 @@ public class ManifestClient {
         });
     }
 
-    private static MetaScanResult computeMetaForSyncWorker(Path mapDir, Set<String> dimIds) {
+    private static MetaScanResult computeMetaForSyncWorker(Set<String> dimIds) {
         Map<RegionRef, Long> metaMap = new HashMap<>();
 
-        if (mapDir == null || !Files.exists(mapDir)) {
-            LOGGER.info("Map directory does not exist or is null, will request all regions from server");
+        Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
+        if (serverDir == null || !Files.exists(serverDir)) {
+            LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
             return MetaScanResult.ok(metaMap);
-        }
-
-        Path serverDir = findServerDir(mapDir);
-        if (serverDir == null) {
-            LOGGER.error("Could not resolve Multiplayer server directory from {}", mapDir);
-            return MetaScanResult.failure("server_dir", 0);
         }
 
         int failedFiles = 0;
@@ -97,7 +91,8 @@ public class ManifestClient {
         for (String dimId : dimIds) {
             String xaeroDim = XaeroReflectionHelper.getDimensionName(dimId);
             if (xaeroDim == null) {
-                xaeroDim = PathMapping.toXaeroDimension(dimId);
+                LOGGER.debug("No Xaero dimension name for {}, skipping", dimId);
+                continue;
             }
             Path dimDir = serverDir.resolve(xaeroDim);
             if (!Files.isDirectory(dimDir)) {
@@ -136,20 +131,6 @@ public class ManifestClient {
         LOGGER.info("Found {} regions with metadata", metaMap.size());
 
         return MetaScanResult.ok(metaMap);
-    }
-
-    private static @Nullable Path findServerDir(Path mapDir) {
-        Path current = mapDir;
-
-        while (current != null) {
-            String name = current.getFileName() != null ? current.getFileName().toString() : "";
-            if (name.startsWith("Multiplayer_")) {
-                return current;
-            }
-            current = current.getParent();
-        }
-
-        return null;
     }
 
     private static long getFileModificationTime(Path path) {

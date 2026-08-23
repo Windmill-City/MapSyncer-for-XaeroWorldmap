@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionData;
-import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
@@ -13,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
+import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +24,8 @@ public final class XaeroMapWriter {
 
     private static final Set<RegionCoord> preUnloadedRegions = ConcurrentHashMap.newKeySet();
 
+    private static final Set<RegionCoord> loadedRegions = ConcurrentHashMap.newKeySet();
+
     public record RegionCoord(int x, int z, int caveLayer) {
 
         public boolean isSurfaceLayer() {
@@ -34,6 +36,7 @@ public final class XaeroMapWriter {
     public static void clearRegionTracking() {
         updatedRegions.clear();
         preUnloadedRegions.clear();
+        loadedRegions.clear();
         LOGGER.debug("Cleared region tracking sets");
     }
 
@@ -48,10 +51,15 @@ public final class XaeroMapWriter {
     public static @Nullable RegionWriteResult writeChunkData(RegionData chunk) {
         String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.ref.dimId());
         if (xaeroDim == null) {
-            xaeroDim = PathMapping.toXaeroDimension(chunk.ref.dimId());
+            LOGGER.error(
+                    "Unable to resolve Xaero dimension name for {}, skipping region ({}, {})",
+                    chunk.ref.dimId(),
+                    chunk.ref.regionX(),
+                    chunk.ref.regionZ());
+            return null;
         }
 
-        Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
+        Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
         if (serverDir == null) {
             LOGGER.error(
                     "Unable to resolve server directory, skipping region ({}, {}) dim={}",
@@ -101,7 +109,63 @@ public final class XaeroMapWriter {
             return null;
         }
 
+        triggerRegionLoad(chunk);
+
         return new RegionWriteResult(mwDir, outputFile);
+    }
+
+    public static void triggerRegionLoad(RegionData chunk) {
+        boolean syncingCaveDimension = "minecraft:the_nether".equals(chunk.ref.dimId())
+                || "the_nether".equals(chunk.ref.dimId())
+                || "DIM-1".equals(chunk.ref.dimId());
+        boolean shouldProcess = syncingCaveDimension ? !chunk.isSurfaceLayer() : chunk.isSurfaceLayer();
+        if (!shouldProcess) {
+            return;
+        }
+
+        RegionCoord coord = new RegionCoord(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer());
+        Minecraft.getInstance().execute(() -> loadRegion(coord));
+    }
+
+    private static void loadRegion(RegionCoord coord) {
+        try {
+            if (loadedRegions.contains(coord)) {
+                LOGGER.debug("Region ({}, {}) layer={} already loaded, skipping", coord.x(), coord.z(), coord.caveLayer());
+                return;
+            }
+
+            Object mapRegion = XaeroReflectionHelper.getLeafMapRegion(coord.caveLayer(), coord.x(), coord.z(), true);
+            if (mapRegion == null) {
+                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", coord.x(), coord.z(), coord.caveLayer());
+                return;
+            }
+
+            if (!XaeroReflectionHelper.prepareRegionLoad(mapRegion)) {
+                LOGGER.warn(
+                        "Region ({}, {}) layer={} load preparation failed", coord.x(), coord.z(), coord.caveLayer());
+                return;
+            }
+
+            if (!XaeroReflectionHelper.setLoadState(mapRegion, XaeroReflectionHelper.LOAD_STATE_CLEARED)) {
+                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", coord.x(), coord.z(), coord.caveLayer());
+                return;
+            }
+
+            if (!XaeroReflectionHelper.requestLoad(mapRegion, "sync", false)) {
+                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", coord.x(), coord.z(), coord.caveLayer());
+                return;
+            }
+
+            loadedRegions.add(coord);
+        } catch (Exception e) {
+            LOGGER.error(
+                    "Failed to load region ({}, {}) layer={}: {}",
+                    coord.x(),
+                    coord.z(),
+                    coord.caveLayer(),
+                    e.getMessage(),
+                    e);
+        }
     }
 
     public static void clearRegionCacheFiles(Path mwDir, RegionCoord coord) {
