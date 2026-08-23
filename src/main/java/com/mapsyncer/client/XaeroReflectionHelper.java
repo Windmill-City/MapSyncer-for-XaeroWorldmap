@@ -51,7 +51,6 @@ public final class XaeroReflectionHelper {
     private static @Nullable Method getEffectiveMethod;
 
     public static boolean initialize() {
-        if (initialized) return true;
 
         try {
             LOGGER.info("开始初始化 Xaero 反射缓存...");
@@ -97,20 +96,8 @@ public final class XaeroReflectionHelper {
             LOGGER.info("Xaero reflection helper initialized successfully");
             return true;
 
-        } catch (ClassNotFoundException e) {
-            LOGGER.error("Xaero's World Map 未找到或类名不匹配，反射功能禁用", e);
-            LOGGER.error("请确保已安装 Xaero's World Map 模组");
-            return false;
-        } catch (NoSuchMethodException e) {
-            LOGGER.error("Xaero API 不兼容，方法签名变化", e);
-            LOGGER.error("可能原因：Xaero 版本过新或过旧，与当前 MapSyncer 版本不兼容");
-            return false;
-        } catch (NoSuchFieldException e) {
-            LOGGER.error("Xaero API 不兼容，字段不存在", e);
-            LOGGER.error("可能原因：Xaero 版本过新或过旧，与当前 MapSyncer 版本不兼容");
-            return false;
         } catch (Exception e) {
-            LOGGER.error("❌ 初始化 Xaero reflection helper 失败", e);
+            LOGGER.error("Unable to initialize Xaero reflection helper:", e);
             return false;
         }
     }
@@ -460,15 +447,6 @@ public final class XaeroReflectionHelper {
             LOGGER.warn("Xaero config reflection unavailable", e);
             return false;
         }
-    }
-
-    public static void clearCache() {
-        initialized = false;
-        cachedSession = null;
-        cachedMapProcessor = null;
-        cachedMapSaveLoad = null;
-        dimNameCache.clear();
-        LOGGER.info("Xaero reflection cache cleared");
     }
 
     public static boolean prepareRegionLoad(Object mapRegion) {

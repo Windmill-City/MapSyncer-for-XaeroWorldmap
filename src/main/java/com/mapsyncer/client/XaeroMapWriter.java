@@ -20,10 +20,6 @@ public final class XaeroMapWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapWriter.class);
 
-    private static final Set<RegionCoord> updatedRegions = ConcurrentHashMap.newKeySet();
-
-    private static final Set<RegionCoord> preUnloadedRegions = ConcurrentHashMap.newKeySet();
-
     private static final Set<RegionCoord> loadedRegions = ConcurrentHashMap.newKeySet();
 
     public record RegionCoord(int x, int z, int caveLayer) {
@@ -31,19 +27,6 @@ public final class XaeroMapWriter {
         public boolean isSurfaceLayer() {
             return caveLayer == Integer.MAX_VALUE;
         }
-    }
-
-    public static void clearRegionTracking() {
-        updatedRegions.clear();
-        preUnloadedRegions.clear();
-        loadedRegions.clear();
-        LOGGER.debug("Cleared region tracking sets");
-    }
-
-    public static void recordUpdatedRegionCoords(Set<RegionCoord> coords) {
-        updatedRegions.clear();
-        updatedRegions.addAll(coords);
-        LOGGER.debug("Recorded {} updated region coords for selective reset", updatedRegions.size());
     }
 
     public record RegionWriteResult(Path mwDir, Path outputFile) {}

@@ -22,15 +22,14 @@ import org.slf4j.LoggerFactory;
 
 public class ManifestClient {
 
-    public record MetaScanResult(
-            Map<RegionRef, Long> meta, boolean success, int failedFiles, @Nullable String failureReason) {
+    public record MetaScanResult(Map<RegionRef, Long> meta, boolean success, @Nullable String failureReason) {
 
         public static MetaScanResult ok(Map<RegionRef, Long> meta) {
-            return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, 0, null);
+            return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, null);
         }
 
-        public static MetaScanResult failure(String reason, int failedFiles) {
-            return new MetaScanResult(Collections.emptyMap(), false, failedFiles, reason);
+        public static MetaScanResult failure(String reason) {
+            return new MetaScanResult(Collections.emptyMap(), false, reason);
         }
 
         public boolean isSuccess() {
@@ -62,14 +61,14 @@ public class ManifestClient {
         return exec;
     }
 
-    public static void computeMetaForSyncAsync(Set<String> dimIds, Consumer<MetaScanResult> onComplete) {
+    public static void getManifestAsync(Set<String> dimIds, Consumer<MetaScanResult> onComplete) {
         poolUsers.incrementAndGet();
         getExecutor().submit(() -> {
             try {
                 onComplete.accept(computeMetaForSyncWorker(dimIds));
             } catch (Exception e) {
                 LOGGER.error("Failed to scan map asynchronously", e);
-                onComplete.accept(MetaScanResult.failure("async_error", 0));
+                onComplete.accept(MetaScanResult.failure("async_error"));
             } finally {
                 poolUsers.decrementAndGet();
             }
@@ -84,9 +83,6 @@ public class ManifestClient {
             LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
             return MetaScanResult.ok(metaMap);
         }
-
-        int failedFiles = 0;
-        int totalFiles = 0;
 
         for (String dimId : dimIds) {
             String xaeroDim = XaeroReflectionHelper.getDimensionName(dimId);
@@ -105,10 +101,8 @@ public class ManifestClient {
                 zipFiles = walk.filter(p -> p.toString().endsWith(".zip")).toList();
             } catch (IOException e) {
                 LOGGER.error("Failed to walk map directory {}", dimDir, e);
-                return MetaScanResult.failure("walk_error", 0);
+                return MetaScanResult.failure("walk_error");
             }
-
-            totalFiles += zipFiles.size();
 
             for (Path zipPath : zipFiles) {
                 try {
@@ -117,15 +111,10 @@ public class ManifestClient {
                     LOGGER.debug("Region {}: ts={}ms (mtime)", ref, timestampMillis);
                     metaMap.put(ref, timestampMillis);
                 } catch (Exception e) {
-                    failedFiles++;
-                    LOGGER.warn("Failed to scan region file: {}", zipPath, e);
+                    LOGGER.error("Failed to scan region file: {}", zipPath, e);
+                    return MetaScanResult.failure("file_error");
                 }
             }
-        }
-
-        if (failedFiles > 0) {
-            LOGGER.error("Scan completed with {} failed file(s) out of {}", failedFiles, totalFiles);
-            return MetaScanResult.failure("partial_error", failedFiles);
         }
 
         LOGGER.info("Found {} regions with metadata", metaMap.size());

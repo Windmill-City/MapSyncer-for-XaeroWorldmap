@@ -37,8 +37,7 @@ public class MapPacketHandler {
 
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
-    private static final ConcurrentLinkedQueue<RegionRef> pendingRegionPaths = new ConcurrentLinkedQueue<>();
-    private static volatile boolean regionRequestInFlight = false;
+    private static final ConcurrentLinkedQueue<RegionRef> pendingRegions = new ConcurrentLinkedQueue<>();
 
     private static volatile int syncTotal = 0;
     private static volatile int syncProcessed = 0;
@@ -49,9 +48,7 @@ public class MapPacketHandler {
 
     private static final AtomicInteger requestCounter = new AtomicInteger(0);
 
-    private static volatile int syncGeneration = 0;
-    private static volatile boolean syncActive = false;
-    private static volatile long syncStartedAtMs = 0;
+    private static volatile boolean running = false;
 
     public static void onDisconnect() {
         ManifestClient.shutdown();
@@ -60,13 +57,7 @@ public class MapPacketHandler {
     }
 
     public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
-        final int generationAtEnqueue = syncGeneration;
         MapSyncer.enqueueWork(context, () -> {
-            if (generationAtEnqueue != syncGeneration) {
-                LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
-                return;
-            }
-
             LOGGER.info("[SYNC] <- manifest: entries={}", payload.timestamps().size());
 
             handleManifestReceived(payload);
@@ -74,7 +65,7 @@ public class MapPacketHandler {
     }
 
     private static void handleManifestReceived(ManifestPayload payload) {
-        startSyncSession();
+        start();
 
         Map<RegionRef, Long> serverTimestamps = payload.timestamps();
         if (serverTimestamps.isEmpty()) {
@@ -83,25 +74,15 @@ public class MapPacketHandler {
             return;
         }
 
-        final int scanGeneration = syncGeneration;
-        ManifestClient.computeMetaForSyncAsync(extractDimIds(serverTimestamps.keySet()), result -> {
+        ManifestClient.getManifestAsync(extractDimIds(serverTimestamps.keySet()), result -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
-                if (scanGeneration != syncGeneration) {
-                    LOGGER.debug("Discarding local scan result for stale generation {}", scanGeneration);
-                    return;
-                }
                 if (mc.player == null) {
                     return;
                 }
                 if (!result.isSuccess()) {
-                    if (result.failedFiles() > 0) {
-                        mc.player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.scan_partial", result.failedFiles()), false);
-                    } else {
-                        mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.scan_failed"), false);
-                    }
-                    clearSyncData();
+                    mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.scan_failed"), false);
+                    stop();
                     return;
                 }
 
@@ -134,50 +115,25 @@ public class MapPacketHandler {
                 int playerBlockZ = mc.player.getBlockZ();
                 List<RegionRef> ordered = orderByViewDistance(diff.keySet(), playerBlockX, playerBlockZ);
 
-                pendingRegionPaths.clear();
-                pendingRegionPaths.addAll(ordered);
+                pendingRegions.clear();
+                pendingRegions.addAll(ordered);
                 syncTotal = ordered.size();
                 syncProcessed = 0;
                 syncFailed = 0;
-                regionRequestInFlight = false;
-                LOGGER.debug(
-                        "[SYNC] per-region pull started: {} regions to fetch (generation={})",
-                        syncTotal,
-                        scanGeneration);
-                requestNextRegion(scanGeneration);
+                LOGGER.debug("[SYNC] per-region pull started: {} regions to fetch", syncTotal);
+                requestNextRegion();
             });
         });
     }
 
-    private static void startSyncSession() {
-        syncGeneration++;
-        syncActive = true;
-        syncStartedAtMs = System.currentTimeMillis();
-        pendingRegionPaths.clear();
-        regionRequestInFlight = false;
-        syncTotal = 0;
-        syncProcessed = 0;
-        syncFailed = 0;
-        syncPendingWrites.set(0);
-        updatedRegionCoords.clear();
-        partBuffer.clear();
-        requestCounter.set(0);
+    private static void start() {
+        running = true;
         syncStartMs = System.currentTimeMillis();
-
-        boolean regionDetectSuccess = XaeroReflectionHelper.setRegionDetectionComplete(true);
-        if (regionDetectSuccess) {
-            LOGGER.info("regionDetectionComplete set to true, reflection ready");
-        } else {
-            LOGGER.warn("setRegionDetectionComplete failed, getLeafMapRegion may return null");
-        }
     }
 
-    private static void clearSyncData() {
-        syncActive = false;
-        syncStartedAtMs = 0;
-        syncStartMs = 0;
-        pendingRegionPaths.clear();
-        regionRequestInFlight = false;
+    private static void stop() {
+        running = false;
+        pendingRegions.clear();
         syncTotal = 0;
         syncProcessed = 0;
         syncFailed = 0;
@@ -190,9 +146,7 @@ public class MapPacketHandler {
     private static Set<String> extractDimIds(Set<RegionRef> keys) {
         Set<String> dimIds = new HashSet<>();
         for (RegionRef ref : keys) {
-            if (!ref.dimId().isEmpty()) {
-                dimIds.add(ref.dimId());
-            }
+            dimIds.add(ref.dimId());
         }
         return dimIds;
     }
@@ -206,29 +160,22 @@ public class MapPacketHandler {
     }
 
     public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
-        final int generationAtEnqueue = syncGeneration;
         MapSyncer.enqueueWork(context, () -> {
-            if (generationAtEnqueue != syncGeneration) {
-                LOGGER.debug("Ignoring stale sync response after disconnect/clear");
-                return;
-            }
-
-            int generation = generationAtEnqueue;
-
             LOGGER.debug(
-                    "[SYNC] <- response: chunks={}, complete={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
+                    "[SYNC] <- response: chunks={}, complete={} (receiving={}, pending={}, writes={}, partBufferKeys={})",
                     payload.chunks().size(),
                     payload.isComplete(),
-                    syncActive,
-                    regionRequestInFlight,
-                    pendingRegionPaths.size(),
+                    running,
+                    pendingRegions.size(),
                     syncPendingWrites.get(),
                     partBuffer.size());
 
-            if (!syncActive) {
-                startSyncSession();
-                generation = syncGeneration;
-                LOGGER.debug("Starting sync (per-region pull mode)");
+            if (!running) {
+                LOGGER.warn(
+                        "[SYNC] ignoring response: not running (chunks={}, complete={})",
+                        payload.chunks().size(),
+                        payload.isComplete());
+                return;
             }
 
             Minecraft mc = Minecraft.getInstance();
@@ -241,9 +188,20 @@ public class MapPacketHandler {
                         payload.chunks().size());
                 syncFailed += payload.chunks().size();
                 if (payload.isComplete()) {
-                    regionRequestInFlight = false;
                     syncProcessed++;
-                    requestNextRegion(generation);
+                    requestNextRegion();
+                }
+                return;
+            }
+
+            if (serverDir == null) {
+                LOGGER.error(
+                        "Unable to resolve server directory, skipping {} received chunks",
+                        payload.chunks().size());
+                syncFailed += payload.chunks().size();
+                if (payload.isComplete()) {
+                    syncProcessed++;
+                    requestNextRegion();
                 }
                 return;
             }
@@ -254,29 +212,15 @@ public class MapPacketHandler {
                     continue;
                 }
 
-                if (serverDir == null) {
-                    LOGGER.error(
-                            "Unable to resolve server directory, skipping region ({}, {})",
-                            assembled.ref.regionX(),
-                            assembled.ref.regionZ());
-                    syncFailed++;
-                    continue;
-                }
-
                 XaeroMapWriter.RegionCoord coord = new XaeroMapWriter.RegionCoord(
                         assembled.ref.regionX(), assembled.ref.regionZ(), assembled.ref.caveLayer());
                 updatedRegionCoords.add(coord);
 
                 syncPendingWrites.incrementAndGet();
-                final int gen = generation;
 
                 ClientSyncWriteQueue.submit(assembled, writeResult -> {
                     mc.execute(() -> {
                         try {
-                            if (gen != syncGeneration) {
-                                return;
-                            }
-
                             if (writeResult == null) {
                                 LOGGER.error(
                                         "Region ({}, {}) write failed ({} bytes)",
@@ -301,37 +245,30 @@ public class MapPacketHandler {
             }
 
             if (payload.isComplete()) {
-                syncStartedAtMs = System.currentTimeMillis();
-                regionRequestInFlight = false;
                 syncProcessed++;
                 LOGGER.debug(
                         "[SYNC] complete signal: syncProcessed={}/{} (pending={}, writes={}, partBufferKeys={})",
                         syncProcessed,
                         syncTotal,
-                        pendingRegionPaths.size(),
+                        pendingRegions.size(),
                         syncPendingWrites.get(),
                         partBuffer.size());
-                requestNextRegion(generation);
+                requestNextRegion();
             }
         });
     }
 
-    private static void requestNextRegion(int generation) {
-        if (generation != syncGeneration) return;
-        if (!syncActive) return;
-        if (regionRequestInFlight) return;
+    private static void requestNextRegion() {
+        if (!running) return;
 
-        RegionRef ref = pendingRegionPaths.poll();
+        RegionRef ref = pendingRegions.poll();
         if (ref == null) {
             LOGGER.debug(
-                    "[SYNC] requestNextRegion: queue empty -> maybeCompleteSync (inFlight={}, writes={})",
-                    regionRequestInFlight,
-                    syncPendingWrites.get());
+                    "[SYNC] requestNextRegion: queue empty -> maybeCompleteSync (writes={})", syncPendingWrites.get());
             maybeCompleteSync();
             return;
         }
 
-        regionRequestInFlight = true;
         List<RegionRef> single = List.of(ref);
         MapSyncer.sendToServer(new MapRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
@@ -339,24 +276,22 @@ public class MapPacketHandler {
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",
                 seq,
                 ref,
-                pendingRegionPaths.size(),
+                pendingRegions.size(),
                 syncProcessed,
                 syncTotal);
     }
 
     private static void maybeCompleteSync() {
-        if (!syncActive) {
+        if (!running) {
             return;
         }
-        boolean pending = !pendingRegionPaths.isEmpty();
-        boolean inflight = regionRequestInFlight;
         int writes = syncPendingWrites.get();
-        if (pending || inflight || writes > 0) {
+        if (syncProcessed < syncTotal || writes > 0) {
             LOGGER.debug(
-                    "[SYNC-GUARD] holding completion: pending={} ({} paths), inFlight={}, writes={}, partBufferKeys={}",
-                    pending,
-                    pendingRegionPaths.size(),
-                    inflight,
+                    "[SYNC-GUARD] holding completion: syncProcessed={}/{} (pendingPaths={}), writes={}, partBufferKeys={}",
+                    syncProcessed,
+                    syncTotal,
+                    pendingRegions.size(),
                     writes,
                     partBuffer.size());
             return;
@@ -366,18 +301,16 @@ public class MapPacketHandler {
     }
 
     private static void completeSync() {
-        Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
 
         int totalReceived = updatedRegionCoords.size();
         LOGGER.debug(
-                "Sync complete: {} regions processed (syncTotal={}, syncProcessed={}, syncFailed={}, uncompletedRequests={}, pending={}, inFlight={}, writes={}, partBufferKeys={})",
+                "Sync complete: {} regions processed (syncTotal={}, syncProcessed={}, syncFailed={}, uncompletedRequests={}, pending={}, writes={}, partBufferKeys={})",
                 totalReceived,
                 syncTotal,
                 syncProcessed,
                 syncFailed,
                 syncTotal - syncProcessed,
-                pendingRegionPaths.size(),
-                regionRequestInFlight,
+                pendingRegions.size(),
                 syncPendingWrites.get(),
                 partBuffer.size());
 
@@ -394,26 +327,18 @@ public class MapPacketHandler {
                         .displayClientMessage(
                                 ChatUtils.success("mapsyncer.sync.completed", totalReceived, elapsed), false);
             } else {
-                Minecraft.getInstance()
-                        .player
-                        .displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
+                Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"), false);
             }
         }
 
-        if (!updatedRegionCoords.isEmpty()) {
-            XaeroMapWriter.recordUpdatedRegionCoords(updatedRegionCoords);
-        }
-
-        clearSyncData();
-        XaeroReflectionHelper.clearCache();
+        stop();
     }
 
     private static void finishUpToDate() {
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
         }
-        clearSyncData();
-        XaeroReflectionHelper.clearCache();
+        stop();
     }
 
     private static String partKey(RegionData chunk) {
