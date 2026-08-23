@@ -17,6 +17,7 @@ repositories {
     mavenCentral()
     maven { url = 'https://maven.minecraftforge.net/' }
     maven { url = 'https://maven.aliyun.com/repository/public' }
+    flatDir { dirs 'libs' }
 }
 
 minecraft {
@@ -44,6 +45,8 @@ dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_1201_version}-${forge_1201_version}"
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
+
+    runtimeOnly fg.deobf('packet_profiler:packet_profiler:1.0.0')
 }
 
 tasks.withType(JavaCompile).configureEach {
