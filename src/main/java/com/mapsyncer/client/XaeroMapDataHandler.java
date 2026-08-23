@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.util.HashUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
@@ -62,11 +61,6 @@ public final class XaeroMapDataHandler {
 
         Path outputFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip");
         Path tempFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip.temp");
-
-        if (!HashUtils.isValidRegionZip(chunk.data)) {
-            LOGGER.error("Refusing to write invalid region zip: {} ({} bytes)", outputFile, chunk.data.length);
-            return null;
-        }
 
         CRC32 crc32 = new CRC32();
         try {

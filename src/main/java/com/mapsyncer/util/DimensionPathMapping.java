@@ -38,13 +38,13 @@ public class DimensionPathMapping {
 
         pathToXaero.putAll(VANILLA_XAERO_MAPPINGS);
 
-        LOGGER.info("DimensionPathMapping initialized (1.20.1 legacy format)");
+        LOGGER.info("DimensionPathMapping initialized ");
     }
 
     public void initialize() {
         pathToFolder.clear();
 
-        LOGGER.info("DimensionPathMapping reinitialized (1.20.1 legacy format)");
+        LOGGER.info("DimensionPathMapping reinitialized");
     }
 
     public static DimensionPathMapping getInstance() {

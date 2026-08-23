@@ -188,7 +188,7 @@ public class ClientHashManager {
     }
 
     private static String resolveSyncHash(Path zipPath, ClientMeta cached) {
-        if (zipPath == null || !Files.exists(zipPath) || !HashUtils.isValidRegionZip(zipPath)) {
+        if (zipPath == null || !Files.exists(zipPath)) {
             if (cached != null) {
                 LOGGER.warn(
                         "Region {} missing or invalid on disk, will request re-sync",
@@ -196,7 +196,7 @@ public class ClientHashManager {
             }
             return HashUtils.DEFAULT_HASH;
         }
-        if (cached != null && HashUtils.isValidHash(cached.hash())) {
+        if (cached != null) {
             return cached.hash();
         }
         return HashUtils.computeFileHash(zipPath);
