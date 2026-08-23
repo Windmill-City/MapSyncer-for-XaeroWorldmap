@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionData;
 import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -45,23 +45,23 @@ public final class XaeroMapDataHandler {
 
     public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
-    public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, String worldId) {
-        String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.dimension);
+    public static @Nullable RegionWriteResult writeChunkData(RegionData chunk, Path serverDir, String worldId) {
+        String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.ref.dimId());
         if (xaeroDim == null) {
-            xaeroDim = PathMapping.toXaeroDimension(chunk.dimension);
+            xaeroDim = PathMapping.toXaeroDimension(chunk.ref.dimId());
         }
         Path dimDir = serverDir.resolve(xaeroDim);
         Path mwDir = dimDir.resolve("mw$" + worldId);
 
         Path targetDir;
-        if (chunk.caveLayer == Integer.MAX_VALUE) {
+        if (chunk.ref.caveLayer() == Integer.MAX_VALUE) {
             targetDir = mwDir;
         } else {
-            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.caveLayer));
+            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.caveLayer()));
         }
 
-        Path outputFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip");
-        Path tempFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip.temp");
+        Path outputFile = targetDir.resolve(chunk.ref.regionX() + "_" + chunk.ref.regionZ() + ".zip");
+        Path tempFile = targetDir.resolve(chunk.ref.regionX() + "_" + chunk.ref.regionZ() + ".zip.temp");
 
         try {
             Files.createDirectories(targetDir);
@@ -73,7 +73,7 @@ public final class XaeroMapDataHandler {
             LOGGER.debug(
                     "Wrote map file: {} (layer={}, {} bytes)",
                     outputFile,
-                    chunk.isSurfaceLayer() ? "surface" : chunk.caveLayer,
+                    chunk.isSurfaceLayer() ? "surface" : chunk.ref.caveLayer(),
                     chunk.data.length);
         } catch (IOException e) {
             LOGGER.error("Failed to write map file: {}", outputFile, e);

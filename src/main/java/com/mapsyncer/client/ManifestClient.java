@@ -3,7 +3,6 @@ package com.mapsyncer.client;
 import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionKey;
-import com.mapsyncer.util.RegionMeta;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,9 +24,9 @@ import org.slf4j.LoggerFactory;
 public class ManifestClient {
 
     public record MetaScanResult(
-            Map<RegionRef, RegionMeta> meta, boolean success, int failedFiles, @Nullable String failureReason) {
+            Map<RegionRef, Long> meta, boolean success, int failedFiles, @Nullable String failureReason) {
 
-        public static MetaScanResult ok(Map<RegionRef, RegionMeta> meta) {
+        public static MetaScanResult ok(Map<RegionRef, Long> meta) {
             return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, 0, null);
         }
 
@@ -79,7 +78,7 @@ public class ManifestClient {
     }
 
     private static MetaScanResult computeMetaForSyncWorker(Path mapDir, Set<String> dimIds) {
-        Map<RegionRef, RegionMeta> metaMap = new HashMap<>();
+        Map<RegionRef, Long> metaMap = new HashMap<>();
 
         if (mapDir == null || !Files.exists(mapDir)) {
             LOGGER.info("Map directory does not exist or is null, will request all regions from server");
@@ -121,7 +120,7 @@ public class ManifestClient {
                     RegionRef ref = buildKey(dimId, dimDir, zipPath);
                     long timestampMillis = getFileModificationTime(zipPath);
                     LOGGER.debug("Region {}: ts={}ms (mtime)", ref, timestampMillis);
-                    metaMap.put(ref, new RegionMeta(timestampMillis));
+                    metaMap.put(ref, timestampMillis);
                 } catch (Exception e) {
                     failedFiles++;
                     LOGGER.warn("Failed to scan region file: {}", zipPath, e);

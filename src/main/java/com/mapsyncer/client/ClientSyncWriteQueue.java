@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionData;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,7 +46,7 @@ public final class ClientSyncWriteQueue {
     }
 
     public static void submit(
-            ChunkMapData chunk,
+            RegionData chunk,
             Path serverDir,
             String worldId,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
@@ -58,10 +58,12 @@ public final class ClientSyncWriteQueue {
                 if (result != null) {
                     XaeroMapDataHandler.clearRegionCacheFiles(
                             result.mwDir(),
-                            new XaeroMapDataHandler.RegionCoord(chunk.regionX, chunk.regionZ, chunk.caveLayer));
+                            new XaeroMapDataHandler.RegionCoord(
+                                    chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
                 }
             } catch (Exception e) {
-                LOGGER.error("Async region write failed for ({}, {})", chunk.regionX, chunk.regionZ, e);
+                LOGGER.error(
+                        "Async region write failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
             } finally {
                 pendingWrites.decrementAndGet();
                 invokeCallback(chunk, callback, result);
@@ -73,19 +75,23 @@ public final class ClientSyncWriteQueue {
         } catch (RejectedExecutionException e) {
             pendingWrites.decrementAndGet();
             LOGGER.error(
-                    "Sync write queue rejected task for ({}, {}), executor shutdown?", chunk.regionX, chunk.regionZ, e);
+                    "Sync write queue rejected task for ({}, {}), executor shutdown?",
+                    chunk.ref.regionX(),
+                    chunk.ref.regionZ(),
+                    e);
             invokeCallback(chunk, callback, null);
         }
     }
 
     private static void invokeCallback(
-            ChunkMapData chunk,
+            RegionData chunk,
             Consumer<XaeroMapDataHandler.RegionWriteResult> callback,
             @Nullable XaeroMapDataHandler.RegionWriteResult result) {
         try {
             callback.accept(result);
         } catch (Exception e) {
-            LOGGER.error("Sync write callback failed for ({}, {})", chunk.regionX, chunk.regionZ, e);
+            LOGGER.error(
+                    "Sync write callback failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
         }
     }
 

@@ -1,12 +1,9 @@
 package com.mapsyncer.network.impl;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -20,7 +17,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class NetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "6";
+    private static final String PROTOCOL_VERSION = "7";
     private static @Nullable SimpleChannel CHANNEL;
 
     private static @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
@@ -151,23 +148,11 @@ public final class NetworkHandler {
         }
 
         public static void encode(ForgeSyncResponseMessage msg, FriendlyByteBuf buf) {
-            buf.writeInt(msg.data.chunks().size());
-            for (ChunkMapData chunk : msg.data.chunks()) {
-                encodeChunkMapData(buf, chunk);
-            }
-            buf.writeBoolean(msg.data.isComplete());
-            buf.writeUtf(msg.data.status());
+            SyncResponsePayload.write(buf, msg.data);
         }
 
         public static ForgeSyncResponseMessage decode(FriendlyByteBuf buf) {
-            int size = buf.readInt();
-            List<ChunkMapData> chunks = new ArrayList<>();
-            for (int i = 0; i < size; i++) {
-                chunks.add(decodeChunkMapData(buf));
-            }
-            boolean isComplete = buf.readBoolean();
-            String status = buf.readUtf();
-            return new ForgeSyncResponseMessage(new SyncResponsePayload(chunks, isComplete, status));
+            return new ForgeSyncResponseMessage(SyncResponsePayload.read(buf));
         }
     }
 
@@ -189,52 +174,5 @@ public final class NetworkHandler {
         public static ForgeSyncManifestMessage decode(FriendlyByteBuf buf) {
             return new ForgeSyncManifestMessage(SyncManifestPayload.read(buf));
         }
-    }
-
-    private static void encodeChunkMapData(FriendlyByteBuf buf, ChunkMapData data) {
-        buf.writeInt(data.regionX);
-        buf.writeInt(data.regionZ);
-        buf.writeUtf(data.dimension);
-        buf.writeByteArray(data.data);
-        buf.writeLong(data.timestampMillis);
-
-        boolean hasCaveLayer = data.caveLayer != Integer.MAX_VALUE;
-        buf.writeBoolean(hasCaveLayer);
-        if (hasCaveLayer) {
-            buf.writeInt(data.caveLayer);
-        }
-        buf.writeBoolean(data.totalParts > 1);
-        if (data.totalParts > 1) {
-            buf.writeInt(data.partIndex);
-            buf.writeInt(data.totalParts);
-        }
-    }
-
-    private static ChunkMapData decodeChunkMapData(FriendlyByteBuf buf) {
-        int regionX = buf.readInt();
-        int regionZ = buf.readInt();
-        String dimension = buf.readUtf();
-        byte[] data = buf.readByteArray();
-        long timestampMillis = buf.readLong();
-
-        int caveLayer = Integer.MAX_VALUE;
-        if (buf.isReadable()) {
-            boolean hasCaveLayer = buf.readBoolean();
-            if (hasCaveLayer) {
-                caveLayer = buf.readInt();
-            }
-        }
-
-        int partIndex = 0;
-        int totalParts = 0;
-        if (buf.isReadable()) {
-            boolean isSplit = buf.readBoolean();
-            if (isSplit) {
-                partIndex = buf.readInt();
-                totalParts = buf.readInt();
-            }
-        }
-
-        return new ChunkMapData(regionX, regionZ, dimension, data, timestampMillis, caveLayer, partIndex, totalParts);
     }
 }

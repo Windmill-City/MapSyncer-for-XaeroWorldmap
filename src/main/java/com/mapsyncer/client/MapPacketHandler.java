@@ -1,13 +1,12 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.impl.NetworkHandler;
-import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionData;
 import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.RegionMeta;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,7 +36,7 @@ public class MapPacketHandler {
 
     private static final Set<XaeroMapDataHandler.RegionCoord> loadedRegions = ConcurrentHashMap.newKeySet();
 
-    private record PartEntry(ChunkMapData[] parts, long firstArrivedMs) {}
+    private record PartEntry(RegionData[] parts, long firstArrivedMs) {}
 
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
@@ -197,17 +196,17 @@ public class MapPacketHandler {
                     return;
                 }
 
-                Map<RegionRef, RegionMeta> localMeta = result.meta();
-                Map<RegionRef, RegionMeta> diff = new HashMap<>();
+                Map<RegionRef, Long> localMeta = result.meta();
+                Map<RegionRef, Long> diff = new HashMap<>();
                 int upToDateCount = 0;
                 for (Map.Entry<RegionRef, Long> entry : serverTimestamps.entrySet()) {
                     RegionRef ref = entry.getKey();
                     long serverTs = entry.getValue();
-                    RegionMeta local = localMeta.get(ref);
-                    if (local != null && local.timestampMillis() >= serverTs) {
+                    Long local = localMeta.get(ref);
+                    if (local != null && local >= serverTs) {
                         upToDateCount++;
                     } else {
-                        diff.put(ref, local != null ? local : new RegionMeta(0));
+                        diff.put(ref, local != null ? local : 0L);
                     }
                 }
 
@@ -266,10 +265,9 @@ public class MapPacketHandler {
             }
 
             LOGGER.info(
-                    "[SYNC] <- response: chunks={}, complete={}, status={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
+                    "[SYNC] <- response: chunks={}, complete={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
                     payload.chunks().size(),
                     payload.isComplete(),
-                    payload.status(),
                     session.isReceiving(),
                     regionRequestInFlight,
                     pendingRegionPaths.size(),
@@ -323,8 +321,8 @@ public class MapPacketHandler {
                 return;
             }
 
-            for (ChunkMapData chunk : payload.chunks()) {
-                ChunkMapData assembled = assemblePart(chunk);
+            for (RegionData chunk : payload.chunks()) {
+                RegionData assembled = assemblePart(chunk);
                 if (assembled == null) {
                     continue;
                 }
@@ -332,19 +330,19 @@ public class MapPacketHandler {
                 if (serverDir == null) {
                     LOGGER.error(
                             "Unable to resolve server directory, skipping region ({}, {})",
-                            assembled.regionX,
-                            assembled.regionZ);
+                            assembled.ref.regionX(),
+                            assembled.ref.regionZ());
                     syncFailed++;
                     continue;
                 }
 
-                XaeroMapDataHandler.RegionCoord coord =
-                        new XaeroMapDataHandler.RegionCoord(assembled.regionX, assembled.regionZ, assembled.caveLayer);
+                XaeroMapDataHandler.RegionCoord coord = new XaeroMapDataHandler.RegionCoord(
+                        assembled.ref.regionX(), assembled.ref.regionZ(), assembled.ref.caveLayer());
                 updatedRegionCoords.add(coord);
 
-                boolean syncingCaveDimension = "minecraft:the_nether".equals(assembled.dimension)
-                        || "the_nether".equals(assembled.dimension)
-                        || "DIM-1".equals(assembled.dimension);
+                boolean syncingCaveDimension = "minecraft:the_nether".equals(assembled.ref.dimId())
+                        || "the_nether".equals(assembled.ref.dimId())
+                        || "DIM-1".equals(assembled.ref.dimId());
                 boolean shouldProcess = syncingCaveDimension ? !assembled.isSurfaceLayer() : assembled.isSurfaceLayer();
 
                 syncPendingWrites.incrementAndGet();
@@ -361,8 +359,8 @@ public class MapPacketHandler {
                             if (writeResult == null) {
                                 LOGGER.error(
                                         "Region ({}, {}) write failed, skipping load ({} bytes)",
-                                        assembled.regionX,
-                                        assembled.regionZ,
+                                        assembled.ref.regionX(),
+                                        assembled.ref.regionZ(),
                                         assembled.data.length);
                                 syncFailed++;
                             } else if (processRegion && !session.reflectionFailed()) {
@@ -370,9 +368,9 @@ public class MapPacketHandler {
                             }
                             LOGGER.info(
                                     "[SYNC-WRITE] region=({},{}) layer={} result={} (writesBeforeDec={})",
-                                    assembled.regionX,
-                                    assembled.regionZ,
-                                    assembled.caveLayer,
+                                    assembled.ref.regionX(),
+                                    assembled.ref.regionZ(),
+                                    assembled.ref.caveLayer(),
                                     writeResult == null ? "FAILED" : "ok",
                                     syncPendingWrites.get());
                         } finally {
@@ -574,11 +572,11 @@ public class MapPacketHandler {
         }
     }
 
-    private static String partKey(ChunkMapData chunk) {
-        return chunk.regionX + "," + chunk.regionZ + "," + chunk.dimension + "," + chunk.caveLayer;
+    private static String partKey(RegionData chunk) {
+        return chunk.ref.regionX() + "," + chunk.ref.regionZ() + "," + chunk.ref.dimId() + "," + chunk.ref.caveLayer();
     }
 
-    private static @Nullable ChunkMapData assemblePart(ChunkMapData chunk) {
+    private static @Nullable RegionData assemblePart(RegionData chunk) {
         if (chunk.totalParts <= 1) {
             return chunk;
         }
@@ -592,14 +590,14 @@ public class MapPacketHandler {
         long now = System.currentTimeMillis();
         PartEntry entry = partBuffer.compute(key, (k, existing) -> {
             if (existing == null) {
-                ChunkMapData[] arr = new ChunkMapData[chunk.totalParts];
+                RegionData[] arr = new RegionData[chunk.totalParts];
                 arr[chunk.partIndex] = chunk;
                 return new PartEntry(arr, now);
             }
             existing.parts()[chunk.partIndex] = chunk;
             return existing;
         });
-        ChunkMapData[] parts = entry.parts();
+        RegionData[] parts = entry.parts();
         LOGGER.debug(
                 "[SYNC-PART] {} part {}/{} arrived, buffered {}/{}",
                 key,
@@ -618,7 +616,7 @@ public class MapPacketHandler {
             return null;
         }
 
-        for (ChunkMapData p : parts) {
+        for (RegionData p : parts) {
             if (p == null) return null;
         }
 
@@ -626,24 +624,23 @@ public class MapPacketHandler {
         partBuffer.remove(key);
 
         int totalLen = 0;
-        for (ChunkMapData p : parts) {
+        for (RegionData p : parts) {
             totalLen += p.data.length;
         }
         byte[] assembled = new byte[totalLen];
         int offset = 0;
-        for (ChunkMapData p : parts) {
+        for (RegionData p : parts) {
             System.arraycopy(p.data, 0, assembled, offset, p.data.length);
             offset += p.data.length;
         }
 
-        ChunkMapData first = parts[0];
-        return new ChunkMapData(
-                first.regionX, first.regionZ, first.dimension, assembled, first.timestampMillis, first.caveLayer);
+        RegionData first = parts[0];
+        return new RegionData(first.ref, first.timestampMillis, assembled);
     }
 
-    private static int countNonNull(ChunkMapData[] parts) {
+    private static int countNonNull(RegionData[] parts) {
         int n = 0;
-        for (ChunkMapData p : parts) {
+        for (RegionData p : parts) {
             if (p != null) n++;
         }
         return n;

@@ -2,7 +2,7 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.impl.NetworkHandler;
-import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionData;
 import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
@@ -58,7 +58,7 @@ public class ServerSyncHandlerLogic {
     private static void serveRequestedRegions(ServerPlayer player, List<RegionRef> requested) {
         ManifestServer manifestCache = ManifestServer.get();
 
-        List<ChunkMapData> parts = new ArrayList<>();
+        List<RegionData> parts = new ArrayList<>();
         int failed = 0;
 
         for (RegionRef region : requested) {
@@ -69,12 +69,12 @@ public class ServerSyncHandlerLogic {
                 LOGGER.warn("Requested region not found or invalid: {}", region);
                 continue;
             }
-            ChunkMapData chunk = readRegionData(zipPath, timestamp, region);
+            RegionData chunk = readRegionData(zipPath, timestamp, region);
             if (chunk == null) {
                 failed++;
                 continue;
             }
-            for (ChunkMapData part : ChunkMapData.split(chunk)) {
+            for (RegionData part : RegionData.split(chunk)) {
                 parts.add(part);
             }
         }
@@ -85,49 +85,47 @@ public class ServerSyncHandlerLogic {
                 player.getName().getString(),
                 parts.size(),
                 failed);
-        sendRegionResponse(player, parts, failed > 0 ? "partial" : "ok");
+        sendRegionResponse(player, parts);
     }
 
-    private static @Nullable ChunkMapData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
+    private static @Nullable RegionData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
         try {
             byte[] data = Files.readAllBytes(zipPath);
-            return new ChunkMapData(
-                    region.regionX(), region.regionZ(), region.dimId(), data, timestampMillis, region.caveLayer());
+            return new RegionData(region, timestampMillis, data);
         } catch (IOException e) {
             LOGGER.error("Failed to read zip file: {}", zipPath, e);
             return null;
         }
     }
 
-    private static void sendRegionResponse(ServerPlayer player, List<ChunkMapData> parts, String status) {
+    private static void sendRegionResponse(ServerPlayer player, List<RegionData> parts) {
         if (parts.isEmpty()) {
-            NetworkHandler.sendToPlayer(player, new SyncResponsePayload(List.of(), true, status));
+            NetworkHandler.sendToPlayer(player, new SyncResponsePayload(List.of(), true));
             return;
         }
-        List<ChunkMapData> batch = new ArrayList<>();
+        List<RegionData> batch = new ArrayList<>();
         int batchBytes = 0;
-        for (ChunkMapData part : parts) {
+        for (RegionData part : parts) {
             if (!batch.isEmpty() && batchBytes + part.data.length > MAX_RESPONSE_PACKET_BYTES) {
-                sendRegionBatch(player, batch, status, false);
+                sendRegionBatch(player, batch, false);
                 batch = new ArrayList<>();
                 batchBytes = 0;
             }
             batch.add(part);
             batchBytes += part.data.length;
         }
-        sendRegionBatch(player, batch, status, true);
+        sendRegionBatch(player, batch, true);
     }
 
-    private static void sendRegionBatch(
-            ServerPlayer player, List<ChunkMapData> batch, String status, boolean complete) {
+    private static void sendRegionBatch(ServerPlayer player, List<RegionData> batch, boolean complete) {
         int bytes = 0;
-        for (ChunkMapData part : batch) bytes += part.data.length;
+        for (RegionData part : batch) bytes += part.data.length;
         LOGGER.info(
                 "[SYNC-SRV] send to {}: {} parts, {} bytes, complete={}",
                 player.getName().getString(),
                 batch.size(),
                 bytes,
                 complete);
-        NetworkHandler.sendToPlayer(player, new SyncResponsePayload(batch, complete, status));
+        NetworkHandler.sendToPlayer(player, new SyncResponsePayload(batch, complete));
     }
 }
