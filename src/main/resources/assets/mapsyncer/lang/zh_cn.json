@@ -52,8 +52,6 @@
   "category.mapsyncer.incremental": "增量更新",
   "category.mapsyncer.client": "客户端",
   "option.mapsyncer.debug.tooltip": "启用后会在日志中输出详细的地图生成调试信息。",
-  "option.mapsyncer.concurrent_regions": "最大并发区域数",
-  "option.mapsyncer.concurrent_regions.tooltip": "同时转换的最大区域数。0 = 自动（逻辑处理器数 − 2，限制在 1–16）。较高值处理更快，但对服务端 CPU 要求更高。",
   "option.mapsyncer.packet_size": "最大同步包大小",
   "option.mapsyncer.update_mode": "增量更新模式",
   "option.mapsyncer.debug": "调试日志",

@@ -52,8 +52,6 @@
   "category.mapsyncer.incremental": "Incremental updates",
   "category.mapsyncer.client": "Client",
   "option.mapsyncer.debug.tooltip": "When enabled, detailed map generation debug information will be output to the log.",
-  "option.mapsyncer.concurrent_regions": "Max concurrent regions",
-  "option.mapsyncer.concurrent_regions.tooltip": "Maximum number of regions converted simultaneously. 0 = automatic (CPU cores − 2, clamped to 1–16). Higher values process faster but demand more server CPU.",
   "option.mapsyncer.packet_size": "Max sync packet size",
   "option.mapsyncer.update_mode": "Incremental update mode",
   "option.mapsyncer.debug": "Debug logging",

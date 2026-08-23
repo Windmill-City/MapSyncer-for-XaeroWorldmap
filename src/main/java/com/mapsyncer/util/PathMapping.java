@@ -45,8 +45,15 @@ public final class PathMapping {
         return namespace + "$" + xaeroEscape(path);
     }
 
-    public static String toServerDimension(String dimPath) {
-        if (dimPath == null || dimPath.isEmpty()) {
+    public static String toRelativeRegionPath(String dimPath, int caveLayer, int regionX, int regionZ) {
+        String xaeroDim = toXaeroDimension(dimPath);
+        if (caveLayer == Integer.MAX_VALUE) {
+            return xaeroDim + "/" + regionX + "_" + regionZ;
+        }
+        return xaeroDim + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
+    }
+
+    public static String toServerDimension(String dimPath) {        if (dimPath == null || dimPath.isEmpty()) {
             return "overworld";
         }
 

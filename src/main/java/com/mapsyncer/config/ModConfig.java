@@ -11,20 +11,7 @@ import net.minecraftforge.common.ForgeConfigSpec.IntValue;
 
 public class ModConfig {
 
-    public static final int MAX_REGION_META_CACHE = 50000;
     public static final int MAX_BLOCK_PROPERTIES_CACHE = 10000;
-
-    public static final long TASK_TIMEOUT_SECONDS = 60;
-
-    public static final int MAX_CONCURRENT_REGIONS = 16;
-
-    public static int resolveConcurrentRegions(int configured) {
-        if (configured > 0) {
-            return Math.max(1, Math.min(MAX_CONCURRENT_REGIONS, configured));
-        }
-        int processors = Runtime.getRuntime().availableProcessors();
-        return Math.max(1, Math.min(MAX_CONCURRENT_REGIONS, processors - 2));
-    }
 
     public static Path outputDir(Path baseOutputDir, int caveLayer) {
         if (caveLayer == Integer.MAX_VALUE) {
@@ -78,16 +65,6 @@ public class ModConfig {
 
     public static class ServerConfig {
 
-        public final IntValue maxConcurrentRegions;
-
-        public final IntValue maxSyncPacketSize;
-
-        public final IntValue syncSendRateInitialBytes;
-
-        public final IntValue syncSendRateMinBytes;
-
-        public final IntValue syncSendRateMaxBytes;
-
         public final EnumValue<UpdateMode> incrementalUpdateMode;
 
         public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
@@ -99,62 +76,6 @@ public class ModConfig {
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("general");
             builder.comment("通用设置 / General settings");
-
-            maxConcurrentRegions = builder.comment(
-                            "同时转换的最大区域数；0 = 自动（逻辑处理器数 - 2，最小 1，最大 16）",
-                            "Max regions to convert concurrently; 0 = auto (logical CPUs - 2, min 1, max 16)")
-                    .defineInRange("maxConcurrentRegions", 0, 0, 16);
-            maxSyncPacketSize = builder.comment(
-                            "同步数据包最大字节数",
-                            "Maximum sync packet size in bytes",
-                            "",
-                            "大小选项供快速参考（均能被 1024KB/s 整除）：",
-                            "  65536  = 64KB  （保守，1024KB/s 时每秒 16 包）",
-                            "  131072 = 128KB （平衡，1024KB/s 时每秒 8 包）",
-                            "  262144 = 256KB （推荐，1024KB/s 时每秒 4 包）",
-                            "  524288 = 512KB （高效，1024KB/s 时每秒 2 包）",
-                            "  1048576 = 1MB  （最大，1024KB/s 时每秒 1 包）",
-                            "默认：256KB（推荐），范围：64KB - 1MB",
-                            "",
-                            "Size options for quick reference (all divide 1024KB/s evenly):",
-                            "  65536  = 64KB  (conservative, 16 packets/s at 1024KB/s)",
-                            "  131072 = 128KB (balanced, 8 packets/s at 1024KB/s)",
-                            "  262144 = 256KB (recommended, 4 packets/s at 1024KB/s)",
-                            "  524288 = 512KB (efficient, 2 packets/s at 1024KB/s)",
-                            "  1048576 = 1MB  (maximum, 1 packet/s at 1024KB/s)",
-                            "Default: 256KB (recommended), Range: 64KB - 1MB")
-                    .defineInRange("maxSyncPacketSize", 262144, 65536, 1048576);
-
-            syncSendRateInitialBytes = builder.comment(
-                            "服务器向单个客户端发送地图数据的初始限速（字节/秒）",
-                            "Initial per-client send rate limit for map data, in bytes/second",
-                            "",
-                            "服务器会根据玩家 Ping 自动调整限速（Ping 低提速、Ping 高降速），范围在下面的最小/最大限速之间",
-                            "The server adapts this rate to the player's ping automatically (low ping = faster, high ping = slower), clamped to the min/max below",
-                            "",
-                            "参考值（推荐 256KB/s）：",
-                            "  65536   = 64KB/s  （极保守，极弱网/低配客户端）",
-                            "  262144  = 256KB/s （推荐默认，弱网/低配客户端）",
-                            "Reference values (256KB/s recommended):",
-                            "  65536   = 64KB/s  (very conservative, very weak networks / low-end clients)",
-                            "  262144  = 256KB/s (recommended default, weak networks / low-end clients)",
-                            "默认：262144（256KB/s），范围：64KB/s - 8MB/s",
-                            "Default: 262144 (256KB/s), Range: 64KB/s - 8MB/s")
-                    .defineInRange("syncSendRateInitialBytes", 262144, 65536, 8388608);
-
-            syncSendRateMinBytes = builder.comment(
-                            "限速下限（字节/秒），Ping 很高或客户端卡顿时允许降到的最低速率",
-                            "Minimum adaptive send rate floor in bytes/second; the lowest rate used when ping is high or the client is struggling",
-                            "默认：65536（64KB/s），范围：64KB/s - 8MB/s",
-                            "Default: 65536 (64KB/s), Range: 64KB/s - 8MB/s")
-                    .defineInRange("syncSendRateMinBytes", 65536, 65536, 8388608);
-
-            syncSendRateMaxBytes = builder.comment(
-                            "限速上限（字节/秒），即使 Ping 极低也不会超过该速率",
-                            "Maximum adaptive send rate ceiling in bytes/second; the rate never exceeds this even at very low ping",
-                            "默认：1048576（1024KB/s），范围：64KB/s - 8MB/s",
-                            "Default: 1048576 (1024KB/s), Range: 64KB/s - 8MB/s")
-                    .defineInRange("syncSendRateMaxBytes", 1048576, 65536, 8388608);
 
             builder.pop();
 

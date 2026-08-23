@@ -7,11 +7,9 @@ import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;
 import com.mapsyncer.server.ServerSyncHandlerLogic;
-import com.mapsyncer.server.SyncTransferScheduler;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -76,21 +74,11 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
             ConversionOrchestrator.cleanupCacheDir();
-            IncrementalUpdateHandlerLogic.getInstance().start(event.getServer());
         }
 
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
-            IncrementalUpdateHandlerLogic.getInstance().stop();
-            SyncTransferScheduler.onServerStopped();
-        }
-
-        @SubscribeEvent
-        public static void onServerTick(TickEvent.ServerTickEvent event) {
-            if (event.phase != TickEvent.Phase.END) {
-                return;
-            }
-            SyncTransferScheduler.tick(event.getServer());
+            IncrementalUpdateHandlerLogic.get().stop();
         }
 
         @SubscribeEvent

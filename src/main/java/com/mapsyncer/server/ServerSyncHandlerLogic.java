@@ -1,11 +1,5 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.network.impl.NetworkHandler;
-import com.mapsyncer.network.payload.ChunkMapData;
-import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.util.PathMapping;
-import com.mapsyncer.util.RegionMeta;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -15,23 +9,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+
 import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.network.impl.NetworkHandler;
+import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.SyncManifestPayload;
+import com.mapsyncer.network.payload.SyncRequestPayload;
+import com.mapsyncer.network.payload.SyncResponsePayload;
+
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.network.NetworkEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ServerSyncHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerSyncHandlerLogic.class);
 
-    private static boolean warnedXaeromapFallback;
+    private static final int MAX_RESPONSE_PACKET_BYTES = 262_144;
 
-    private static boolean isManifestRequest(Map<String, RegionMeta> clientMeta) {
-        return clientMeta == null || clientMeta.isEmpty();
-    }
+    private static boolean warnedXaeromapFallback;
 
     private record RegionSyncInfo(
             Path zipPath,
@@ -40,7 +41,8 @@ public class ServerSyncHandlerLogic {
             int regionX,
             int regionZ,
             String dimension,
-            int caveLayer) {}
+            int caveLayer) {
+    }
 
     public static void init() {
         NetworkHandler.registerSyncRequestHandler(
@@ -48,87 +50,44 @@ public class ServerSyncHandlerLogic {
     }
 
     public static void pushManifestOnJoin(ServerPlayer player) {
-        Path cacheDir = ConversionOrchestrator.getCacheDir();
-        if (!Files.exists(cacheDir)) {
-            LOGGER.debug("No cache dir, pushing no_cache manifest to player {}", player.getUUID());
-            pushNoCacheManifest(player);
-            return;
-        }
-
-        Path absCacheDir = cacheDir.toAbsolutePath().normalize();
-
-        Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
-        if (manifest.isEmpty()) {
-            LOGGER.debug("Manifest is empty, pushing no_cache manifest to player {}", player.getUUID());
-            pushNoCacheManifest(player);
-            return;
-        }
-
         int worldId = readWorldIdFromXaeroMap(player);
+        Path absCacheDir = ConversionOrchestrator.getCacheDir().toAbsolutePath().normalize();
+        Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
         for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId)) {
-            SyncTransferScheduler.enqueueManifest(player, part);
+            NetworkHandler.sendToPlayer(player, part);
         }
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
-    private static void pushNoCacheManifest(ServerPlayer player) {
-        int worldId = readWorldIdFromXaeroMap(player);
-        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId));
-    }
-
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
         Player player = NetworkHandler.getPlayerFromContext(context);
-        if (!(player instanceof ServerPlayer serverPlayer)) return;
+        if (!(player instanceof ServerPlayer serverPlayer))
+            return;
 
-        Map<String, RegionMeta> regionMeta = payload.regionMeta();
+        List<String> requested = payload.paths();
 
         LOGGER.info(
-                "[SYNC-SRV] request from {}: metaEntries={}",
+                "[SYNC-SRV] request from {}: regions={}",
                 serverPlayer.getName().getString(),
-                regionMeta.size());
+                requested.size());
 
         Path cacheDir = ConversionOrchestrator.getCacheDir();
-        if (!Files.exists(cacheDir)) {
-            int worldId = readWorldIdFromXaeroMap(serverPlayer);
-            NetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId));
+        if (!Files.exists(cacheDir))
             return;
-        }
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
 
-        if (isManifestRequest(regionMeta)) {
-            sendManifest(serverPlayer, absCacheDir);
-            return;
-        }
-
-        serveRequestedRegions(serverPlayer, regionMeta, absCacheDir);
+        serveRequestedRegions(serverPlayer, requested, absCacheDir);
     }
 
-    private static void sendManifest(ServerPlayer player, Path absCacheDir) {
-        int worldId = readWorldIdFromXaeroMap(player);
-        Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
-
-        if (manifest.isEmpty()) {
-            NetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId));
-            return;
-        }
-
-        SyncManifestPayload[] parts = SyncManifestPayload.split(manifest, worldId);
-        for (SyncManifestPayload part : parts) {
-            SyncTransferScheduler.enqueueManifest(player, part);
-        }
-        LOGGER.info("Sync manifest sent to player {}: {} regions", player.getUUID(), manifest.size());
-    }
-
-    private static void serveRequestedRegions(
-            ServerPlayer player, Map<String, RegionMeta> requested, Path absCacheDir) {
+    private static void serveRequestedRegions(ServerPlayer player, List<String> requested, Path absCacheDir) {
         ManifestServer manifestCache = ManifestServer.get();
         int worldId = readWorldIdFromXaeroMap(player);
 
         List<ChunkMapData> parts = new ArrayList<>();
         int failed = 0;
 
-        for (String path : requested.keySet()) {
+        for (String path : requested) {
             Path zipPath = manifestCache.resolveZipPath(path);
             Long timestamp = manifestCache.getTimestamp(path);
             if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
@@ -157,8 +116,7 @@ public class ServerSyncHandlerLogic {
                 player.getName().getString(),
                 parts.size(),
                 failed);
-        SyncTransferScheduler.enqueueRegionResponse(player, parts, worldId, failed > 0 ? "partial" : "ok");
-        SyncTransferScheduler.onRequestReceived(player);
+        sendRegionResponse(player, parts, worldId, failed > 0 ? "partial" : "ok");
     }
 
     private static int readWorldIdFromXaeroMap(ServerPlayer serverPlayer) {
@@ -239,30 +197,35 @@ public class ServerSyncHandlerLogic {
         }
     }
 
-    static String stripMwWorldId(String path) {
-        String[] parts = path.split("/");
-        if (parts.length >= 3 && parts[1].startsWith("mw$")) {
-            StringBuilder sb = new StringBuilder(parts[0]);
-            for (int i = 2; i < parts.length; i++) {
-                sb.append("/").append(parts[i]);
-            }
-            return sb.toString();
+    private static void sendRegionResponse(ServerPlayer player, List<ChunkMapData> parts, int worldId, String status) {
+        if (parts.isEmpty()) {
+            NetworkHandler.sendToPlayer(player, new SyncResponsePayload(List.of(), true, worldId, status));
+            return;
         }
-        return path;
+        List<ChunkMapData> batch = new ArrayList<>();
+        int batchBytes = 0;
+        for (ChunkMapData part : parts) {
+            if (!batch.isEmpty() && batchBytes + part.data.length > MAX_RESPONSE_PACKET_BYTES) {
+                sendRegionBatch(player, batch, worldId, status, false);
+                batch = new ArrayList<>();
+                batchBytes = 0;
+            }
+            batch.add(part);
+            batchBytes += part.data.length;
+        }
+        sendRegionBatch(player, batch, worldId, status, true);
     }
 
-    static String toNormalizedServerPath(Path absCacheDir, Path zipPath) {
-        String relativePath = absCacheDir.relativize(zipPath).toString();
-        String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
-        normalizedPath = stripMwWorldId(normalizedPath);
-
-        String[] parts = normalizedPath.split("[/\\\\]");
-        String xaeroDimName = parts.length > 1 ? parts[0] : "unknown";
-
-        String normalizedXaeroDim = PathMapping.toXaeroDimension(xaeroDimName);
-        if (!normalizedXaeroDim.equals(xaeroDimName)) {
-            normalizedPath = normalizedXaeroDim + normalizedPath.substring(xaeroDimName.length());
-        }
-        return normalizedPath;
+    private static void sendRegionBatch(
+            ServerPlayer player, List<ChunkMapData> batch, int worldId, String status, boolean complete) {
+        int bytes = 0;
+        for (ChunkMapData part : batch) bytes += part.data.length;
+        LOGGER.info(
+                "[SYNC-SRV] send to {}: {} parts, {} bytes, complete={}",
+                player.getName().getString(),
+                batch.size(),
+                bytes,
+                complete);
+        NetworkHandler.sendToPlayer(player, new SyncResponsePayload(batch, complete, worldId, status));
     }
 }

@@ -23,13 +23,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
@@ -38,8 +35,6 @@ import org.slf4j.LoggerFactory;
 public class ConversionOrchestrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConversionOrchestrator.class);
-
-    private static volatile @Nullable ExecutorService conversionExecutor = null;
 
     private static final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -65,51 +60,6 @@ public class ConversionOrchestrator {
 
     public static void cleanupCacheDir() {
         XaeroWriter.cleanStaleFiles(getCacheDir());
-    }
-
-    private static final class NamedThreadFactory implements java.util.concurrent.ThreadFactory {
-        private final java.util.concurrent.atomic.AtomicInteger counter =
-                new java.util.concurrent.atomic.AtomicInteger(0);
-        private final String baseName;
-
-        NamedThreadFactory(String baseName) {
-            this.baseName = baseName;
-        }
-
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r, baseName + "-" + counter.incrementAndGet());
-            thread.setDaemon(false);
-            thread.setPriority(Thread.MIN_PRIORITY);
-            return thread;
-        }
-    }
-
-    private static ExecutorService getOrCreateExecutor() {
-        ExecutorService executor = conversionExecutor;
-        if (executor == null || executor.isShutdown()) {
-            int maxConcurrent = ModConfig.resolveConcurrentRegions(ModConfig.SERVER.maxConcurrentRegions.get());
-            executor = Executors.newFixedThreadPool(maxConcurrent, new NamedThreadFactory("mapsyncer-converter"));
-            conversionExecutor = executor;
-            LOGGER.info(
-                    "Created conversion thread pool with {} threads (resolved maxConcurrentRegions)", maxConcurrent);
-        }
-        return executor;
-    }
-
-    public static void shutdownExecutor() {
-        if (conversionExecutor != null && !conversionExecutor.isShutdown()) {
-            conversionExecutor.shutdown();
-            try {
-                if (!conversionExecutor.awaitTermination(30, TimeUnit.SECONDS)) {
-                    conversionExecutor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                conversionExecutor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-            LOGGER.info("Conversion thread pool shut down");
-        }
     }
 
     public static boolean generateAll(MinecraftServer server) {
@@ -145,7 +95,6 @@ public class ConversionOrchestrator {
             }
         } finally {
             isRunning.set(false);
-            shutdownExecutor();
             LOGGER.info(
                     "Conversion completed: {}/{} regions converted, {} skipped (empty MCA at scan)",
                     convertedCountAtomic.get(),
@@ -217,10 +166,7 @@ public class ConversionOrchestrator {
         convertedCountAtomic.set(0);
         skippedEmptyContentCount.set(0);
 
-        ExecutorService executor = getOrCreateExecutor();
-
-        List<java.util.concurrent.Future<?>> futures = submitConversionTasks(
-                executor,
+        runConversionTasks(
                 needsUpdate,
                 regions,
                 regionDir,
@@ -230,11 +176,9 @@ public class ConversionOrchestrator {
                 passes,
                 failedRegions,
                 true);
-        waitForCompletion(futures, "Region conversion");
 
         if (!force) {
-            futures = submitNewRegionTasks(
-                    executor,
+            runNewRegionTasks(
                     regions,
                     new HashSet<>(needsUpdate),
                     regionDir,
@@ -243,7 +187,6 @@ public class ConversionOrchestrator {
                     dimTypeInfo,
                     passes,
                     failedRegions);
-            waitForCompletion(futures, "New region conversion");
         }
 
         if (!failedRegions.isEmpty()) {
@@ -317,8 +260,7 @@ public class ConversionOrchestrator {
         return needsUpdate;
     }
 
-    private static List<java.util.concurrent.Future<?>> submitConversionTasks(
-            ExecutorService executor,
+    private static void runConversionTasks(
             List<RegionCoords> coordsToProcess,
             List<RegionCoords> allRegions,
             Path regionDir,
@@ -329,13 +271,13 @@ public class ConversionOrchestrator {
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
             boolean logProgress) {
 
-        List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
         Set<RegionCoords> validRegions = new HashSet<>(allRegions);
 
         for (RegionCoords coords : coordsToProcess) {
+            if (isCancelRequested()) return;
             if (!validRegions.contains(coords)) continue;
 
-            java.util.concurrent.Future<?> future = executor.submit(() -> convertRegionMultiPasses(
+            convertRegionMultiPasses(
                     coords,
                     regionDir,
                     baseOutputDir,
@@ -344,15 +286,11 @@ public class ConversionOrchestrator {
                     passes,
                     failedRegions,
                     logProgress,
-                    "Converted"));
-            futures.add(future);
+                    "Converted");
         }
-
-        return futures;
     }
 
-    private static List<java.util.concurrent.Future<?>> submitNewRegionTasks(
-            ExecutorService executor,
+    private static void runNewRegionTasks(
             List<RegionCoords> allRegions,
             Set<RegionCoords> processedRegions,
             Path regionDir,
@@ -362,9 +300,8 @@ public class ConversionOrchestrator {
             List<RegionScanPass> passes,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
 
-        List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
-
         for (RegionCoords coords : allRegions) {
+            if (isCancelRequested()) return;
             if (processedRegions.contains(coords)) continue;
 
             boolean allExist = true;
@@ -382,7 +319,7 @@ public class ConversionOrchestrator {
                 continue;
             }
 
-            java.util.concurrent.Future<?> future = executor.submit(() -> convertRegionMultiPasses(
+            convertRegionMultiPasses(
                     coords,
                     regionDir,
                     baseOutputDir,
@@ -391,11 +328,8 @@ public class ConversionOrchestrator {
                     passes,
                     failedRegions,
                     true,
-                    "Generated new"));
-            futures.add(future);
+                    "Generated new");
         }
-
-        return futures;
     }
 
     private static void convertRegionMultiPasses(
@@ -491,28 +425,6 @@ public class ConversionOrchestrator {
         }
     }
 
-    private static void waitForCompletion(List<java.util.concurrent.Future<?>> futures, String taskName) {
-        for (java.util.concurrent.Future<?> future : futures) {
-            if (isCancelRequested()) {
-                LOGGER.info("{} cancelled by user, interrupting {} pending tasks", taskName, futures.size());
-                for (java.util.concurrent.Future<?> remaining : futures) {
-                    remaining.cancel(true);
-                }
-                return;
-            }
-            try {
-                future.get(ModConfig.TASK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            } catch (java.util.concurrent.TimeoutException e) {
-                LOGGER.warn("{} task timeout", taskName);
-            } catch (ExecutionException e) {
-                LOGGER.error("{} task failed", taskName, e);
-            } catch (InterruptedException e) {
-                LOGGER.error("{} task interrupted", taskName, e);
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
     public record IncrementalScanSnapshot(
             String dimPath,
             String xaeroDimName,
@@ -584,7 +496,6 @@ public class ConversionOrchestrator {
             totalCount = 0;
             processedCountAtomic.set(0);
             ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
-            ExecutorService executor = getOrCreateExecutor();
 
             for (IncrementalScanSnapshot snapshot : snapshots) {
                 if (isCancelRequested()) {
@@ -623,8 +534,7 @@ public class ConversionOrchestrator {
 
                 totalCount += needsUpdate.size() * passes.size();
                 int failuresBefore = failedRegions.size();
-                List<java.util.concurrent.Future<?>> futures = submitConversionTasks(
-                        executor,
+                runConversionTasks(
                         needsUpdate,
                         needsUpdate,
                         regionDir,
@@ -634,7 +544,6 @@ public class ConversionOrchestrator {
                         passes,
                         failedRegions,
                         true);
-                waitForCompletion(futures, "Incremental update");
                 totalUpdated += needsUpdate.size() - (failedRegions.size() - failuresBefore);
             }
 
@@ -670,10 +579,6 @@ public class ConversionOrchestrator {
 
     public static int getTotalCount() {
         return totalCount;
-    }
-
-    public static int getUpdatedCount() {
-        return convertedCountAtomic.get();
     }
 
     public static List<String> getCompletedDimensions() {

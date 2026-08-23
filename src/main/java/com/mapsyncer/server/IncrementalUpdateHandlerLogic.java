@@ -15,55 +15,57 @@ public class IncrementalUpdateHandlerLogic {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IncrementalUpdateHandlerLogic.class);
 
-    private static volatile @Nullable IncrementalUpdateHandlerLogic instance;
-
-    private volatile @Nullable MinecraftServer server;
-
-    private volatile boolean running = false;
-
-    private volatile @Nullable ExecutorService updateExecutor = null;
+    private static final IncrementalUpdateHandlerLogic INSTANCE = new IncrementalUpdateHandlerLogic();
 
     private final AtomicBoolean updateInProgress = new AtomicBoolean(false);
 
-    private volatile boolean emptyModeTriggered = false;
+    private volatile @Nullable ExecutorService updateExecutor = null;
 
-    public static IncrementalUpdateHandlerLogic getInstance() {
-        IncrementalUpdateHandlerLogic current = instance;
-        if (current == null) {
-            synchronized (IncrementalUpdateHandlerLogic.class) {
-                current = instance;
-                if (current == null) {
-                    current = new IncrementalUpdateHandlerLogic();
-                    instance = current;
-                }
-            }
-        }
-        return current;
+    public static IncrementalUpdateHandlerLogic get() {
+        return INSTANCE;
     }
 
-    public void start(MinecraftServer server) {
-        if (running) {
-            LOGGER.warn("Incremental update handler already running");
+    public void onPlayerLoggedOut(MinecraftServer server) {
+        if (server.isStopped()) return;
+
+        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY) return;
+
+        server.execute(() -> checkAndScan(server));
+    }
+
+    private void checkAndScan(MinecraftServer server) {
+        if (updateInProgress.get()) return;
+
+        if (server.getPlayerList().getPlayerCount() > 0) return;
+
+        performUpdate(server);
+    }
+
+    private void performUpdate(MinecraftServer server) {
+        if (!updateInProgress.compareAndSet(false, true)) {
+            LOGGER.debug("Incremental update already in progress, skipping");
             return;
         }
-        this.server = server;
-        this.running = true;
-        this.emptyModeTriggered = false;
 
-        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.ON_EMPTY) {
-            LOGGER.info("Incremental update handler started (ON_EMPTY mode, runs when no players are online)");
+        LOGGER.info("Performing incremental update: ON_EMPTY mode, no players online");
+
+        try {
+            server.saveEverything(false, true, true);
+        } catch (RuntimeException e) {
+            LOGGER.error("Runtime error saving chunks for incremental scan", e);
+            updateInProgress.set(false);
+            return;
         }
-    }
 
-    public void stop() {
-        ConversionOrchestrator.requestCancel();
-        running = false;
-        updateInProgress.set(false);
-        shutdownExecutor();
-        server = null;
-        emptyModeTriggered = false;
-        LOGGER.info("Incremental update handler stopped");
+        getUpdateExecutor().submit(() -> {
+            try {
+                ConversionOrchestrator.performIncrementalScan(server);
+            } catch (RuntimeException e) {
+                LOGGER.error("Error during incremental update", e);
+            } finally {
+                updateInProgress.set(false);
+            }
+        });
     }
 
     private ExecutorService getUpdateExecutor() {
@@ -85,6 +87,13 @@ public class IncrementalUpdateHandlerLogic {
         return current;
     }
 
+    public void stop() {
+        ConversionOrchestrator.requestCancel();
+        updateInProgress.set(false);
+        shutdownExecutor();
+        LOGGER.info("Incremental update handler stopped");
+    }
+
     private void shutdownExecutor() {
         if (updateExecutor != null) {
             updateExecutor.shutdownNow();
@@ -96,84 +105,6 @@ public class IncrementalUpdateHandlerLogic {
                 Thread.currentThread().interrupt();
             }
             updateExecutor = null;
-        }
-    }
-
-    public void onPlayerLoggedOut() {
-        if (!running || server == null) return;
-
-        if (server.isStopped()) return;
-
-        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode == UpdateMode.DISABLED) return;
-
-        if (updateInProgress.get()) return;
-
-        emptyModeTriggered = false;
-        server.execute(this::checkEmptyMode);
-    }
-
-    private void checkEmptyMode() {
-        if (updateInProgress.get()) return;
-
-        MinecraftServer currentServer = server;
-        if (currentServer == null) return;
-
-        int playerCount = currentServer.getPlayerList().getPlayerCount();
-        if (playerCount > 0) {
-            emptyModeTriggered = false;
-            return;
-        }
-
-        if (emptyModeTriggered) return;
-
-        emptyModeTriggered = true;
-        performUpdate("ON_EMPTY mode: no players online");
-    }
-
-    private void performUpdate(String reason) {
-        if (!updateInProgress.compareAndSet(false, true)) {
-            LOGGER.debug("Incremental update already in progress, skipping");
-            return;
-        }
-
-        LOGGER.info("Performing incremental update: {}", reason);
-
-        MinecraftServer currentServer = server;
-        if (currentServer == null) {
-            updateInProgress.set(false);
-            return;
-        }
-
-        try {
-            currentServer.saveEverything(false, true, true);
-        } catch (RuntimeException e) {
-            LOGGER.error("Runtime error saving chunks for incremental scan", e);
-            updateInProgress.set(false);
-            return;
-        }
-
-        getUpdateExecutor().submit(() -> {
-            try {
-                ConversionOrchestrator.performIncrementalScan(currentServer);
-            } catch (RuntimeException e) {
-                LOGGER.error("Error during incremental update", e);
-            } finally {
-                updateInProgress.set(false);
-            }
-
-            if (currentServer.getPlayerList().getPlayerCount() == 0) {
-                LOGGER.info("No players online after incremental update, stopping handler to save resources");
-                currentServer.execute(IncrementalUpdateHandlerLogic.this::stop);
-            }
-        });
-    }
-
-    public static void resetInstance() {
-        if (instance != null) {
-            instance.stop();
-            instance = null;
-            LOGGER.info("IncrementalUpdateHandlerLogic instance reset");
         }
     }
 }

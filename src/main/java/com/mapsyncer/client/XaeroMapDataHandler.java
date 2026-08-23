@@ -1,6 +1,7 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
@@ -80,13 +81,7 @@ public final class XaeroMapDataHandler {
     }
 
     public static String buildRelativePathForCache(ChunkMapData chunk) {
-        String xaeroDim = chunk.dimension;
-
-        if (chunk.caveLayer == Integer.MAX_VALUE) {
-            return xaeroDim + "/" + chunk.regionX + "_" + chunk.regionZ;
-        } else {
-            return xaeroDim + "/caves/" + chunk.caveLayer + "/" + chunk.regionX + "_" + chunk.regionZ;
-        }
+        return PathMapping.toRelativeRegionPath(chunk.dimension, chunk.caveLayer, chunk.regionX, chunk.regionZ);
     }
 
     public static void clearRegionCacheFiles(Path mwDir, RegionCoord coord) {

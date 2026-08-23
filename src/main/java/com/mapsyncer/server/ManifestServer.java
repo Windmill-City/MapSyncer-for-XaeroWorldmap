@@ -7,9 +7,13 @@ import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+
 import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.util.PathMapping;
 
 public class ManifestServer {
 
@@ -17,9 +21,9 @@ public class ManifestServer {
 
     private static final ManifestServer INSTANCE = new ManifestServer();
 
-    private volatile Map<String, Long> manifest = Map.of();
+    private record ManifestEntry(Path zipPath, long timestampMillis) {}
 
-    private volatile Map<String, Path> zipPaths = Map.of();
+    private volatile Map<String, ManifestEntry> manifest = Map.of();
 
     private volatile @Nullable Path builtCacheDir;
 
@@ -37,7 +41,9 @@ public class ManifestServer {
                 }
             }
         }
-        return new HashMap<>(manifest);
+        Map<String, Long> timestamps = new HashMap<>(manifest.size());
+        manifest.forEach((path, entry) -> timestamps.put(path, entry.timestampMillis()));
+        return timestamps;
     }
 
     private boolean isValid(Path absCacheDir) {
@@ -45,21 +51,18 @@ public class ManifestServer {
     }
 
     private void _build(Path absCacheDir) {
-        Map<String, Long> rebuilt = new HashMap<>();
-        Map<String, Path> rebuiltPaths = new HashMap<>();
+        Map<String, ManifestEntry> rebuilt = new HashMap<>();
         try (Stream<Path> stream = Files.walk(absCacheDir)) {
             stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
-                String normalizedPath = ServerSyncHandlerLogic.toNormalizedServerPath(absCacheDir, zipPath);
+                String normalizedPath = toNormalizedServerPath(absCacheDir, zipPath);
                 long timestamp = readMtimeMillis(zipPath);
-                rebuilt.put(normalizedPath, timestamp);
-                rebuiltPaths.put(normalizedPath, zipPath);
+                rebuilt.put(normalizedPath, new ManifestEntry(zipPath, timestamp));
             });
         } catch (IOException e) {
             LOGGER.error("Failed to walk cache directory while building manifest", e);
         }
         builtCacheDir = absCacheDir;
         manifest = rebuilt;
-        zipPaths = rebuiltPaths;
         valid = true;
         LOGGER.info("Manifest cache built for {} with {} entries", absCacheDir, rebuilt.size());
     }
@@ -75,17 +78,51 @@ public class ManifestServer {
     }
 
     public @Nullable Path resolveZipPath(String normalizedPath) {
-        return zipPaths.get(normalizedPath);
+        ManifestEntry entry = manifest.get(normalizedPath);
+        return entry == null ? null : entry.zipPath();
     }
 
     public @Nullable Long getTimestamp(String normalizedPath) {
-        return manifest.get(normalizedPath);
+        ManifestEntry entry = manifest.get(normalizedPath);
+        return entry == null ? null : entry.timestampMillis();
+    }
+
+    private String toNormalizedServerPath(Path absCacheDir, Path zipPath) {
+        String relativePath = absCacheDir.relativize(zipPath).toString();
+        String normalizedPath = relativePath.replace(".zip", "").replace("\\", "/");
+
+        String[] parts = normalizedPath.split("[/\\\\]");
+        if (parts.length < 2) {
+            return normalizedPath;
+        }
+
+        try {
+            String dim = parts[0];
+            int caveLayer = Integer.MAX_VALUE;
+            int coordsIndex = parts.length - 1;
+            for (int i = 1; i < coordsIndex; i++) {
+                if ("caves".equals(parts[i]) && i + 1 < coordsIndex) {
+                    caveLayer = Integer.parseInt(parts[i + 1]);
+                    break;
+                }
+            }
+
+            String[] coords = parts[coordsIndex].split("_");
+            if (coords.length != 2) {
+                return normalizedPath;
+            }
+
+            return PathMapping.toRelativeRegionPath(
+                    dim, caveLayer, Integer.parseInt(coords[0]), Integer.parseInt(coords[1]));
+        } catch (NumberFormatException e) {
+            LOGGER.warn("Skipping unparseable cache path: {}", relativePath);
+            return normalizedPath;
+        }
     }
 
     public void invalidate() {
         valid = false;
         manifest = Map.of();
-        zipPaths = Map.of();
         builtCacheDir = null;
         LOGGER.debug("ManifestCache invalidated");
     }

@@ -1,27 +1,26 @@
 package com.mapsyncer.network.payload;
 
-import com.mapsyncer.util.RegionMeta;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncRequestPayload {
-    private final Map<String, RegionMeta> regionMeta;
+    private final List<String> paths;
     private final int partIndex;
     private final int totalParts;
 
-    public SyncRequestPayload(Map<String, RegionMeta> clientMeta) {
-        this(clientMeta, 0, 0);
+    public SyncRequestPayload(List<String> paths) {
+        this(paths, 0, 0);
     }
 
-    public SyncRequestPayload(Map<String, RegionMeta> clientMeta, int partIndex, int totalParts) {
-        this.regionMeta = clientMeta;
+    public SyncRequestPayload(List<String> paths, int partIndex, int totalParts) {
+        this.paths = paths;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
     }
 
-    public Map<String, RegionMeta> regionMeta() {
-        return regionMeta;
+    public List<String> paths() {
+        return paths;
     }
 
     public int partIndex() {
@@ -33,10 +32,9 @@ public class SyncRequestPayload {
     }
 
     public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
-        buf.writeInt(payload.regionMeta().size());
-        for (var entry : payload.regionMeta().entrySet()) {
-            buf.writeUtf(entry.getKey());
-            buf.writeLong(entry.getValue().timestampMillis());
+        buf.writeInt(payload.paths().size());
+        for (String path : payload.paths()) {
+            buf.writeUtf(path);
         }
         buf.writeBoolean(payload.totalParts() > 1);
         if (payload.totalParts() > 1) {
@@ -47,11 +45,9 @@ public class SyncRequestPayload {
 
     public static SyncRequestPayload read(FriendlyByteBuf buf) {
         int size = buf.readInt();
-        Map<String, RegionMeta> metaMap = new HashMap<>();
+        List<String> paths = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            String path = buf.readUtf();
-            long timestampMillis = buf.readLong();
-            metaMap.put(path, new RegionMeta(timestampMillis));
+            paths.add(buf.readUtf());
         }
 
         int partIndex = 0;
@@ -62,6 +58,6 @@ public class SyncRequestPayload {
             totalParts = buf.readInt();
         }
 
-        return new SyncRequestPayload(metaMap, partIndex, totalParts);
+        return new SyncRequestPayload(paths, partIndex, totalParts);
     }
 }

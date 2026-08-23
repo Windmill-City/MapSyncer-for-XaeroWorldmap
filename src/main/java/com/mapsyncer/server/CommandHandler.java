@@ -50,7 +50,7 @@ public class CommandHandler {
     }
 
     private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
-        if (reloadConfig(ctx.getSource().getServer())) {
+        if (reloadConfig()) {
             ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.config_reloaded"), false);
         } else {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.config_reload_failed"));
@@ -130,7 +130,7 @@ public class CommandHandler {
     }
 
     private static int setIncrementalOnEmpty(CommandContext<CommandSourceStack> ctx) {
-        setIncrementalOnEmpty(ctx.getSource().getServer());
+        setIncrementalOnEmpty();
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_on_empty_set"), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -216,30 +216,20 @@ public class CommandHandler {
     public static void disableIncremental() {
         ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.DISABLED);
         ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().stop();
+        IncrementalUpdateHandlerLogic.get().stop();
     }
 
-    public static void setIncrementalOnEmpty(MinecraftServer server) {
+    public static void setIncrementalOnEmpty() {
         ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.ON_EMPTY);
         ModConfig.SERVER_SPEC.save();
-        IncrementalUpdateHandlerLogic.getInstance().start(server);
     }
 
-    public static boolean reloadConfig(MinecraftServer server) {
+    public static boolean reloadConfig() {
         try {
             ModConfig.reloadServerFromDisk();
             DimensionConfigParser.invalidateCache();
 
-            if (!ConversionOrchestrator.isRunning()) {
-                ConversionOrchestrator.shutdownExecutor();
-            }
-
-            IncrementalUpdateHandlerLogic handler = IncrementalUpdateHandlerLogic.getInstance();
-            handler.stop();
-            UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-            if (mode != UpdateMode.DISABLED && server != null) {
-                handler.start(server);
-            }
+            IncrementalUpdateHandlerLogic.get().stop();
 
             LOGGER.info("Server configuration reloaded");
             return true;
