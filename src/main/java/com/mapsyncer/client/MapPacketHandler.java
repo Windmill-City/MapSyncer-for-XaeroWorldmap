@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.impl.NetworkHandler;
+import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.payload.RegionData;
 import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
@@ -53,11 +53,6 @@ public class MapPacketHandler {
     private static volatile long syncStartMs = 0;
 
     private static final AtomicInteger requestCounter = new AtomicInteger(0);
-
-    public static void init() {
-        NetworkHandler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
-        NetworkHandler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
-    }
 
     public static void prepareJoinSync() {
         session.invalidate();
@@ -119,9 +114,9 @@ public class MapPacketHandler {
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
-    private static void handleSyncManifest(SyncManifestPayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleSyncManifest(SyncManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        NetworkHandler.enqueueWork(context, () -> {
+        MapSyncer.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
                 return;
@@ -256,9 +251,9 @@ public class MapPacketHandler {
         return list;
     }
 
-    private static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
-        NetworkHandler.enqueueWork(context, () -> {
+        MapSyncer.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
                 LOGGER.debug("Ignoring stale sync response after disconnect/clear");
                 return;
@@ -414,7 +409,7 @@ public class MapPacketHandler {
 
         regionRequestInFlight = true;
         List<RegionRef> single = List.of(ref);
-        NetworkHandler.sendToServer(new SyncRequestPayload(single));
+        MapSyncer.sendToServer(new SyncRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",

@@ -1,7 +1,6 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.RegionData;
 import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
@@ -27,32 +26,29 @@ public class ServerSyncHandlerLogic {
 
     private static final int MAX_RESPONSE_PACKET_BYTES = 256 * 1024;
 
-    public static void init() {
-        NetworkHandler.registerSyncRequestHandler(
-                (payload, context) -> NetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
-    }
-
     public static void pushManifestOnJoin(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
-        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(manifest));
+        MapSyncer.sendToPlayer(player, new SyncManifestPayload(manifest));
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
-    private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
-        Player player = NetworkHandler.getPlayerFromContext(context);
-        if (!(player instanceof ServerPlayer serverPlayer)) return;
+    public static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
+        MapSyncer.enqueueWork(context, () -> {
+            Player player = MapSyncer.getPlayerFromContext(context);
+            if (!(player instanceof ServerPlayer serverPlayer)) return;
 
-        List<RegionRef> requested = payload.regions();
+            List<RegionRef> requested = payload.regions();
 
-        LOGGER.info(
-                "[SYNC-SRV] request from {}: regions={}", serverPlayer.getName().getString(), requested.size());
+            LOGGER.info(
+                    "[SYNC-SRV] request from {}: regions={}", serverPlayer.getName().getString(), requested.size());
 
-        Path cacheDir = MapSyncer.CACHE_DIR;
-        if (!Files.exists(cacheDir)) return;
+            Path cacheDir = MapSyncer.CACHE_DIR;
+            if (!Files.exists(cacheDir)) return;
 
-        ManifestServer.get().build(serverPlayer.server);
+            ManifestServer.get().build(serverPlayer.server);
 
-        serveRequestedRegions(serverPlayer, requested);
+            serveRequestedRegions(serverPlayer, requested);
+        });
     }
 
     private static void serveRequestedRegions(ServerPlayer player, List<RegionRef> requested) {
@@ -100,7 +96,7 @@ public class ServerSyncHandlerLogic {
 
     private static void sendRegionResponse(ServerPlayer player, List<RegionData> parts) {
         if (parts.isEmpty()) {
-            NetworkHandler.sendToPlayer(player, new SyncResponsePayload(List.of(), true));
+            MapSyncer.sendToPlayer(player, new SyncResponsePayload(List.of(), true));
             return;
         }
         List<RegionData> batch = new ArrayList<>();
@@ -126,6 +122,6 @@ public class ServerSyncHandlerLogic {
                 batch.size(),
                 bytes,
                 complete);
-        NetworkHandler.sendToPlayer(player, new SyncResponsePayload(batch, complete));
+        MapSyncer.sendToPlayer(player, new SyncResponsePayload(batch, complete));
     }
 }
