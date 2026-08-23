@@ -3,7 +3,6 @@ package com.mapsyncer.config;
 import com.mapsyncer.mca.DimensionInfo;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +12,8 @@ public final class DimensionConfigParser {
 
     public static final int DEFAULT_CAVE_START = LayerPlan.DEFAULT_CAVE_START;
 
-    private static volatile @Nullable String cachedKey;
-    private static volatile @Nullable List<DimensionScanConfig> cachedResult;
+    private static volatile String cachedKey;
+    private static volatile List<DimensionScanConfig> cachedResult;
 
     public static String formatEntry(String dimension, LayerPlan layerPlan) {
         if (dimension == null || dimension.isBlank()) {
@@ -58,7 +57,7 @@ public final class DimensionConfigParser {
         }
     }
 
-    public static @Nullable DimensionScanConfig parseConfigString(String configStr) {
+    public static DimensionScanConfig parseConfigString(String configStr) {
         if (configStr == null || configStr.isEmpty()) {
             return null;
         }
@@ -87,7 +86,7 @@ public final class DimensionConfigParser {
         return new DimensionScanConfig(trimmed, LayerPlan.empty(), DimensionInfo.fromDimensionId(trimmed));
     }
 
-    private static @Nullable DimensionScanConfig parsePipeFormat(String configStr) {
+    private static DimensionScanConfig parsePipeFormat(String configStr) {
         String[] parts = configStr.split("\\|", -1);
         if (parts.length < 1 || parts[0].trim().isEmpty()) {
             return null;

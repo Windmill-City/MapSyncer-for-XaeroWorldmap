@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,8 +30,8 @@ public final class XaeroMapWriter {
 
     public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
-    public static @Nullable RegionWriteResult writeChunkData(RegionData chunk) {
-        String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.ref.dimId());
+    public static RegionWriteResult writeChunkData(RegionData chunk) {
+        String xaeroDim = XaeroWorldMapBridge.getDimensionName(chunk.ref.dimId());
         if (xaeroDim == null) {
             LOGGER.error(
                     "Unable to resolve Xaero dimension name for {}, skipping region ({}, {})",
@@ -42,7 +41,7 @@ public final class XaeroMapWriter {
             return null;
         }
 
-        Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
+        Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
         if (serverDir == null) {
             LOGGER.error(
                     "Unable to resolve server directory, skipping region ({}, {}) dim={}",
@@ -52,7 +51,7 @@ public final class XaeroMapWriter {
             return null;
         }
 
-        String worldId = XaeroReflectionHelper.getCurrentWorldId();
+        String worldId = XaeroWorldMapBridge.getCurrentWorldId();
         if (worldId == null || worldId.isEmpty()) {
             LOGGER.error(
                     "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
@@ -118,24 +117,24 @@ public final class XaeroMapWriter {
                 return;
             }
 
-            Object mapRegion = XaeroReflectionHelper.getLeafMapRegion(coord.caveLayer(), coord.x(), coord.z(), true);
+            Object mapRegion = XaeroWorldMapBridge.getLeafMapRegion(coord.caveLayer(), coord.x(), coord.z(), true);
             if (mapRegion == null) {
                 LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 
-            if (!XaeroReflectionHelper.prepareRegionLoad(mapRegion)) {
+            if (!XaeroWorldMapBridge.prepareRegionLoad(mapRegion)) {
                 LOGGER.warn(
                         "Region ({}, {}) layer={} load preparation failed", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 
-            if (!XaeroReflectionHelper.setLoadState(mapRegion, XaeroReflectionHelper.LOAD_STATE_CLEARED)) {
+            if (!XaeroWorldMapBridge.setLoadState(mapRegion, XaeroWorldMapBridge.LOAD_STATE_CLEARED)) {
                 LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 
-            if (!XaeroReflectionHelper.requestLoad(mapRegion, "sync", false)) {
+            if (!XaeroWorldMapBridge.requestLoad(mapRegion, "sync", false)) {
                 LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }

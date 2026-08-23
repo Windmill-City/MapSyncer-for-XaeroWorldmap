@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkEvent;
@@ -86,7 +85,7 @@ public class MapPacketHandler {
         sendRegionResponse(player, parts);
     }
 
-    private static @Nullable RegionData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
+    private static RegionData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
         try {
             byte[] data = Files.readAllBytes(zipPath);
             return new RegionData(region, timestampMillis, data);

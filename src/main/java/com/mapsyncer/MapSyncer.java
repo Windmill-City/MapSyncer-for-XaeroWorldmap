@@ -1,6 +1,6 @@
 package com.mapsyncer;
 
-import com.mapsyncer.client.XaeroReflectionHelper;
+import com.mapsyncer.client.XaeroWorldMapBridge;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
@@ -73,11 +73,11 @@ public class MapSyncer {
                 ManifestPayload::read,
                 com.mapsyncer.client.MapPacketHandler::handleSyncManifest);
         if (FMLEnvironment.dist == Dist.CLIENT) {
-            LOGGER.info("Initializing reflection API cache...");
-            if (XaeroReflectionHelper.initialize()) {
-                LOGGER.info("XaeroReflectionHelper initialized successfully");
+            LOGGER.info("Initializing Xaero WorldMap bridge...");
+            if (XaeroWorldMapBridge.initialize()) {
+                LOGGER.info("XaeroWorldMapBridge initialized successfully");
             } else {
-                LOGGER.error("XaeroReflectionHelper initialization failed, reflection unavailable");
+                LOGGER.error("XaeroWorldMapBridge initialization failed, Xaero WorldMap unavailable");
             }
         }
         LOGGER.info("MapSyncer initialized");

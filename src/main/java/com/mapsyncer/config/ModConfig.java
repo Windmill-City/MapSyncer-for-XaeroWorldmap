@@ -3,7 +3,6 @@ package com.mapsyncer.config;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import java.nio.file.Path;
 import java.util.List;
-import javax.annotation.Nullable;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.common.ForgeConfigSpec.EnumValue;
@@ -61,7 +60,7 @@ public class ModConfig {
         DimensionConfigParser.invalidateCache();
     }
 
-    private static volatile @Nullable net.minecraftforge.fml.config.ModConfig boundServerConfig;
+    private static volatile net.minecraftforge.fml.config.ModConfig boundServerConfig;
 
     public static class ServerConfig {
 

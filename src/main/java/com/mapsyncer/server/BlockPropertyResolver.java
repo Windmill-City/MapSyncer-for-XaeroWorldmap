@@ -5,7 +5,6 @@ import com.mapsyncer.mca.BlockPropertyLookup;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
@@ -105,7 +104,7 @@ public class BlockPropertyResolver {
         private static final FluidState EMPTY = Fluids.EMPTY.defaultFluidState();
 
         @Override
-        public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
+        public BlockEntity getBlockEntity(BlockPos pos) {
             return null;
         }
 

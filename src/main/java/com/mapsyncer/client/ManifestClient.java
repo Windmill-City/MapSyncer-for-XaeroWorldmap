@@ -16,13 +16,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ManifestClient {
 
-    public record MetaScanResult(Map<RegionRef, Long> meta, boolean success, @Nullable String failureReason) {
+    public record MetaScanResult(Map<RegionRef, Long> meta, boolean success, String failureReason) {
 
         public static MetaScanResult ok(Map<RegionRef, Long> meta) {
             return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, null);
@@ -39,7 +38,7 @@ public class ManifestClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
 
-    private static volatile @Nullable ExecutorService executor;
+    private static volatile ExecutorService executor;
 
     private static final AtomicInteger poolUsers = new AtomicInteger(0);
 
@@ -78,14 +77,14 @@ public class ManifestClient {
     private static MetaScanResult computeMetaForSyncWorker(Set<String> dimIds) {
         Map<RegionRef, Long> metaMap = new HashMap<>();
 
-        Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
+        Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
         if (serverDir == null || !Files.exists(serverDir)) {
             LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
             return MetaScanResult.ok(metaMap);
         }
 
         for (String dimId : dimIds) {
-            String xaeroDim = XaeroReflectionHelper.getDimensionName(dimId);
+            String xaeroDim = XaeroWorldMapBridge.getDimensionName(dimId);
             if (xaeroDim == null) {
                 LOGGER.debug("No Xaero dimension name for {}, skipping", dimId);
                 continue;

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -57,7 +56,7 @@ public class RegionScanner {
         return result;
     }
 
-    public static @Nullable Path getRegionDir(ServerLevel level) {
+    public static Path getRegionDir(ServerLevel level) {
         try {
             Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
             if (!Files.exists(worldRoot)) return null;
@@ -92,7 +91,7 @@ public class RegionScanner {
         return scanRegionDirectory(regionDir);
     }
 
-    private static @Nullable Path detectRegionDir(Path worldRoot, String dimId) {
+    private static Path detectRegionDir(Path worldRoot, String dimId) {
         if (worldRoot == null || !Files.exists(worldRoot)) {
             return null;
         }

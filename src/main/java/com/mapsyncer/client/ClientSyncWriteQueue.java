@@ -6,7 +6,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +15,7 @@ public final class ClientSyncWriteQueue {
 
     private static final int IO_THREADS = Math.max(2, Runtime.getRuntime().availableProcessors() / 4);
 
-    private static volatile @Nullable ExecutorService executor = null;
+    private static volatile ExecutorService executor = null;
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
 
@@ -80,7 +79,7 @@ public final class ClientSyncWriteQueue {
     private static void invokeCallback(
             RegionData chunk,
             Consumer<XaeroMapWriter.RegionWriteResult> callback,
-            @Nullable XaeroMapWriter.RegionWriteResult result) {
+            XaeroMapWriter.RegionWriteResult result) {
         try {
             callback.accept(result);
         } catch (Exception e) {

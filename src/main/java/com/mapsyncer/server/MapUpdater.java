@@ -5,7 +5,6 @@ import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,7 @@ public class MapUpdater {
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    private volatile @Nullable ExecutorService updateExecutor = null;
+    private volatile ExecutorService updateExecutor = null;
 
     public static MapUpdater get() {
         return INSTANCE;

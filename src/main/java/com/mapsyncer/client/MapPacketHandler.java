@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
@@ -50,9 +49,13 @@ public class MapPacketHandler {
 
     private static volatile boolean running = false;
 
+    private static volatile ManifestPayload deferredManifest = null;
+
     public static void onDisconnect() {
+        stop();
         ManifestClient.shutdown();
         ClientSyncWriteQueue.shutdown();
+        XaeroWorldMapBridge.reset();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
@@ -64,6 +67,12 @@ public class MapPacketHandler {
     }
 
     private static void handleManifestReceived(ManifestPayload payload) {
+        if (!isWorldContextReady()) {
+            LOGGER.info("Xaero map context not ready yet, deferring sync until Xaero assigns world id");
+            deferredManifest = payload;
+            return;
+        }
+
         start();
 
         Map<RegionRef, Long> serverTimestamps = payload.timestamps();
@@ -133,6 +142,7 @@ public class MapPacketHandler {
     private static void stop() {
         running = false;
         pendingRegions.clear();
+        deferredManifest = null;
         syncTotal = 0;
         syncProcessed = 0;
         syncFailed = 0;
@@ -140,6 +150,27 @@ public class MapPacketHandler {
         updatedRegionCoords.clear();
         partBuffer.clear();
         requestCounter.set(0);
+    }
+
+    public static void onXaeroWorldContextReady() {
+        if (deferredManifest == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            ManifestPayload manifest = deferredManifest;
+            deferredManifest = null;
+            if (manifest != null && isWorldContextReady()) {
+                handleManifestReceived(manifest);
+            } else if (manifest != null) {
+                deferredManifest = manifest;
+            }
+        });
+    }
+
+    private static boolean isWorldContextReady() {
+        String worldId = XaeroWorldMapBridge.getCurrentWorldId();
+        return worldId != null && !worldId.isEmpty();
     }
 
     private static Set<String> extractDimIds(Set<RegionRef> keys) {
@@ -178,9 +209,9 @@ public class MapPacketHandler {
             }
 
             Minecraft mc = Minecraft.getInstance();
-            Path serverDir = XaeroReflectionHelper.getCurrentServerDirectory();
+            Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
 
-            String worldId = XaeroReflectionHelper.getCurrentWorldId();
+            String worldId = XaeroWorldMapBridge.getCurrentWorldId();
             if (worldId == null || worldId.isEmpty()) {
                 LOGGER.error(
                         "Unable to resolve current world id from Xaero, skipping {} received chunks",
@@ -344,7 +375,7 @@ public class MapPacketHandler {
         return chunk.ref.regionX() + "," + chunk.ref.regionZ() + "," + chunk.ref.dimId() + "," + chunk.ref.caveLayer();
     }
 
-    private static @Nullable RegionData assemblePart(RegionData chunk) {
+    private static RegionData assemblePart(RegionData chunk) {
         if (chunk.totalParts <= 1) {
             return chunk;
         }

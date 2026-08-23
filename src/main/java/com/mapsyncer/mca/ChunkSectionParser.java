@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 public class ChunkSectionParser {
 
@@ -39,19 +38,19 @@ public class ChunkSectionParser {
     public record SectionData(
             int sectionY,
             List<BlockState> blockPalette,
-            @Nullable long[] blockData,
+            long[] blockData,
             int blockBitsPerEntry,
             List<String> biomePalette,
-            @Nullable long[] biomeData,
+            long[] biomeData,
             int biomeBitsPerEntry,
-            @Nullable byte[] blockLight,
-            @Nullable byte[] skyLight,
+            byte[] blockLight,
+            byte[] skyLight,
             int blockUVal,
             long blockMask) {}
 
-    private record BlockData(List<BlockState> palette, @Nullable long[] data) {}
+    private record BlockData(List<BlockState> palette, long[] data) {}
 
-    private record BiomeData(List<String> palette, @Nullable long[] data) {}
+    private record BiomeData(List<String> palette, long[] data) {}
 
     static SectionData parseSection(NbtStream stream) throws IOException {
         int sectionY = 0;
@@ -276,7 +275,7 @@ public class ChunkSectionParser {
                 properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties);
     }
 
-    private static int calculateBitsPerEntry(int paletteSize, @Nullable long[] data) {
+    private static int calculateBitsPerEntry(int paletteSize, long[] data) {
         if (paletteSize <= 1) {
             return 0;
         }
@@ -288,7 +287,7 @@ public class ChunkSectionParser {
         return 32 - Integer.numberOfLeadingZeros(paletteSize - 1);
     }
 
-    private static int calculateBiomeBitsPerEntry(int paletteSize, @Nullable long[] data) {
+    private static int calculateBiomeBitsPerEntry(int paletteSize, long[] data) {
         if (paletteSize <= 1) {
             return 0;
         }
@@ -322,7 +321,7 @@ public class ChunkSectionParser {
         return section.blockPalette.get(paletteIndex);
     }
 
-    public static @Nullable String getBiomeAt(SectionData section, int x, int y, int z, boolean smoothBoundary) {
+    public static String getBiomeAt(SectionData section, int x, int y, int z, boolean smoothBoundary) {
 
         if (section.biomePalette.isEmpty()) {
             return null;

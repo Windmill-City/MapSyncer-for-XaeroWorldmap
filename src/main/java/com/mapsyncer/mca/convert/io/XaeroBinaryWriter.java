@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nullable;
 
 public final class XaeroBinaryWriter {
 
@@ -195,8 +194,8 @@ public final class XaeroBinaryWriter {
         writeBiomeRef(dos, biomeName, biomePalette);
     }
 
-    private static void writeBiomeRef(
-            DataOutputStream dos, @Nullable String biomeName, Map<String, Integer> biomePalette) throws IOException {
+    private static void writeBiomeRef(DataOutputStream dos, String biomeName, Map<String, Integer> biomePalette)
+            throws IOException {
         if (biomeName == null) {
             return;
         }
