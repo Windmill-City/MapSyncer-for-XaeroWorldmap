@@ -1,6 +1,5 @@
 package com.mapsyncer.server;
 
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -22,9 +21,8 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
-        MinecraftServer server = player.getServer();
 
-        MapUpdater.get().onPlayerLoggedOut(server);
+        MapUpdater.get().onPlayerLoggedOut(player);
     }
 
     @SubscribeEvent

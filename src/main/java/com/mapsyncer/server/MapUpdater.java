@@ -1,13 +1,17 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import net.minecraft.server.MinecraftServer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
+
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 
 public class MapUpdater {
 
@@ -23,23 +27,39 @@ public class MapUpdater {
         return INSTANCE;
     }
 
-    public void onPlayerLoggedOut(MinecraftServer server) {
-        if (server == null || server.isStopped()) return;
+    public void onPlayerLoggedOut(ServerPlayer player) {
+        MinecraftServer server = player.getServer();
+        if (server == null || server.isStopped()) {
+            LOGGER.debug("[onPlayerLoggedOut] ignoring: server is null or stopped");
+            return;
+        }
 
-        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY) return;
+        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
+        if (mode != UpdateMode.ON_EMPTY) {
+            LOGGER.debug("[onPlayerLoggedOut] ignoring: update mode is not ON_EMPTY");
+            return;
+        }
 
-        server.execute(() -> checkAndScan(server));
+        checkAndScan(server);
     }
 
     private void checkAndScan(MinecraftServer server) {
-        if (running.get()) return;
+        if (running.get()) {
+            LOGGER.debug("[onPlayerLoggedOut] ignoring: already running");
+            return;
+        }
 
-        if (server.getPlayerList().getPlayerCount() > 0) return;
+        int playerCount = server.getPlayerList().getPlayerCount();
+        if (playerCount > 1) {
+
+            LOGGER.debug("[onPlayerLoggedOut] ignoring: player count > 1");
+            return;
+        }
 
         performUpdate(server);
     }
 
-    private void performUpdate(MinecraftServer server) {
+    public void performUpdate(MinecraftServer server) {
         if (!running.compareAndSet(false, true)) {
             LOGGER.debug("Incremental update already in progress, skipping");
             return;

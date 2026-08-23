@@ -124,6 +124,7 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
             MapConverter.cleanupCacheDir();
+            MapUpdater.get().performUpdate(event.getServer());
         }
 
         @SubscribeEvent
