@@ -103,6 +103,14 @@ public class ServerSyncHandlerLogic {
         String targetDimension = payload.targetDimension();
         boolean silent = payload.silent();
 
+        LOGGER.info(
+                "[SYNC-SRV] request from {}: metaEntries={}, syncAll={}, targetDimension={}, silent={}",
+                serverPlayer.getName().getString(),
+                clientMeta.size(),
+                syncAll,
+                targetDimension,
+                silent);
+
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         if (!Files.exists(cacheDir)) {
             int worldId = readWorldIdFromXaeroMap(serverPlayer);
@@ -213,6 +221,12 @@ public class ServerSyncHandlerLogic {
             }
         }
 
+        LOGGER.info(
+                "[SYNC-SRV] serving {} requested regions for {}: produced {} parts, {} failed",
+                requested.size(),
+                player.getName().getString(),
+                parts.size(),
+                failed);
         SyncTransferScheduler.enqueueRegionResponse(player, parts, worldId, failed > 0 ? "partial" : "ok");
         SyncTransferScheduler.onRequestReceived(player);
     }

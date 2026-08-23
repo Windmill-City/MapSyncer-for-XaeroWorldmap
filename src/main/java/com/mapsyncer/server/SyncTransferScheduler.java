@@ -113,7 +113,18 @@ public final class SyncTransferScheduler {
 
     public static void enqueueRegionResponse(
             ServerPlayer player, List<ChunkMapData> parts, int worldId, String status) {
-        getQueue(player).responses.add(new PendingResponse(parts, worldId, status));
+        PlayerQueue q = getQueue(player);
+        q.responses.add(new PendingResponse(parts, worldId, status));
+        int bytes = 0;
+        for (ChunkMapData p : parts) bytes += p.data.length;
+        LOGGER.info(
+                "[SYNC-SRV] enqueue response for {}: {} parts, {} bytes, worldId={}, status={} (queuedResponses={})",
+                player.getName().getString(),
+                parts.size(),
+                bytes,
+                worldId,
+                status,
+                q.responses.size());
     }
 
     public static void onRequestReceived(ServerPlayer player) {
@@ -121,6 +132,13 @@ public final class SyncTransferScheduler {
         if (q == null) {
             return;
         }
+        int queuedParts = 0;
+        for (PendingResponse r : q.responses) queuedParts += r.remaining();
+        LOGGER.info(
+                "[SYNC-SRV] request received from {} (queuedResponses={}, queuedParts={})",
+                player.getName().getString(),
+                q.responses.size(),
+                queuedParts);
         long nowNs = System.nanoTime();
         if (q.lastCompleteSentNs == 0) {
             return;
@@ -247,6 +265,10 @@ public final class SyncTransferScheduler {
     }
 
     private static void sendManifest(ServerPlayer player, PlayerQueue q, SyncManifestPayload part) {
+        LOGGER.info(
+                "[SYNC-SRV] send manifest part to {}: {} entries",
+                player.getName().getString(),
+                part.timestamps().size());
         try {
             ForgeNetworkHandler.get().sendToPlayer(player, part);
         } catch (Exception e) {
@@ -262,6 +284,18 @@ public final class SyncTransferScheduler {
             String status,
             List<ChunkMapData> parts,
             boolean complete) {
+        int bytes = 0;
+        for (ChunkMapData p : parts) bytes += p.data.length;
+        int queuedParts = 0;
+        for (PendingResponse r : q.responses) queuedParts += r.remaining();
+        LOGGER.info(
+                "[SYNC-SRV] send to {}: {} parts, {} bytes, complete={}, queuedResponses={}, queuedParts={}",
+                player.getName().getString(),
+                parts.size(),
+                bytes,
+                complete,
+                q.responses.size(),
+                queuedParts);
         try {
             ForgeNetworkHandler.get().sendToPlayer(player, new SyncResponsePayload(parts, complete, worldId, status));
         } catch (Exception e) {

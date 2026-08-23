@@ -58,6 +58,8 @@ public class MapPacketHandler {
 
     private static volatile long syncStartMs = 0;
 
+    private static final AtomicInteger requestCounter = new AtomicInteger(0);
+
     public static void registerHandlers() {
         var handler = ForgeNetworkHandler.get();
         handler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
@@ -80,13 +82,14 @@ public class MapPacketHandler {
         updatedRegionCoords.clear();
         loadedRegions.clear();
         partBuffer.clear();
+        requestCounter.set(0);
         syncStartMs = System.currentTimeMillis();
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance()
                     .player
                     .displayClientMessage(ChatUtils.prefix().append(ChatUtils.desc("mapsyncer.autosync.start")), false);
         }
-        LOGGER.info("Prepared join sync: waiting for server-pushed manifest");
+        LOGGER.info("Prepared join sync: waiting for server-pushed manifest (generation={})", session.generation());
     }
 
     public static void clearReceivedChunks() {
@@ -108,7 +111,16 @@ public class MapPacketHandler {
         updatedRegionCoords.clear();
         loadedRegions.clear();
         partBuffer.clear();
-        LOGGER.info("Cleared sync data");
+        requestCounter.set(0);
+        LOGGER.info(
+                "Cleared sync data (was: pending={}, inFlight={}, writes={}, received={}, partBufferKeys={}, syncTotal={}, syncProcessed={})",
+                pendingRegionPaths.size(),
+                regionRequestInFlight,
+                syncPendingWrites.get(),
+                updatedRegionCoords.size(),
+                partBuffer.size(),
+                syncTotal,
+                syncProcessed);
     }
 
     public static void onDisconnect() {
@@ -128,6 +140,14 @@ public class MapPacketHandler {
                 LOGGER.debug("Ignoring stale sync manifest after disconnect/clear");
                 return;
             }
+
+            LOGGER.info(
+                    "[SYNC] <- manifest: entries={}, part={}/{} (receiving={}, expectManifest={})",
+                    payload.timestamps().size(),
+                    payload.partIndex(),
+                    payload.totalParts(),
+                    session.isReceiving(),
+                    expectManifest);
 
             SyncManifestPayload resolved = payload;
             if (resolved.totalParts() > 1) {
@@ -275,7 +295,8 @@ public class MapPacketHandler {
                 syncProcessed = 0;
                 syncFailed = 0;
                 regionRequestInFlight = false;
-                LOGGER.debug("Starting per-region pull for {} regions", syncTotal);
+                LOGGER.info(
+                        "[SYNC] per-region pull started: {} regions to fetch (generation={})", syncTotal, generation);
                 requestNextRegion(generation);
             });
         });
@@ -309,6 +330,18 @@ public class MapPacketHandler {
                 LOGGER.debug("Ignoring stale sync response after disconnect/clear");
                 return;
             }
+
+            LOGGER.info(
+                    "[SYNC] <- response: chunks={}, complete={}, worldId={}, status={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
+                    payload.chunks().size(),
+                    payload.isComplete(),
+                    payload.worldId(),
+                    payload.status(),
+                    session.isReceiving(),
+                    regionRequestInFlight,
+                    pendingRegionPaths.size(),
+                    syncPendingWrites.get(),
+                    partBuffer.size());
 
             if (session.isStale()) {
                 LOGGER.warn("Sync was stale, clearing accumulated data");
@@ -391,6 +424,13 @@ public class MapPacketHandler {
                             } else if (processRegion && !session.reflectionFailed()) {
                                 triggerSingleRegionLoad(coord);
                             }
+                            LOGGER.info(
+                                    "[SYNC-WRITE] region=({},{}) layer={} result={} (writesBeforeDec={})",
+                                    assembled.regionX,
+                                    assembled.regionZ,
+                                    assembled.caveLayer,
+                                    writeResult == null ? "FAILED" : "ok",
+                                    syncPendingWrites.get());
                         } finally {
                             syncPendingWrites.decrementAndGet();
                             maybeCompleteSync();
@@ -403,6 +443,13 @@ public class MapPacketHandler {
                 session.touch();
                 regionRequestInFlight = false;
                 syncProcessed++;
+                LOGGER.info(
+                        "[SYNC] complete signal: syncProcessed={}/{} (pending={}, writes={}, partBufferKeys={})",
+                        syncProcessed,
+                        syncTotal,
+                        pendingRegionPaths.size(),
+                        syncPendingWrites.get(),
+                        partBuffer.size());
                 requestNextRegion(generationAtEnqueue);
             }
         });
@@ -415,6 +462,10 @@ public class MapPacketHandler {
 
         String path = pendingRegionPaths.poll();
         if (path == null) {
+            LOGGER.info(
+                    "[SYNC] requestNextRegion: queue empty -> maybeCompleteSync (inFlight={}, writes={})",
+                    regionRequestInFlight,
+                    syncPendingWrites.get());
             maybeCompleteSync();
             return;
         }
@@ -423,16 +474,34 @@ public class MapPacketHandler {
         Map<String, ClientMeta> single = new HashMap<>();
         single.put(path, new ClientMeta(0, HashUtils.DEFAULT_HASH));
         ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(single, false, "", true));
-        LOGGER.debug("Requesting region: {}", path);
+        int seq = requestCounter.incrementAndGet();
+        LOGGER.info(
+                "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",
+                seq,
+                path,
+                pendingRegionPaths.size(),
+                syncProcessed,
+                syncTotal);
     }
 
     private static void maybeCompleteSync() {
         if (!session.isReceiving()) {
             return;
         }
-        if (!pendingRegionPaths.isEmpty() || regionRequestInFlight || syncPendingWrites.get() > 0) {
+        boolean pending = !pendingRegionPaths.isEmpty();
+        boolean inflight = regionRequestInFlight;
+        int writes = syncPendingWrites.get();
+        if (pending || inflight || writes > 0) {
+            LOGGER.debug(
+                    "[SYNC-GUARD] holding completion: pending={} ({} paths), inFlight={}, writes={}, partBufferKeys={}",
+                    pending,
+                    pendingRegionPaths.size(),
+                    inflight,
+                    writes,
+                    partBuffer.size());
             return;
         }
+        LOGGER.info("[SYNC-GUARD] completion guard cleared -> completeSync (partBufferKeys={})", partBuffer.size());
         completeSync();
     }
 
@@ -442,7 +511,17 @@ public class MapPacketHandler {
                 serverDir != null && serverDir.toFile().exists() ? ClientTimestampCache.getInstance(serverDir) : null;
 
         int totalReceived = updatedRegionCoords.size();
-        LOGGER.info("Sync complete: {} regions processed", totalReceived);
+        LOGGER.info(
+                "Sync complete: {} regions processed (syncTotal={}, syncProcessed={}, syncFailed={}, uncompletedRequests={}, pending={}, inFlight={}, writes={}, partBufferKeys={})",
+                totalReceived,
+                syncTotal,
+                syncProcessed,
+                syncFailed,
+                syncTotal - syncProcessed,
+                pendingRegionPaths.size(),
+                regionRequestInFlight,
+                syncPendingWrites.get(),
+                partBuffer.size());
 
         if (Minecraft.getInstance().player != null) {
             if (totalReceived > 0) {
@@ -587,6 +666,13 @@ public class MapPacketHandler {
             return existing;
         });
         ChunkMapData[] parts = entry.parts();
+        LOGGER.debug(
+                "[SYNC-PART] {} part {}/{} arrived, buffered {}/{}",
+                key,
+                chunk.partIndex + 1,
+                chunk.totalParts,
+                countNonNull(parts),
+                chunk.totalParts);
 
         if (now - entry.firstArrivedMs() > PART_STALE_TIMEOUT_MS) {
             partBuffer.remove(key);
@@ -602,6 +688,7 @@ public class MapPacketHandler {
             if (p == null) return null;
         }
 
+        LOGGER.info("[SYNC-PART] {} fully assembled ({} parts)", key, chunk.totalParts);
         partBuffer.remove(key);
 
         int totalLen = 0;
