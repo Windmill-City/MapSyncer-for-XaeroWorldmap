@@ -1,12 +1,15 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.util.XaeroPathResolver;
 import java.nio.file.Path;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.util.XaeroPathResolver;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ServerData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class XaeroMapIntegrator {
 
@@ -27,9 +30,6 @@ public class XaeroMapIntegrator {
         while (rawIP.endsWith(".")) {
             rawIP = rawIP.substring(0, rawIP.length() - 1);
         }
-        if (rawIP.isEmpty()) {
-            rawIP = "Empty Address";
-        }
         return rawIP;
     }
 
@@ -38,10 +38,6 @@ public class XaeroMapIntegrator {
         ClientPacketListener connection = mc.getConnection();
         if (connection == null) {
             return null;
-        }
-
-        if (mc.hasSingleplayerServer()) {
-            return "Singleplayer";
         }
 
         Boolean differentiateByServerAddress = XaeroReflectionHelper.getDifferentiateByServerAddress();
@@ -60,18 +56,12 @@ public class XaeroMapIntegrator {
     }
 
     public static Path getCurrentServerDirectory() {
-        Minecraft mc = Minecraft.getInstance();
-        ClientPacketListener connection = mc.getConnection();
-        if (connection == null) {
-            LOGGER.warn("getCurrentServerDirectory: connection is null");
-            return null;
-        }
-
         String serverIP = getCurrentServerIP();
         if (serverIP == null) {
             return null;
         }
 
+        Minecraft mc = Minecraft.getInstance();
         Path gameDir = mc.gameDirectory.toPath();
         Path worldMapDir = XaeroPathResolver.getWorldMapDir(gameDir);
         Path serverDir = worldMapDir.resolve("Multiplayer_" + serverIP);
