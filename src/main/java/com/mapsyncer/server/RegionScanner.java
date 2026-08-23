@@ -57,11 +57,6 @@ public class RegionScanner {
         return result;
     }
 
-    public static RegionScanResult scanDimension(ServerLevel level) {
-        Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
-        return scanRegionDir(worldRoot, level.dimension());
-    }
-
     public static @Nullable Path getRegionDir(ServerLevel level) {
         try {
             Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
@@ -134,7 +129,7 @@ public class RegionScanner {
         return entries;
     }
 
-    public static RegionScanResult scanRegionDirectory(Path regionDir) {
+    private static RegionScanResult scanRegionDirectory(Path regionDir) {
         List<RegionCoords> regions = new ArrayList<>();
         if (!Files.exists(regionDir)) {
             return new RegionScanResult(regions, 0, List.of());

@@ -30,11 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,16 +65,6 @@ public class ConversionOrchestrator {
 
     public static void cleanupCacheDir() {
         XaeroWriter.cleanStaleFiles(getCacheDir());
-    }
-
-    public enum SingleRegionResult {
-        SUCCESS,
-
-        REGION_NOT_FOUND,
-
-        CONVERSION_FAILED,
-
-        ALREADY_RUNNING
     }
 
     private static final class NamedThreadFactory implements java.util.concurrent.ThreadFactory {
@@ -125,30 +112,6 @@ public class ConversionOrchestrator {
         }
     }
 
-    private static void clearDimensionCache(Path dimCacheDir) {
-        if (!Files.exists(dimCacheDir)) {
-            LOGGER.info("No existing cache to clear for dimension: {}", dimCacheDir);
-            return;
-        }
-
-        try {
-            try (var files = Files.walk(dimCacheDir)) {
-                files.sorted((a, b) -> -a.compareTo(b)).forEach(path -> {
-                    try {
-                        Files.deleteIfExists(path);
-                        LOGGER.debug("Deleted: {}", path);
-                    } catch (IOException e) {
-                        LOGGER.warn("Failed to delete: {}", path);
-                    }
-                });
-            }
-            ManifestServer.get().invalidate();
-            LOGGER.info("Cleared cache directory: {}", dimCacheDir);
-        } catch (IOException e) {
-            LOGGER.error("Failed to clear dimension cache: {}", dimCacheDir, e);
-        }
-    }
-
     public static boolean generateAll(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.warn("Conversion already in progress, rejecting generateAll");
@@ -190,194 +153,6 @@ public class ConversionOrchestrator {
                     totalSkippedEmpty);
         }
         return true;
-    }
-
-    public static boolean generateDimension(MinecraftServer server, String dimensionId) {
-        if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.warn("Conversion already in progress, rejecting generateDimension");
-            return false;
-        }
-        cancelRequested.set(false);
-        processedCountAtomic.set(0);
-        skippedCount.set(0);
-        convertedCountAtomic.set(0);
-        skippedEmptyContentCount.set(0);
-        ResourceKey<Level> dimKey = parseDimensionId(dimensionId, server);
-        if (dimKey == null) {
-            LOGGER.error("Unknown dimension: {}", dimensionId);
-            isRunning.set(false);
-            return true;
-        }
-        ServerLevel level = server.getLevel(dimKey);
-        if (level == null) {
-            LOGGER.error("Level not loaded for dimension: {}", dimensionId);
-            isRunning.set(false);
-            return true;
-        }
-
-        RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
-        List<RegionCoords> regions = scanResult.regions();
-        totalCount = regions.size();
-        try {
-            convertDimension(
-                    server,
-                    new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()),
-                    false);
-        } finally {
-            isRunning.set(false);
-            shutdownExecutor();
-        }
-        return true;
-    }
-
-    public static boolean generateDimensionForce(MinecraftServer server, String dimensionId) {
-        if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.warn("Conversion already in progress, rejecting generateDimensionForce");
-            return false;
-        }
-        cancelRequested.set(false);
-        processedCountAtomic.set(0);
-        skippedCount.set(0);
-        convertedCountAtomic.set(0);
-        skippedEmptyContentCount.set(0);
-        ResourceKey<Level> dimKey = parseDimensionId(dimensionId, server);
-        if (dimKey == null) {
-            LOGGER.error("Unknown dimension: {}", dimensionId);
-            isRunning.set(false);
-            return true;
-        }
-        ServerLevel level = server.getLevel(dimKey);
-        if (level == null) {
-            LOGGER.error("Level not loaded for dimension: {}", dimensionId);
-            isRunning.set(false);
-            return true;
-        }
-
-        String fullDimId = dimKey.location().toString();
-        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
-        Path dimCacheDir = getCacheDir().resolve(xaeroDimName);
-        clearDimensionCache(dimCacheDir);
-
-        RegionScanner.RegionScanResult scanResult = RegionScanner.scanDimension(level);
-        List<RegionCoords> regions = scanResult.regions();
-        totalCount = regions.size();
-        try {
-            convertDimension(
-                    server,
-                    new DimensionRegions(dimKey, regions, scanResult.skippedEmptyCount(), scanResult.fileEntries()),
-                    true);
-        } finally {
-            isRunning.set(false);
-            shutdownExecutor();
-        }
-        return true;
-    }
-
-    public static @Nullable Path checkMcaFileExists(
-            MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
-        ServerLevel level = server.getLevel(dimension);
-        if (level == null) return null;
-
-        Path regionDir = RegionScanner.getRegionDir(level);
-
-        if (regionDir == null) return null;
-
-        Path mcaPath = regionDir.resolve("r." + regionX + "." + regionZ + ".mca");
-        return Files.exists(mcaPath) ? mcaPath : null;
-    }
-
-    public static SingleRegionResult generateSingleRegion(
-            MinecraftServer server, ResourceKey<Level> dimension, int regionX, int regionZ) {
-        if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.warn("Conversion already in progress");
-            return SingleRegionResult.ALREADY_RUNNING;
-        }
-        cancelRequested.set(false);
-
-        Path mcaPath = checkMcaFileExists(server, dimension, regionX, regionZ);
-        if (mcaPath == null) {
-            LOGGER.warn(
-                    "MCA file not found for region ({}, {}) in dimension {}",
-                    regionX,
-                    regionZ,
-                    dimension.location().getPath());
-            isRunning.set(false);
-            return SingleRegionResult.REGION_NOT_FOUND;
-        }
-
-        totalCount = 1;
-        processedCountAtomic.set(0);
-        ServerLevel level = server.getLevel(dimension);
-        if (level == null) {
-            LOGGER.error("Level not loaded for dimension: {}", dimension);
-            isRunning.set(false);
-            return SingleRegionResult.CONVERSION_FAILED;
-        }
-
-        String fullDimId = dimension.location().toString();
-        String dimPath = dimension.location().getPath();
-
-        DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
-
-        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
-
-        Path regionDir = RegionScanner.getRegionDir(level);
-
-        if (regionDir == null) {
-            LOGGER.error("Region directory not found for dimension: {}", dimension);
-            isRunning.set(false);
-            return SingleRegionResult.CONVERSION_FAILED;
-        }
-
-        DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
-        List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
-        Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
-
-        LOGGER.info(
-                "Dimension {}: hasSkylight={}, hasCeiling={}, minY={}, logicalTop={}, passes={}",
-                dimPath,
-                dimTypeInfo.hasSkylight(),
-                dimTypeInfo.hasCeiling(),
-                dimTypeInfo.minY(),
-                dimTypeInfo.logicalTopY(),
-                passes.size());
-
-        SingleRegionResult result = SingleRegionResult.SUCCESS;
-        try {
-            for (RegionScanPass pass : passes) {
-                Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
-            }
-            totalCount = passes.size();
-            List<LayerConvertedRegion> converted = RegionConverter.convertRegionMulti(
-                    mcaPath, regionX, regionZ, dimTypeInfo, passes, BlockPropertyResolver.INSTANCE);
-            int written = 0;
-            for (int i = 0; i < passes.size(); i++) {
-                RegionScanPass pass = passes.get(i);
-                LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
-                ConvertedRegion single =
-                        layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
-                if (single == null || single.xaeroData() == null || single.xaeroData().length == 0) {
-                    continue;
-                }
-                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-                XaeroWriter.writeRegionFile(outputDir, single);
-                written++;
-            }
-            processedCountAtomic.set(written);
-            if (written == 0) {
-                LOGGER.warn("Could not convert region ({}, {}): all passes empty", regionX, regionZ);
-                result = SingleRegionResult.CONVERSION_FAILED;
-            } else {
-                ManifestServer.get().invalidate();
-                LOGGER.info("Converted single region ({}, {}) with {} passes", regionX, regionZ, written);
-            }
-        } catch (IOException e) {
-            LOGGER.error("Failed to write region file", e);
-            result = SingleRegionResult.CONVERSION_FAILED;
-        } finally {
-            isRunning.set(false);
-        }
-        return result;
     }
 
     private static void convertDimension(MinecraftServer server, DimensionRegions dimRegions, boolean force) {
@@ -735,37 +510,6 @@ public class ConversionOrchestrator {
                 Thread.currentThread().interrupt();
             }
         }
-    }
-
-    public static @Nullable ResourceKey<Level> parseDimensionId(String id, MinecraftServer server) {
-        String normalized = id.toLowerCase();
-
-        switch (normalized) {
-            case "overworld", "minecraft:overworld":
-                return Level.OVERWORLD;
-            case "the_nether", "minecraft:the_nether":
-                return Level.NETHER;
-            case "the_end", "minecraft:the_end":
-                return Level.END;
-        }
-
-        try {
-            ResourceLocation location = new ResourceLocation(id);
-
-            for (ServerLevel level : server.getAllLevels()) {
-                ResourceLocation dimLocation = level.dimension().location();
-                if (dimLocation.equals(location)
-                        || dimLocation.getPath().equals(id)
-                        || dimLocation.toString().equals(id)) {
-                    return level.dimension();
-                }
-            }
-            LOGGER.warn("Dimension not found: {}", id);
-        } catch (RuntimeException e) {
-            LOGGER.error("Invalid dimension id format '{}'", id, e);
-        }
-
-        return null;
     }
 
     public record IncrementalScanSnapshot(
