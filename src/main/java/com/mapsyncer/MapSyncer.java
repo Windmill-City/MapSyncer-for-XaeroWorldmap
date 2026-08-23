@@ -42,9 +42,7 @@ public class MapSyncer {
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
 
-        ForgeNetworkHandler networkHandler = new ForgeNetworkHandler();
-        ForgeNetworkHandler.setInstance(networkHandler);
-        networkHandler.registerHandlers();
+        ForgeNetworkHandler.getInstance().registerHandlers();
         LOGGER.info("NetworkHandler initialized");
 
         if (FMLEnvironment.dist == Dist.CLIENT) {

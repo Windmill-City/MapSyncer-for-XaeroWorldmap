@@ -48,7 +48,7 @@ public class ServerSyncHandlerLogic {
             int caveLayer) {}
 
     public static void registerHandlers() {
-        ForgeNetworkHandler.get()
+        ForgeNetworkHandler.getInstance()
                 .registerSyncRequestHandler((payload, context) ->
                         ForgeNetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
     }
@@ -88,7 +88,7 @@ public class ServerSyncHandlerLogic {
     private static void pushNoCacheManifest(ServerPlayer player) {
         ForgeNetworkHandler.confirmPlayer(player.getUUID());
         int worldId = readWorldIdFromXaeroMap(player);
-        ForgeNetworkHandler.get().sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
+        ForgeNetworkHandler.getInstance().sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
     }
 
     private static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
@@ -115,7 +115,7 @@ public class ServerSyncHandlerLogic {
                 serverPlayer.sendSystemMessage(
                         ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
             }
-            ForgeNetworkHandler.get()
+            ForgeNetworkHandler.getInstance()
                     .sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
@@ -166,7 +166,7 @@ public class ServerSyncHandlerLogic {
                             ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
                 }
             }
-            ForgeNetworkHandler.get()
+            ForgeNetworkHandler.getInstance()
                     .sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
             return;
         }

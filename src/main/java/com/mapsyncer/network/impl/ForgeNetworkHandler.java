@@ -36,16 +36,16 @@ public class ForgeNetworkHandler {
 
     private boolean registered = false;
 
-    public static void setInstance(ForgeNetworkHandler handler) {
-        if (INSTANCE != null) {
-            throw new IllegalStateException("ForgeNetworkHandler already initialized");
-        }
-        INSTANCE = handler;
+    private ForgeNetworkHandler() {
     }
 
-    public static ForgeNetworkHandler get() {
+    public static ForgeNetworkHandler getInstance() {
         if (INSTANCE == null) {
-            throw new IllegalStateException("ForgeNetworkHandler not initialized");
+            synchronized (ForgeNetworkHandler.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new ForgeNetworkHandler();
+                }
+            }
         }
         return INSTANCE;
     }

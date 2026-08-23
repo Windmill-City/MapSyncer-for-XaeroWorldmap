@@ -61,7 +61,7 @@ public class MapPacketHandler {
     private static final AtomicInteger requestCounter = new AtomicInteger(0);
 
     public static void registerHandlers() {
-        var handler = ForgeNetworkHandler.get();
+        var handler = ForgeNetworkHandler.getInstance();
         handler.registerSyncResponseHandler(MapPacketHandler::handleSyncResponse);
         handler.registerSyncManifestHandler(MapPacketHandler::handleSyncManifest);
     }
@@ -458,7 +458,7 @@ public class MapPacketHandler {
         regionRequestInFlight = true;
         Map<String, RegionMeta> single = new HashMap<>();
         single.put(path, new RegionMeta(0));
-        ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(single, false, "", true));
+        ForgeNetworkHandler.getInstance().sendToServer(new SyncRequestPayload(single, false, "", true));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",
