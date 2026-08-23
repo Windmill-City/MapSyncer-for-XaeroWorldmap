@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.network.payload.SyncResponsePayload;
+import com.mapsyncer.network.SyncManifestPayload;
+import com.mapsyncer.network.SyncRequestPayload;
+import com.mapsyncer.network.SyncResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.ConversionOrchestrator;
 import com.mapsyncer.server.IncrementalUpdateHandlerLogic;

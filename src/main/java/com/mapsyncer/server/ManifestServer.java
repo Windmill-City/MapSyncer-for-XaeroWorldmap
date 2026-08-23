@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.payload.RegionRef;
+import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionKey;

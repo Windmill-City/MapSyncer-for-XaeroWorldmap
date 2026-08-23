@@ -1,4 +1,4 @@
-package com.mapsyncer.network.payload;
+package com.mapsyncer.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 

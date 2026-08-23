@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.RegionData;
+import com.mapsyncer.network.RegionData;
 import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.io.OutputStream;

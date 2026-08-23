@@ -1,11 +1,11 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.payload.RegionData;
-import com.mapsyncer.network.payload.RegionRef;
-import com.mapsyncer.network.payload.SyncManifestPayload;
-import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.network.payload.SyncResponsePayload;
+import com.mapsyncer.network.RegionData;
+import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.network.SyncManifestPayload;
+import com.mapsyncer.network.SyncRequestPayload;
+import com.mapsyncer.network.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;

@@ -1,6 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.payload.RegionData;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -10,6 +9,8 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.network.RegionData;
 
 public final class ClientSyncWriteQueue {
 
