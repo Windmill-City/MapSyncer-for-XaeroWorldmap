@@ -4,16 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 
-public class SyncRequestPayload {
+public class MapRequestPayload {
     private final List<RegionRef> regions;
     private final int partIndex;
     private final int totalParts;
 
-    public SyncRequestPayload(List<RegionRef> regions) {
+    public MapRequestPayload(List<RegionRef> regions) {
         this(regions, 0, 0);
     }
 
-    public SyncRequestPayload(List<RegionRef> regions, int partIndex, int totalParts) {
+    public MapRequestPayload(List<RegionRef> regions, int partIndex, int totalParts) {
         this.regions = regions;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
@@ -31,7 +31,7 @@ public class SyncRequestPayload {
         return totalParts;
     }
 
-    public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
+    public static void write(FriendlyByteBuf buf, MapRequestPayload payload) {
         buf.writeInt(payload.regions().size());
         for (RegionRef region : payload.regions()) {
             RegionRef.write(buf, region);
@@ -43,7 +43,7 @@ public class SyncRequestPayload {
         }
     }
 
-    public static SyncRequestPayload read(FriendlyByteBuf buf) {
+    public static MapRequestPayload read(FriendlyByteBuf buf) {
         int size = buf.readInt();
         List<RegionRef> regions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -58,6 +58,6 @@ public class SyncRequestPayload {
             totalParts = buf.readInt();
         }
 
-        return new SyncRequestPayload(regions, partIndex, totalParts);
+        return new MapRequestPayload(regions, partIndex, totalParts);
     }
 }

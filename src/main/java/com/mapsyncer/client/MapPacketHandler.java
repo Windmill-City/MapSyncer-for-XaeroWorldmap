@@ -3,9 +3,9 @@ package com.mapsyncer.client;
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.network.SyncManifestPayload;
-import com.mapsyncer.network.SyncRequestPayload;
-import com.mapsyncer.network.SyncResponsePayload;
+import com.mapsyncer.network.ManifestPayload;
+import com.mapsyncer.network.MapRequestPayload;
+import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.util.ChatUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public class MapPacketHandler {
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
-    public static void handleSyncManifest(SyncManifestPayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
         MapSyncer.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
@@ -132,7 +132,7 @@ public class MapPacketHandler {
         });
     }
 
-    private static void handleManifestReceived(SyncManifestPayload payload, int generation) {
+    private static void handleManifestReceived(ManifestPayload payload, int generation) {
         if (!session.isCurrent(generation)) {
             LOGGER.debug("Ignoring sync manifest for stale generation {}", generation);
             return;
@@ -251,7 +251,7 @@ public class MapPacketHandler {
         return list;
     }
 
-    public static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         final int generationAtEnqueue = session.generation();
         MapSyncer.enqueueWork(context, () -> {
             if (!session.isCurrent(generationAtEnqueue)) {
@@ -409,7 +409,7 @@ public class MapPacketHandler {
 
         regionRequestInFlight = true;
         List<RegionRef> single = List.of(ref);
-        MapSyncer.sendToServer(new SyncRequestPayload(single));
+        MapSyncer.sendToServer(new MapRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",

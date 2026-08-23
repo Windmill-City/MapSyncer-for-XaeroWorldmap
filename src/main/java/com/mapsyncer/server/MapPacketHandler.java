@@ -3,9 +3,9 @@ package com.mapsyncer.server;
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.network.SyncManifestPayload;
-import com.mapsyncer.network.SyncRequestPayload;
-import com.mapsyncer.network.SyncResponsePayload;
+import com.mapsyncer.network.ManifestPayload;
+import com.mapsyncer.network.MapRequestPayload;
+import com.mapsyncer.network.MapResponsePayload;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,11 +29,11 @@ public class MapPacketHandler {
 
     public static void pushManifest(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
-        MapSyncer.sendToPlayer(player, new SyncManifestPayload(manifest));
+        MapSyncer.sendToPlayer(player, new ManifestPayload(manifest));
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
-    public static void handleSyncRequest(SyncRequestPayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleMapRequest(MapRequestPayload payload, Supplier<NetworkEvent.Context> context) {
         MapSyncer.enqueueWork(context, () -> {
             Player player = MapSyncer.getPlayerFromContext(context);
             if (!(player instanceof ServerPlayer serverPlayer)) return;
@@ -97,7 +97,7 @@ public class MapPacketHandler {
 
     private static void sendRegionResponse(ServerPlayer player, List<RegionData> parts) {
         if (parts.isEmpty()) {
-            MapSyncer.sendToPlayer(player, new SyncResponsePayload(List.of(), true));
+            MapSyncer.sendToPlayer(player, new MapResponsePayload(List.of(), true));
             return;
         }
         List<RegionData> batch = new ArrayList<>();
@@ -123,6 +123,6 @@ public class MapPacketHandler {
                 batch.size(),
                 bytes,
                 complete);
-        MapSyncer.sendToPlayer(player, new SyncResponsePayload(batch, complete));
+        MapSyncer.sendToPlayer(player, new MapResponsePayload(batch, complete));
     }
 }

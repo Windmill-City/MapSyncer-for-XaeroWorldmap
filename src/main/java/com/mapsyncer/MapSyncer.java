@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.SyncManifestPayload;
-import com.mapsyncer.network.SyncRequestPayload;
-import com.mapsyncer.network.SyncResponsePayload;
+import com.mapsyncer.network.ManifestPayload;
+import com.mapsyncer.network.MapRequestPayload;
+import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.MapUpdater;
@@ -60,34 +60,34 @@ public class MapSyncer {
                 NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
         CHANNEL.registerMessage(
                 0,
-                SyncRequestPayload.class,
-                (msg, buf) -> SyncRequestPayload.write(buf, msg),
-                SyncRequestPayload::read,
+                MapRequestPayload.class,
+                (msg, buf) -> MapRequestPayload.write(buf, msg),
+                MapRequestPayload::read,
                 MapPacketHandler::handleSyncRequest);
         CHANNEL.registerMessage(
                 1,
-                SyncResponsePayload.class,
-                (msg, buf) -> SyncResponsePayload.write(buf, msg),
-                SyncResponsePayload::read,
+                MapResponsePayload.class,
+                (msg, buf) -> MapResponsePayload.write(buf, msg),
+                MapResponsePayload::read,
                 MapPacketHandler::handleSyncResponse);
         CHANNEL.registerMessage(
                 2,
-                SyncManifestPayload.class,
-                (msg, buf) -> SyncManifestPayload.write(buf, msg),
-                SyncManifestPayload::read,
+                ManifestPayload.class,
+                (msg, buf) -> ManifestPayload.write(buf, msg),
+                ManifestPayload::read,
                 MapPacketHandler::handleSyncManifest);
         LOGGER.info("MapSyncer initialized");
     }
 
-    public static void sendToServer(SyncRequestPayload payload) {
+    public static void sendToServer(MapRequestPayload payload) {
         CHANNEL.sendToServer(payload);
     }
 
-    public static void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
+    public static void sendToPlayer(ServerPlayer player, MapResponsePayload payload) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
     }
 
-    public static void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
+    public static void sendToPlayer(ServerPlayer player, ManifestPayload payload) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
     }
 
