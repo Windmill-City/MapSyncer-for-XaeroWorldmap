@@ -3,7 +3,6 @@ package com.mapsyncer.client;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,40 +14,29 @@ public final class XaeroReflectionHelper {
 
     private static volatile boolean initialized = false;
 
-    private static @Nullable Class<?> worldMapSessionClass;
-    private static @Nullable Class<?> mapProcessorClass;
-    private static @Nullable Class<?> mapSaveLoadClass;
-    private static @Nullable Class<?> mapRegionClass;
-    private static @Nullable Class<?> leveledRegionClass;
+    private static Class<?> worldMapSessionClass;
+    private static Class<?> mapProcessorClass;
+    private static Class<?> mapSaveLoadClass;
+    private static Class<?> mapRegionClass;
+    private static Class<?> leveledRegionClass;
 
-    private static @Nullable Method getCurrentSessionMethod;
-    private static @Nullable Method getMapProcessorMethod;
-    private static @Nullable Method getMapSaveLoadMethod;
-    private static @Nullable Method getLeafMapRegionMethod;
-    private static @Nullable Method requestLoadMethod;
-    private static @Nullable Method cancelRefreshMethod;
-    private static @Nullable Method setHasHadTerrainMethod;
-    private static @Nullable Method setRegionDetectionCompleteMethod;
-    private static @Nullable Method getCurrentWorldIdMethod;
-    private static @Nullable Method getDimensionNameMethod;
-    private static @Nullable Method getRootFolderMethod;
+    private static Method getCurrentSessionMethod;
+    private static Method getMapProcessorMethod;
+    private static Method getMapSaveLoadMethod;
+    private static Method getLeafMapRegionMethod;
+    private static Method requestLoadMethod;
+    private static Method cancelRefreshMethod;
+    private static Method setHasHadTerrainMethod;
+    private static Method getCurrentWorldIdMethod;
+    private static Method getDimensionNameMethod;
+    private static Method getRootFolderMethod;
 
-    private static @Nullable Field loadStateField;
-    private static @Nullable Field shouldCacheField;
-    private static @Nullable Field worldIdField;
-    private static @Nullable Field dimIdField;
-    private static @Nullable Field mwIdField;
+    private static Field loadStateField;
+    private static Field shouldCacheField;
 
-    private static @Nullable Object cachedSession;
-    private static @Nullable Object cachedMapProcessor;
-    private static @Nullable Object cachedMapSaveLoad;
-
-    private static volatile boolean configReflectionInitialized = false;
-    private static @Nullable Field worldMapInstanceField;
-    private static @Nullable Field differentiateByServerAddressField;
-    private static @Nullable Method getConfigsMethod;
-    private static @Nullable Method getPrimaryClientConfigManagerMethod;
-    private static @Nullable Method getEffectiveMethod;
+    private static Object cachedSession;
+    private static Object cachedMapProcessor;
+    private static Object cachedMapSaveLoad;
 
     public static boolean initialize() {
 
@@ -72,25 +60,18 @@ public final class XaeroReflectionHelper {
             requestLoadMethod = mapSaveLoadClass.getMethod("requestLoad", mapRegionClass, String.class, boolean.class);
             cancelRefreshMethod = mapRegionClass.getMethod("cancelRefresh", mapProcessorClass);
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
-            setRegionDetectionCompleteMethod = mapSaveLoadClass.getMethod("setRegionDetectionComplete", boolean.class);
             getCurrentWorldIdMethod = mapProcessorClass.getMethod("getCurrentWorldId");
             getDimensionNameMethod =
                     mapProcessorClass.getMethod("getDimensionName", net.minecraft.resources.ResourceKey.class);
             getRootFolderMethod = mapSaveLoadClass.getMethod("getRootFolder", String.class);
-            LOGGER.info("成功缓存 {} 个反射方法", 11);
+            LOGGER.info("成功缓存 {} 个反射方法", 10);
 
             LOGGER.debug("获取并缓存反射字段...");
             loadStateField = mapRegionClass.getDeclaredField("loadState");
             loadStateField.setAccessible(true);
             shouldCacheField = leveledRegionClass.getDeclaredField("shouldCache");
             shouldCacheField.setAccessible(true);
-            worldIdField = leveledRegionClass.getDeclaredField("worldId");
-            worldIdField.setAccessible(true);
-            dimIdField = leveledRegionClass.getDeclaredField("dimId");
-            dimIdField.setAccessible(true);
-            mwIdField = leveledRegionClass.getDeclaredField("mwId");
-            mwIdField.setAccessible(true);
-            LOGGER.info("成功缓存 {} 个反射字段", 5);
+            LOGGER.info("成功缓存 {} 个反射字段", 2);
 
             initialized = true;
             LOGGER.info("Xaero reflection helper initialized successfully");
@@ -102,7 +83,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable Object getSession() {
+    public static Object getSession() {
         if (!initialized || getCurrentSessionMethod == null) return null;
 
         try {
@@ -114,7 +95,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable Object getMapProcessor() {
+    public static Object getMapProcessor() {
         if (!initialized || getMapProcessorMethod == null) return null;
 
         try {
@@ -130,7 +111,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable Object getMapSaveLoad() {
+    public static Object getMapSaveLoad() {
         if (!initialized || getMapSaveLoadMethod == null) return null;
 
         try {
@@ -146,7 +127,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable Object getLeafMapRegion(int caveLayer, int regionX, int regionZ, boolean createIfMissing) {
+    public static Object getLeafMapRegion(int caveLayer, int regionX, int regionZ, boolean createIfMissing) {
         if (!initialized || getLeafMapRegionMethod == null) return null;
 
         try {
@@ -156,26 +137,6 @@ public final class XaeroReflectionHelper {
         } catch (Exception e) {
             LOGGER.warn("Failed to get MapRegion ({}, {}) layer={}", regionX, regionZ, caveLayer, e);
             return null;
-        }
-    }
-
-    public static boolean setRegionDetectionComplete(boolean value) {
-        if (!initialized || setRegionDetectionCompleteMethod == null) {
-            return false;
-        }
-
-        try {
-            Object saveLoad = getMapSaveLoad();
-            if (saveLoad == null) {
-                LOGGER.warn("setRegionDetectionComplete 失败：无法获取 MapSaveLoad 实例");
-                return false;
-            }
-            setRegionDetectionCompleteMethod.invoke(saveLoad, value);
-            LOGGER.debug("setRegionDetectionComplete 设置为 {}", value);
-            return true;
-        } catch (Exception e) {
-            LOGGER.error("setRegionDetectionComplete 反射调用失败 (value={}): {}", value, e.getMessage(), e);
-            return false;
         }
     }
 
@@ -264,18 +225,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable String getWorldId(Object mapRegion) {
-        if (!initialized || worldIdField == null) return null;
-
-        try {
-            return (String) worldIdField.get(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get worldId", e);
-            return null;
-        }
-    }
-
-    public static @Nullable String getCurrentWorldId() {
+    public static String getCurrentWorldId() {
         if (!initialized || getCurrentWorldIdMethod == null) return null;
 
         try {
@@ -288,7 +238,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    public static @Nullable Path getCurrentServerDirectory() {
+    public static Path getCurrentServerDirectory() {
         if (!initialized || getRootFolderMethod == null) return null;
 
         String worldId = getCurrentWorldId();
@@ -311,7 +261,7 @@ public final class XaeroReflectionHelper {
     private static final java.util.concurrent.ConcurrentHashMap<String, String> dimNameCache =
             new java.util.concurrent.ConcurrentHashMap<>();
 
-    public static @Nullable String getDimensionName(String dimId) {
+    public static String getDimensionName(String dimId) {
         if (!initialized || getDimensionNameMethod == null) return null;
 
         String cached = dimNameCache.get(dimId);
@@ -336,7 +286,7 @@ public final class XaeroReflectionHelper {
         }
     }
 
-    private static @Nullable net.minecraft.resources.ResourceKey<?> toDimensionKey(String dimId) {
+    private static net.minecraft.resources.ResourceKey<?> toDimensionKey(String dimId) {
         if (dimId == null || dimId.isEmpty()) {
             return null;
         }
@@ -365,87 +315,6 @@ public final class XaeroReflectionHelper {
         } catch (Exception e) {
             LOGGER.warn("Invalid dimension id '{}'", dimId, e);
             return null;
-        }
-    }
-
-    public static @Nullable String getDimId(Object mapRegion) {
-        if (!initialized || dimIdField == null) return null;
-
-        try {
-            return (String) dimIdField.get(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get dimId", e);
-            return null;
-        }
-    }
-
-    public static @Nullable String getMwId(Object mapRegion) {
-        if (!initialized || mwIdField == null) return null;
-
-        try {
-            return (String) mwIdField.get(mapRegion);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get mwId", e);
-            return null;
-        }
-    }
-
-    public static boolean isInitialized() {
-        return initialized;
-    }
-
-    public static @Nullable Boolean getDifferentiateByServerAddress() {
-        if (!initConfigReflection()
-                || worldMapInstanceField == null
-                || getConfigsMethod == null
-                || getPrimaryClientConfigManagerMethod == null
-                || getEffectiveMethod == null
-                || differentiateByServerAddressField == null) {
-            return null;
-        }
-        try {
-            Object worldMap = worldMapInstanceField.get(null);
-            if (worldMap == null) {
-                return null;
-            }
-            Object configChannel = getConfigsMethod.invoke(worldMap);
-            if (configChannel == null) {
-                return null;
-            }
-            Object primaryClientConfigManager = getPrimaryClientConfigManagerMethod.invoke(configChannel);
-            if (primaryClientConfigManager == null) {
-                return null;
-            }
-            Object option = differentiateByServerAddressField.get(null);
-            Object value = getEffectiveMethod.invoke(primaryClientConfigManager, option);
-            return (Boolean) value;
-        } catch (Exception e) {
-            LOGGER.warn("Failed to read Xaero differentiate_by_server_address via reflection", e);
-            return null;
-        }
-    }
-
-    private static synchronized boolean initConfigReflection() {
-        if (configReflectionInitialized) {
-            return true;
-        }
-        try {
-            Class<?> worldMapClass = Class.forName("xaero.map.WorldMap");
-            worldMapInstanceField = worldMapClass.getField("INSTANCE");
-            getConfigsMethod = worldMapClass.getMethod("getConfigs");
-            Class<?> configChannelClass = Class.forName("xaero.lib.common.config.channel.ConfigChannel");
-            getPrimaryClientConfigManagerMethod = configChannelClass.getMethod("getPrimaryClientConfigManager");
-            Class<?> singleConfigManagerClass = Class.forName("xaero.lib.common.config.single.SingleConfigManager");
-            Class<?> configOptionClass = Class.forName("xaero.lib.common.config.option.ConfigOption");
-            getEffectiveMethod = singleConfigManagerClass.getMethod("getEffective", configOptionClass);
-            Class<?> optionsClass = Class.forName("xaero.map.config.primary.option.WorldMapPrimaryClientConfigOptions");
-            differentiateByServerAddressField = optionsClass.getField("DIFFERENTIATE_BY_SERVER_ADDRESS");
-            configReflectionInitialized = true;
-            LOGGER.info("Xaero config reflection initialized");
-            return true;
-        } catch (Exception e) {
-            LOGGER.warn("Xaero config reflection unavailable", e);
-            return false;
         }
     }
 
