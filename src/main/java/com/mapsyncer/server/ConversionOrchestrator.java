@@ -726,8 +726,8 @@ public class ConversionOrchestrator {
             }
 
             try {
-                XaeroWriter.RegionWriteResult writeResult = XaeroWriter.writeRegionFile(outputDir, single);
-                genCache.update(relativePath, generationTimeSeconds, writeResult.crc32Hash());
+                XaeroWriter.writeRegionFile(outputDir, single);
+                genCache.update(relativePath, generationTimeSeconds);
                 anyWritten = true;
                 if (logProgress) {
                     int convertedSoFar = convertedCountAtomic.incrementAndGet();

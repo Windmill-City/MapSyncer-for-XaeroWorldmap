@@ -6,8 +6,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.zip.CRC32;
-import java.util.zip.CheckedOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
@@ -44,19 +42,15 @@ public class XaeroWriter {
         return count[0];
     }
 
-    public record RegionWriteResult(String crc32Hash) {}
-
-    public static RegionWriteResult writeRegionFile(Path outputDir, ConvertedRegion region) throws IOException {
+    public static void writeRegionFile(Path outputDir, ConvertedRegion region) throws IOException {
         Files.createDirectories(outputDir);
 
         String fileName = region.regionX() + "_" + region.regionZ();
         Path tempFile = outputDir.resolve(fileName + ".zip.temp");
         Path finalFile = outputDir.resolve(fileName + ".zip");
 
-        CRC32 crc32 = new CRC32();
         try (OutputStream fileOut = Files.newOutputStream(tempFile);
-                CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32);
-                ZipOutputStream zos = new ZipOutputStream(checkedOut)) {
+                ZipOutputStream zos = new ZipOutputStream(fileOut)) {
             ZipEntry entry = new ZipEntry("region.xaero");
             zos.putNextEntry(entry);
             zos.write(region.xaeroData());
@@ -64,7 +58,6 @@ public class XaeroWriter {
         }
 
         Files.move(tempFile, finalFile, StandardCopyOption.REPLACE_EXISTING);
-        return new RegionWriteResult(String.format("%08x", crc32.getValue()));
     }
 
     public static boolean regionFileExists(Path outputDir, int regionX, int regionZ) {

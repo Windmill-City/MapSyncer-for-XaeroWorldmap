@@ -414,19 +414,12 @@ public class BlockPropertyResolver {
 
     private static boolean checkIsAquaticPlant(Block block, BlockState state) {
 
-        if (block == Blocks.SEAGRASS) {
-            return true;
-        }
-
-        if (block == Blocks.KELP || block == Blocks.KELP_PLANT) {
+        if (state.is(BlockTags.UNDERWATER_BONEMEALS)) {
             return true;
         }
 
         String blockId = ForgeRegistries.BLOCKS.getKey(block).getPath();
-        return blockId.equals("seagrass")
-                || blockId.equals("tall_seagrass")
-                || blockId.equals("kelp")
-                || blockId.equals("kelp_plant");
+        return blockId.equals("kelp") || blockId.equals("kelp_plant") || blockId.equals("tall_seagrass");
     }
 
     private static BlockProperties getFallbackProperties(String blockName) {

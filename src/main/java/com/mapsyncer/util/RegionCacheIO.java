@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +16,8 @@ public final class RegionCacheIO {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegionCacheIO.class);
 
-    public static <T> Map<String, T> load(Path cacheFile, Function<String, T> parser) {
-        Map<String, T> cache = new HashMap<>();
+    public static Map<String, RegionMeta> load(Path cacheFile) {
+        Map<String, RegionMeta> cache = new HashMap<>();
 
         if (cacheFile == null || !Files.exists(cacheFile)) {
             LOGGER.info("Cache file not found: {}", cacheFile);
@@ -30,7 +29,7 @@ public final class RegionCacheIO {
             props.load(is);
 
             for (String key : props.stringPropertyNames()) {
-                T value = parser.apply(props.getProperty(key));
+                RegionMeta value = parseTimestamp(props.getProperty(key));
                 if (value != null) {
                     cache.put(key, value);
                 } else {
@@ -46,7 +45,7 @@ public final class RegionCacheIO {
         return cache;
     }
 
-    public static <T> void save(Path cacheFile, Map<String, T> cache, Function<T, String> formatter, String header) {
+    public static void save(Path cacheFile, Map<String, RegionMeta> cache, String header) {
         if (cacheFile == null) {
             LOGGER.warn("Cache file path is null, skip saving");
             return;
@@ -56,8 +55,8 @@ public final class RegionCacheIO {
             Files.createDirectories(cacheFile.getParent());
 
             Properties props = new Properties();
-            for (Map.Entry<String, T> entry : cache.entrySet()) {
-                props.setProperty(entry.getKey(), formatter.apply(entry.getValue()));
+            for (Map.Entry<String, RegionMeta> entry : cache.entrySet()) {
+                props.setProperty(entry.getKey(), entry.getValue().format());
             }
 
             try (OutputStream os = Files.newOutputStream(cacheFile)) {
@@ -70,20 +69,15 @@ public final class RegionCacheIO {
         }
     }
 
-    public static @Nullable RegionMeta parseTimestampHash(String value) {
+    public static @Nullable RegionMeta parseTimestamp(String value) {
         if (value == null || value.isEmpty()) {
             return null;
         }
 
-        String[] parts = value.split(":");
-        if (parts.length == 2) {
-            try {
-                long ts = Long.parseLong(parts[0]);
-                return new RegionMeta(ts, parts[1]);
-            } catch (NumberFormatException e) {
-                return null;
-            }
+        try {
+            return new RegionMeta(Long.parseLong(value));
+        } catch (NumberFormatException e) {
+            return null;
         }
-        return null;
     }
 }

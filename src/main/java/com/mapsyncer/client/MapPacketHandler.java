@@ -8,7 +8,6 @@ import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.RegionMeta;
 import com.mapsyncer.util.DimensionPathMapping;
-import com.mapsyncer.util.HashUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -128,7 +127,7 @@ public class MapPacketHandler {
         clearSyncData();
         XaeroReflectionHelper.clearCache();
         XaeroMapDataHandler.clearRegionTracking();
-        ClientHashManager.shutdown();
+        ClientMetaScanner.shutdown();
         ClientSyncWriteQueue.shutdown();
         ClientTimestampCache.resetInstance();
         LOGGER.info("Client disconnected, all resources cleaned up");
@@ -237,7 +236,7 @@ public class MapPacketHandler {
             return;
         }
 
-        ClientHashManager.computeMetaForSyncAsync(serverDir, result -> {
+        ClientMetaScanner.computeMetaForSyncAsync(serverDir, result -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
                 if (!session.isCurrent(generation)) {
@@ -250,9 +249,9 @@ public class MapPacketHandler {
                 if (!result.isSuccess()) {
                     if (result.failedFiles() > 0) {
                         mc.player.displayClientMessage(
-                                ChatUtils.error("mapsyncer.sync.hash_scan_partial", result.failedFiles()), false);
+                                ChatUtils.error("mapsyncer.sync.scan_partial", result.failedFiles()), false);
                     } else {
-                        mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.hash_scan_failed"), false);
+                        mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.scan_failed"), false);
                     }
                     clearSyncData();
                     return;
@@ -268,7 +267,7 @@ public class MapPacketHandler {
                     if (local != null && local.timestampSeconds() >= serverTs) {
                         upToDateCount++;
                     } else {
-                        diff.put(path, local != null ? local : new RegionMeta(0, HashUtils.DEFAULT_HASH));
+                        diff.put(path, local != null ? local : new RegionMeta(0));
                     }
                 }
 
@@ -470,7 +469,7 @@ public class MapPacketHandler {
 
         regionRequestInFlight = true;
         Map<String, RegionMeta> single = new HashMap<>();
-        single.put(path, new RegionMeta(0, HashUtils.DEFAULT_HASH));
+        single.put(path, new RegionMeta(0));
         ForgeNetworkHandler.get().sendToServer(new SyncRequestPayload(single, false, "", true));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(

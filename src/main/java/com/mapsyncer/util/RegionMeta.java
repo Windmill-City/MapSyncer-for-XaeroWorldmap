@@ -1,8 +1,8 @@
 package com.mapsyncer.util;
 
-public record RegionMeta(long timestampSeconds, String hash) {
+public record RegionMeta(long timestampSeconds) {
 
     public String format() {
-        return timestampSeconds + ":" + hash;
+        return String.valueOf(timestampSeconds);
     }
 }

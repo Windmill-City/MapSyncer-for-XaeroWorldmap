@@ -40,10 +40,6 @@ public class ModConfig {
         return xaeroDimName + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
     }
 
-    public static final ForgeConfigSpec CLIENT_SPEC;
-
-    public static final ClientConfig CLIENT;
-
     public static final ForgeConfigSpec SERVER_SPEC;
 
     public static final ServerConfig SERVER;
@@ -53,10 +49,6 @@ public class ModConfig {
     }
 
     static {
-        var clientPair = new ForgeConfigSpec.Builder().configure(ClientConfig::new);
-        CLIENT = clientPair.getLeft();
-        CLIENT_SPEC = clientPair.getRight();
-
         var serverPair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
         SERVER = serverPair.getLeft();
         SERVER_SPEC = serverPair.getRight();
@@ -83,47 +75,6 @@ public class ModConfig {
     }
 
     private static volatile @Nullable net.minecraftforge.fml.config.ModConfig boundServerConfig;
-
-    public static class ClientConfig {
-
-        public final IntValue hashThreads;
-
-        public ClientConfig(ForgeConfigSpec.Builder builder) {
-            builder.push("client");
-            builder.comment("客户端设置 / Client settings");
-
-            int defaultThreads = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
-            int maxThreads = Runtime.getRuntime().availableProcessors();
-
-            hashThreads = builder.comment(
-                            "哈希计算线程数（用于地图同步时的并行计算）",
-                            "Number of threads for hash computation during map sync",
-                            "",
-                            "默认使用可用处理器数的一半，避免阻塞游戏主线程",
-                            "Default uses half of available processors to avoid blocking game main thread",
-                            "",
-                            "线程数选择建议：",
-                            "  1-2 核：使用 1 线程",
-                            "  4 核：使用 2 线程（大多数配置的默认值）",
-                            "  8+ 核：使用 4-8 线程加快同步速度",
-                            "Thread count recommendations:",
-                            "  1-2 cores: use 1 thread",
-                            "  4 cores: use 2 threads (default for most setups)",
-                            "  8+ cores: use 4-8 threads for faster sync",
-                            "",
-                            "默认：" + defaultThreads + "（可用 " + maxThreads + " 个处理器的一半）",
-                            "Default: " + defaultThreads + " (half of " + maxThreads + " available processors)",
-                            "范围：1 - " + maxThreads,
-                            "Range: 1 - " + maxThreads)
-                    .defineInRange("hashThreads", defaultThreads, 1, maxThreads);
-
-            builder.pop();
-        }
-
-        public int getHashThreads() {
-            return hashThreads.get();
-        }
-    }
 
     public static class ServerConfig {
 

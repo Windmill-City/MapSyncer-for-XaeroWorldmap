@@ -45,20 +45,18 @@ public class GenerationCache {
     }
 
     private void load() {
-        Map<String, RegionMeta> loaded = RegionCacheIO.load(cacheFile, RegionCacheIO::parseTimestampHash);
-        cache.putAll(loaded);
+        cache.putAll(RegionCacheIO.load(cacheFile));
     }
 
     public void save() {
         RegionCacheIO.save(
                 cacheFile,
                 new HashMap<>(cache),
-                RegionMeta::format,
-                "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds:hash\nHash is CRC32 of file content");
+                "Generation cache for map regions\nFormat: dimension/region_x_z = timestamp_seconds");
     }
 
-    public void update(String relativePath, long timestampSeconds, String hash) {
-        cache.put(relativePath, new RegionMeta(timestampSeconds, hash));
+    public void update(String relativePath, long timestampSeconds) {
+        cache.put(relativePath, new RegionMeta(timestampSeconds));
         trimIfOverLimit();
     }
 

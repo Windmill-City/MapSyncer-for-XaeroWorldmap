@@ -1,7 +1,7 @@
 {
   "mapsyncer.sync.completed": "同步完成，已更新 %d 个区域（耗时 %d 秒）",
-  "mapsyncer.sync.hash_scan_failed": "本地地图扫描失败，同步已取消，请稍后重试",
-  "mapsyncer.sync.hash_scan_partial": "本地地图扫描失败（%d 个文件出错），同步已取消",
+  "mapsyncer.sync.scan_failed": "本地地图扫描失败，同步已取消，请稍后重试",
+  "mapsyncer.sync.scan_partial": "本地地图扫描失败（%d 个文件出错），同步已取消",
   "mapsyncer.sync.server_dir_missing": "无法解析服务器地图目录，同步已取消",
   "mapsyncer.sync.timeout": "同步超时，请重试",
   "mapsyncer.sync.partial": "部分区域已更新；写入失败或与本地探索冲突的区域可重试同步",
@@ -62,8 +62,6 @@
   "category.mapsyncer.general": "常规",
   "category.mapsyncer.incremental": "增量更新",
   "category.mapsyncer.client": "客户端",
-  "option.mapsyncer.hash_threads": "哈希扫描线程数",
-  "option.mapsyncer.hash_threads.tooltip": "同步前扫描本地地图文件、读取缓存版本信息时使用的并行线程数。较高值可能加快准备速度，但会增加 CPU 占用。",
   "option.mapsyncer.debug.tooltip": "启用后会在日志中输出详细的地图生成调试信息。",
   "option.mapsyncer.concurrent_regions": "最大并发区域数",
   "option.mapsyncer.concurrent_regions.tooltip": "同时转换的最大区域数。0 = 自动（逻辑处理器数 − 2，限制在 1–16）。较高值处理更快，但对服务端 CPU 要求更高。",

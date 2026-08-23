@@ -60,10 +60,7 @@ public final class ClientSyncWriteQueue {
                 result = XaeroMapDataHandler.writeChunkData(chunk, serverDir, worldId);
                 if (result != null) {
                     if (tsCache != null) {
-                        tsCache.update(
-                                XaeroMapDataHandler.buildRelativePathForCache(chunk),
-                                chunk.timestampSeconds,
-                                result.crc32Hash());
+                        tsCache.update(XaeroMapDataHandler.buildRelativePathForCache(chunk), chunk.timestampSeconds);
                     }
                     XaeroMapDataHandler.clearRegionCacheFiles(
                             result.mwDir(),

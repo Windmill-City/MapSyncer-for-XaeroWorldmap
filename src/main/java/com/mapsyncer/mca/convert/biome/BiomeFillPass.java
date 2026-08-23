@@ -9,8 +9,6 @@ import com.mapsyncer.mca.convert.model.MapRegionData;
 
 public final class BiomeFillPass {
 
-    private BiomeFillPass() {}
-
     public static void fill(MapRegionData data) {
         for (int rx = 0; rx < REGION_SIZE_BLOCKS; rx++) {
             for (int rz = 0; rz < REGION_SIZE_BLOCKS; rz++) {

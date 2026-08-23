@@ -1,7 +1,7 @@
 {
   "mapsyncer.sync.completed": "Sync complete: %d regions updated (%ds)",
-  "mapsyncer.sync.hash_scan_failed": "Local map scan failed; sync cancelled. Please try again later.",
-  "mapsyncer.sync.hash_scan_partial": "Local map scan failed (%d file errors); sync cancelled.",
+  "mapsyncer.sync.scan_failed": "Local map scan failed; sync cancelled. Please try again later.",
+  "mapsyncer.sync.scan_partial": "Local map scan failed (%d file errors); sync cancelled.",
   "mapsyncer.sync.server_dir_missing": "Unable to resolve server map directory; sync cancelled.",
   "mapsyncer.sync.timeout": "Sync timed out, please try again",
   "mapsyncer.sync.partial": "Some regions were updated; retry sync for any that failed to write or conflict with local exploration",
@@ -62,8 +62,6 @@
   "category.mapsyncer.general": "General",
   "category.mapsyncer.incremental": "Incremental updates",
   "category.mapsyncer.client": "Client",
-  "option.mapsyncer.hash_threads": "Hash scan threads",
-  "option.mapsyncer.hash_threads.tooltip": "Parallel threads used when scanning local map files and reading cached version info before sync. Higher values may speed up preparation but increase CPU usage.",
   "option.mapsyncer.debug.tooltip": "When enabled, detailed map generation debug information will be output to the log.",
   "option.mapsyncer.concurrent_regions": "Max concurrent regions",
   "option.mapsyncer.concurrent_regions.tooltip": "Maximum number of regions converted simultaneously. 0 = automatic (CPU cores − 2, clamped to 1–16). Higher values process faster but demand more server CPU.",

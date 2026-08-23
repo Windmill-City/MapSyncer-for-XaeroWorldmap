@@ -45,7 +45,6 @@ public class MapSyncer {
         LOGGER.info("DimensionPathMapping initialized");
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
-        ModLoadingContext.get().registerConfig(Type.CLIENT, ModConfig.CLIENT_SPEC);
 
         ForgeNetworkHandler networkHandler = new ForgeNetworkHandler();
         ForgeNetworkHandler.setInstance(networkHandler);

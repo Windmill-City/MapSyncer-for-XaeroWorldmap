@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.CRC32;
-import java.util.zip.CheckedOutputStream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +44,7 @@ public final class XaeroMapDataHandler {
         LOGGER.debug("Recorded {} updated region coords for selective reset", updatedRegions.size());
     }
 
-    public record RegionWriteResult(Path mwDir, Path outputFile, String crc32Hash) {}
+    public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
     public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, int worldId) {
         String xaeroDim = chunk.dimension;
@@ -63,13 +61,11 @@ public final class XaeroMapDataHandler {
         Path outputFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip");
         Path tempFile = targetDir.resolve(chunk.regionX + "_" + chunk.regionZ + ".zip.temp");
 
-        CRC32 crc32 = new CRC32();
         try {
             Files.createDirectories(targetDir);
 
-            try (OutputStream fileOut = Files.newOutputStream(tempFile);
-                    CheckedOutputStream checkedOut = new CheckedOutputStream(fileOut, crc32)) {
-                checkedOut.write(chunk.data);
+            try (OutputStream fileOut = Files.newOutputStream(tempFile)) {
+                fileOut.write(chunk.data);
             }
             Files.move(tempFile, outputFile, StandardCopyOption.REPLACE_EXISTING);
             LOGGER.debug(
@@ -82,7 +78,7 @@ public final class XaeroMapDataHandler {
             return null;
         }
 
-        return new RegionWriteResult(mwDir, outputFile, String.format("%08x", crc32.getValue()));
+        return new RegionWriteResult(mwDir, outputFile);
     }
 
     public static String buildRelativePathForCache(ChunkMapData chunk) {

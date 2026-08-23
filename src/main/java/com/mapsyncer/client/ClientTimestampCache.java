@@ -74,7 +74,7 @@ public class ClientTimestampCache {
 
             for (String key : props.stringPropertyNames()) {
                 if (!key.startsWith("_")) {
-                    RegionMeta entry = com.mapsyncer.util.RegionCacheIO.parseTimestampHash(props.getProperty(key));
+                    RegionMeta entry = com.mapsyncer.util.RegionCacheIO.parseTimestamp(props.getProperty(key));
                     if (entry != null) {
                         cache.put(key, entry);
                     }
@@ -100,7 +100,7 @@ public class ClientTimestampCache {
 
                 StringBuilder content = new StringBuilder();
                 content.append("# Sync timestamps cache\n");
-                content.append("# Format: dimension/region_x_z = timestamp_seconds:hash\n");
+                content.append("# Format: dimension/region_x_z = timestamp_seconds\n");
 
                 for (Map.Entry<String, RegionMeta> entry : cache.entrySet()) {
                     content.append(entry.getKey())
@@ -118,8 +118,8 @@ public class ClientTimestampCache {
         }
     }
 
-    public void update(String relativePath, long timestampSeconds, String hash) {
-        cache.put(relativePath, new RegionMeta(timestampSeconds, hash));
+    public void update(String relativePath, long timestampSeconds) {
+        cache.put(relativePath, new RegionMeta(timestampSeconds));
     }
 
     public void remove(String relativePath) {
