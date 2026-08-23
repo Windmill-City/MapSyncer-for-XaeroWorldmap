@@ -38,16 +38,10 @@ public final class PathMapping {
     }
 
     private static String canonicalId(String dimId) {
-        if (dimId == null || dimId.isEmpty()) {
+        if (dimId == null || dimId.isEmpty() || "null".equals(dimId) || "minecraft:null".equals(dimId)) {
             return "overworld";
         }
-        if (dimId.startsWith("minecraft:")) {
-            dimId = dimId.substring("minecraft:".length());
-        }
-        if ("null".equals(dimId)) {
-            return "overworld";
-        }
-        return dimId;
+        return dimId.startsWith("minecraft:") ? dimId.substring("minecraft:".length()) : dimId;
     }
 
     private static String xaeroEscape(String path) {
