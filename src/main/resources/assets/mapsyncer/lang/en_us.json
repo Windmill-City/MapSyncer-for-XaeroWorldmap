@@ -1,9 +1,7 @@
 {
   "mapsyncer.sync.completed": "Sync complete: %d regions updated (%ds)",
+  "mapsyncer.sync.started": "Sync started, %d regions to update",
   "mapsyncer.sync.scan_failed": "Local map scan failed; sync cancelled. Please try again later.",
-  "mapsyncer.sync.scan_partial": "Local map scan failed (%d file errors); sync cancelled.",
-  "mapsyncer.sync.server_dir_missing": "Unable to resolve server map directory; sync cancelled.",
-  "mapsyncer.sync.timeout": "Sync timed out, please try again",
   "mapsyncer.sync.partial": "Some regions were updated; retry sync for any that failed to write or conflict with local exploration",
 
   "mapsyncer.command.no_regions": "Local map is up-to-date, nothing to sync",
@@ -28,10 +26,6 @@
   "mapsyncer.command.incremental_status_on_empty": "Current incremental mode: ON_EMPTY (runs when no players are online)",
   "mapsyncer.command.incremental_status_hint": "Subcommands: /%s incremental off | onempty",
 
-  "mapsyncer.server.no_cache": "No map cache available. Run /%s generate first.",
-  "mapsyncer.server.dim_not_available": "Dimension '%s' map data not available. Run /%s generate %s first.",
-  "mapsyncer.server.manifest_ready": "Server has %d regions, comparing local timestamps...",
-
   "mapsyncer.generate.start_full": "Starting full map generation...",
   "mapsyncer.generate.full_complete": "Map generation completed: %d/%d regions, %d dimensions completed: %s",
   "mapsyncer.generate.in_progress": "Conversion in progress: %d/%d regions",
@@ -39,21 +33,5 @@
   "mapsyncer.command.conversion_busy": "A map generation task is already in progress. Please wait for it to complete before starting a new one.",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
-  "mapsyncer.status.cache_detail": "Cache stats: %s dimensions, %s regions, %s MB\n%s",
-
-  "mapsyncer.autosync.start": "Auto-syncing maps...",
-  "mapsyncer.autosync.complete": "Auto-sync complete",
-  "mapsyncer.autosync.no_server_map": "Server has no map data yet; auto-sync skipped",
-
-  "title.mapsyncer.config": "MapSyncer Server Config",
-  "title.mapsyncer.client_config": "MapSyncer Client Config",
-  "category.mapsyncer.general": "General",
-  "category.mapsyncer.incremental": "Incremental updates",
-  "category.mapsyncer.client": "Client",
-  "option.mapsyncer.debug.tooltip": "When enabled, detailed map generation debug information will be output to the log.",
-  "option.mapsyncer.packet_size": "Max sync packet size",
-  "option.mapsyncer.update_mode": "Incremental update mode",
-  "option.mapsyncer.debug": "Debug logging",
-  "option.mapsyncer.packet_size.tooltip": "Maximum bytes per network packet during sync. Excessively large packets may be dropped on unstable connections.",
-  "option.mapsyncer.update_mode.tooltip": "Server-side map cache incremental update strategy.\n\nDISABLED - No incremental updates.\nON_EMPTY - Runs an incremental update whenever no players are online (once per empty period, including after the last player leaves). The client always auto-syncs on join based on the server cache."
+  "mapsyncer.status.cache_detail": "Cache stats: %s dimensions, %s regions, %s MB\n%s"
 }

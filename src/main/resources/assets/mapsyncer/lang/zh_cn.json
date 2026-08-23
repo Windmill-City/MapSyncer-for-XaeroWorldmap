@@ -1,9 +1,7 @@
 {
   "mapsyncer.sync.completed": "同步完成，已更新 %d 个区域（耗时 %d 秒）",
+  "mapsyncer.sync.started": "开始同步，共 %d 个区域需要更新",
   "mapsyncer.sync.scan_failed": "本地地图扫描失败，同步已取消，请稍后重试",
-  "mapsyncer.sync.scan_partial": "本地地图扫描失败（%d 个文件出错），同步已取消",
-  "mapsyncer.sync.server_dir_missing": "无法解析服务器地图目录，同步已取消",
-  "mapsyncer.sync.timeout": "同步超时，请重试",
   "mapsyncer.sync.partial": "部分区域已更新；写入失败或与本地探索冲突的区域可重试同步",
 
   "mapsyncer.command.no_regions": "本地地图已是最新，无需同步",
@@ -28,10 +26,6 @@
   "mapsyncer.command.incremental_status_on_empty": "当前增量更新模式：ON_EMPTY（无人在线时执行）",
   "mapsyncer.command.incremental_status_hint": "可用子命令：/%s incremental off | onempty",
 
-  "mapsyncer.server.no_cache": "地图缓存不可用，请先运行 /%s generate",
-  "mapsyncer.server.dim_not_available": "维度 '%s' 地图数据不可用，请先运行 /%s generate %s",
-  "mapsyncer.server.manifest_ready": "服务端有 %d 个区域，正在比对本地时间戳...",
-
   "mapsyncer.generate.start_full": "开始全量地图生成...",
   "mapsyncer.generate.full_complete": "地图生成完成：%d/%d 个区域，已完成 %d 个维度：%s",
   "mapsyncer.generate.in_progress": "转换进行中：%d/%d 个区域",
@@ -39,21 +33,5 @@
   "mapsyncer.command.conversion_busy": "已有地图生成任务正在进行中，请等待当前任务完成后再执行新任务。",
   "mapsyncer.command.conversion_stopped": "已请求停止生成任务，正在取消剩余区域...",
   "mapsyncer.command.conversion_not_running": "当前没有正在进行的生成任务。",
-  "mapsyncer.status.cache_detail": "缓存统计：共 %s 个维度，%s 个区域，占用 %s MB\n%s",
-
-  "mapsyncer.autosync.start": "正在自动同步地图...",
-  "mapsyncer.autosync.complete": "自动同步完成",
-  "mapsyncer.autosync.no_server_map": "服务端还没有地图数据，已跳过自动同步",
-
-  "title.mapsyncer.config": "MapSyncer 服务端配置",
-  "title.mapsyncer.client_config": "MapSyncer 客户端配置",
-  "category.mapsyncer.general": "常规",
-  "category.mapsyncer.incremental": "增量更新",
-  "category.mapsyncer.client": "客户端",
-  "option.mapsyncer.debug.tooltip": "启用后会在日志中输出详细的地图生成调试信息。",
-  "option.mapsyncer.packet_size": "最大同步包大小",
-  "option.mapsyncer.update_mode": "增量更新模式",
-  "option.mapsyncer.debug": "调试日志",
-  "option.mapsyncer.packet_size.tooltip": "网络传输时单个数据包的最大字节数。设置过大的包在弱网环境中可能被丢弃，建议保持默认值。",
-  "option.mapsyncer.update_mode.tooltip": "服务端地图缓存的增量更新策略。\n\nDISABLED - 关闭增量更新。\nON_EMPTY - 无人在线时执行增量更新（包括最后一名玩家离线后的空服期，每个空服期执行一次）；客户端进服时始终按服务端缓存自动同步缺失区域。"
+  "mapsyncer.status.cache_detail": "缓存统计：共 %s 个维度，%s 个区域，占用 %s MB\n%s"
 }

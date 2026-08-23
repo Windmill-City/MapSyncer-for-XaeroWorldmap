@@ -130,6 +130,9 @@ public class MapPacketHandler {
                 syncProcessed = 0;
                 syncFailed = 0;
                 LOGGER.debug("[SYNC] per-region pull started: {} regions to fetch", syncTotal);
+                if (mc.player != null) {
+                    mc.player.displayClientMessage(ChatUtils.message("mapsyncer.sync.started", syncTotal), false);
+                }
                 requestNextRegion();
             });
         });
