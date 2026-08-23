@@ -1,12 +1,11 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.RegionData;
-import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
-
+import com.mapsyncer.network.RegionData;
+import com.mapsyncer.network.RegionRef;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,7 +29,7 @@ public class MapPacketHandler {
     public static void pushManifest(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
         MapSyncer.sendToPlayer(player, new ManifestPayload(manifest));
-        LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
+        LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
     public static void handleMapRequest(MapRequestPayload payload, Supplier<NetworkEvent.Context> context) {
@@ -40,8 +39,10 @@ public class MapPacketHandler {
 
             List<RegionRef> requested = payload.regions();
 
-            LOGGER.info(
-                    "[SYNC-SRV] request from {}: regions={}", serverPlayer.getName().getString(), requested.size());
+            LOGGER.debug(
+                    "[SYNC-SRV] request from {}: regions={}",
+                    serverPlayer.getName().getString(),
+                    requested.size());
 
             Path cacheDir = MapSyncer.CACHE_DIR;
             if (!Files.exists(cacheDir)) return;
@@ -76,7 +77,7 @@ public class MapPacketHandler {
             }
         }
 
-        LOGGER.info(
+        LOGGER.debug(
                 "[SYNC-SRV] serving {} requested regions for {}: produced {} parts, {} failed",
                 requested.size(),
                 player.getName().getString(),
@@ -117,7 +118,7 @@ public class MapPacketHandler {
     private static void sendRegionBatch(ServerPlayer player, List<RegionData> batch, boolean complete) {
         int bytes = 0;
         for (RegionData part : batch) bytes += part.data.length;
-        LOGGER.info(
+        LOGGER.debug(
                 "[SYNC-SRV] send to {}: {} parts, {} bytes, complete={}",
                 player.getName().getString(),
                 batch.size(),

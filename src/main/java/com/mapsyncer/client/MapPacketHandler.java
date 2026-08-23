@@ -1,11 +1,11 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.network.RegionData;
-import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
+import com.mapsyncer.network.RegionData;
+import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ChatUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -205,7 +205,7 @@ public class MapPacketHandler {
                     }
                 }
 
-                LOGGER.info(
+                LOGGER.debug(
                         "Manifest comparison: {} server regions, {} already up-to-date, {} need update",
                         serverTimestamps.size(),
                         upToDateCount,
@@ -226,7 +226,7 @@ public class MapPacketHandler {
                 syncProcessed = 0;
                 syncFailed = 0;
                 regionRequestInFlight = false;
-                LOGGER.info(
+                LOGGER.debug(
                         "[SYNC] per-region pull started: {} regions to fetch (generation={})", syncTotal, generation);
                 requestNextRegion(generation);
             });
@@ -259,7 +259,7 @@ public class MapPacketHandler {
                 return;
             }
 
-            LOGGER.info(
+            LOGGER.debug(
                     "[SYNC] <- response: chunks={}, complete={} (receiving={}, inFlight={}, pending={}, writes={}, partBufferKeys={})",
                     payload.chunks().size(),
                     payload.isComplete(),
@@ -282,13 +282,20 @@ public class MapPacketHandler {
 
             if (!session.isReceiving()) {
                 session.begin();
-                LOGGER.info("Starting sync (per-region pull mode)");
-                if (!initializeReflectionCache()) {
+                LOGGER.debug("Starting sync (per-region pull mode)");
+                if (!XaeroReflectionHelper.isInitialized()) {
                     session.markReflectionFailed();
                     if (Minecraft.getInstance().player != null) {
                         Minecraft.getInstance()
                                 .player
                                 .displayClientMessage(ChatUtils.error("mapsyncer.sync.reflection_failed"), false);
+                    }
+                } else {
+                    boolean regionDetectSuccess = XaeroReflectionHelper.setRegionDetectionComplete(true);
+                    if (regionDetectSuccess) {
+                        LOGGER.info("regionDetectionComplete set to true, reflection ready");
+                    } else {
+                        LOGGER.warn("setRegionDetectionComplete failed, getLeafMapRegion may return null");
                     }
                 }
             }
@@ -298,7 +305,7 @@ public class MapPacketHandler {
 
             cleanStaleParts();
 
-            if (!XaeroReflectionHelper.isInitialized() && !initializeReflectionCache()) {
+            if (!XaeroReflectionHelper.isInitialized()) {
                 session.markReflectionFailed();
             }
 
@@ -361,7 +368,7 @@ public class MapPacketHandler {
                             } else if (processRegion && !session.reflectionFailed()) {
                                 triggerSingleRegionLoad(coord);
                             }
-                            LOGGER.info(
+                            LOGGER.debug(
                                     "[SYNC-WRITE] region=({},{}) layer={} result={} (writesBeforeDec={})",
                                     assembled.ref.regionX(),
                                     assembled.ref.regionZ(),
@@ -380,7 +387,7 @@ public class MapPacketHandler {
                 session.touch();
                 regionRequestInFlight = false;
                 syncProcessed++;
-                LOGGER.info(
+                LOGGER.debug(
                         "[SYNC] complete signal: syncProcessed={}/{} (pending={}, writes={}, partBufferKeys={})",
                         syncProcessed,
                         syncTotal,
@@ -399,7 +406,7 @@ public class MapPacketHandler {
 
         RegionRef ref = pendingRegionPaths.poll();
         if (ref == null) {
-            LOGGER.info(
+            LOGGER.debug(
                     "[SYNC] requestNextRegion: queue empty -> maybeCompleteSync (inFlight={}, writes={})",
                     regionRequestInFlight,
                     syncPendingWrites.get());
@@ -411,7 +418,7 @@ public class MapPacketHandler {
         List<RegionRef> single = List.of(ref);
         MapSyncer.sendToServer(new MapRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
-        LOGGER.info(
+        LOGGER.debug(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",
                 seq,
                 ref,
@@ -437,7 +444,7 @@ public class MapPacketHandler {
                     partBuffer.size());
             return;
         }
-        LOGGER.info("[SYNC-GUARD] completion guard cleared -> completeSync (partBufferKeys={})", partBuffer.size());
+        LOGGER.debug("[SYNC-GUARD] completion guard cleared -> completeSync (partBufferKeys={})", partBuffer.size());
         completeSync();
     }
 
@@ -445,7 +452,7 @@ public class MapPacketHandler {
         Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
 
         int totalReceived = updatedRegionCoords.size();
-        LOGGER.info(
+        LOGGER.debug(
                 "Sync complete: {} regions processed (syncTotal={}, syncProcessed={}, syncFailed={}, uncompletedRequests={}, pending={}, inFlight={}, writes={}, partBufferKeys={})",
                 totalReceived,
                 syncTotal,
@@ -490,30 +497,6 @@ public class MapPacketHandler {
         }
         clearSyncData();
         XaeroReflectionHelper.clearCache();
-    }
-
-    private static boolean initializeReflectionCache() {
-        if (XaeroReflectionHelper.isInitialized()) {
-            LOGGER.debug("Reflection cache already initialized, skipping");
-            return true;
-        }
-
-        LOGGER.info("Initializing reflection API cache...");
-        boolean initSuccess = XaeroReflectionHelper.initialize();
-
-        if (initSuccess) {
-            LOGGER.info("XaeroReflectionHelper initialized successfully");
-            boolean regionDetectSuccess = XaeroReflectionHelper.setRegionDetectionComplete(true);
-            if (regionDetectSuccess) {
-                LOGGER.info("regionDetectionComplete set to true, reflection ready");
-            } else {
-                LOGGER.warn("setRegionDetectionComplete failed, getLeafMapRegion may return null");
-            }
-            return true;
-        }
-
-        LOGGER.error("XaeroReflectionHelper initialization failed, reflection unavailable");
-        return false;
     }
 
     private static void triggerSingleRegionLoad(XaeroMapDataHandler.RegionCoord coord) {

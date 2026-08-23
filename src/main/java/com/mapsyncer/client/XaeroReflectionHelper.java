@@ -73,8 +73,8 @@ public final class XaeroReflectionHelper {
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
             setRegionDetectionCompleteMethod = mapSaveLoadClass.getMethod("setRegionDetectionComplete", boolean.class);
             getCurrentWorldIdMethod = mapProcessorClass.getMethod("getCurrentWorldId");
-            getDimensionNameMethod = mapProcessorClass.getMethod(
-                    "getDimensionName", net.minecraft.resources.ResourceKey.class);
+            getDimensionNameMethod =
+                    mapProcessorClass.getMethod("getDimensionName", net.minecraft.resources.ResourceKey.class);
             LOGGER.info("成功缓存 {} 个反射方法", 10);
 
             LOGGER.debug("获取并缓存反射字段...");

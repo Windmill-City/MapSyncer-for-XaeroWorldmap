@@ -2,7 +2,6 @@ package com.mapsyncer.network;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import net.minecraft.network.FriendlyByteBuf;
 
 public class MapRequestPayload {

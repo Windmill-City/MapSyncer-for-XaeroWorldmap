@@ -1,11 +1,6 @@
 package com.mapsyncer;
 
-import java.nio.file.Path;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.mapsyncer.client.XaeroReflectionHelper;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
@@ -13,7 +8,8 @@ import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.MapUpdater;
-
+import java.nio.file.Path;
+import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -28,10 +24,13 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Mod(MapSyncer.MOD_ID)
 public class MapSyncer {
@@ -74,6 +73,14 @@ public class MapSyncer {
                 (msg, buf) -> ManifestPayload.write(buf, msg),
                 ManifestPayload::read,
                 com.mapsyncer.client.MapPacketHandler::handleSyncManifest);
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            LOGGER.info("Initializing reflection API cache...");
+            if (XaeroReflectionHelper.initialize()) {
+                LOGGER.info("XaeroReflectionHelper initialized successfully");
+            } else {
+                LOGGER.error("XaeroReflectionHelper initialization failed, reflection unavailable");
+            }
+        }
         LOGGER.info("MapSyncer initialized");
     }
 

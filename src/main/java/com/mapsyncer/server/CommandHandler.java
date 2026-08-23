@@ -163,9 +163,7 @@ public class CommandHandler {
     public static MutableComponent generationStatusMessage() {
         if (MapConverter.isRunning()) {
             return ChatUtils.message(
-                    "mapsyncer.generate.in_progress",
-                    MapConverter.getProcessedCount(),
-                    MapConverter.getTotalCount());
+                    "mapsyncer.generate.in_progress", MapConverter.getProcessedCount(), MapConverter.getTotalCount());
         }
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }

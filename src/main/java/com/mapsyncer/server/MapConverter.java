@@ -162,7 +162,15 @@ public class MapConverter {
         skippedEmptyContentCount.set(0);
 
         runConversionTasks(
-                needsUpdate, regions, regionDir, baseOutputDir, dimFolderName, dimTypeInfo, passes, failedRegions, true);
+                needsUpdate,
+                regions,
+                regionDir,
+                baseOutputDir,
+                dimFolderName,
+                dimTypeInfo,
+                passes,
+                failedRegions,
+                true);
 
         if (!force) {
             runNewRegionTasks(
@@ -441,7 +449,7 @@ public class MapConverter {
                 continue;
             }
 
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
+            Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 

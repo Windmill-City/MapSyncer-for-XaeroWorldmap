@@ -24,6 +24,6 @@ public final class RegionKey {
             fileName = fileName.substring(0, fileName.length() - 4);
         }
         String[] coords = fileName.split("_");
-        return new int[] { Integer.parseInt(coords[0]), Integer.parseInt(coords[1]) };
+        return new int[] {Integer.parseInt(coords[0]), Integer.parseInt(coords[1])};
     }
 }

@@ -1,5 +1,11 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.MapSyncer;
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.util.ApiHelper;
+import com.mapsyncer.util.PathMapping;
+import com.mapsyncer.util.RegionKey;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,19 +13,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.MapSyncer;
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.PathMapping;
-import com.mapsyncer.util.RegionKey;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ManifestServer {
 

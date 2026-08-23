@@ -1,18 +1,14 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.UpdateMode;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import javax.annotation.Nullable;
-
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
-
-import net.minecraft.server.MinecraftServer;
 
 public class MapUpdater {
 
@@ -29,21 +25,17 @@ public class MapUpdater {
     }
 
     public void onPlayerLoggedOut(MinecraftServer server) {
-        if (server == null || server.isStopped())
-            return;
+        if (server == null || server.isStopped()) return;
 
-        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY)
-            return;
+        if (ModConfig.SERVER.incrementalUpdateMode.get() != UpdateMode.ON_EMPTY) return;
 
         server.execute(() -> checkAndScan(server));
     }
 
     private void checkAndScan(MinecraftServer server) {
-        if (running.get())
-            return;
+        if (running.get()) return;
 
-        if (server.getPlayerList().getPlayerCount() > 0)
-            return;
+        if (server.getPlayerList().getPlayerCount() > 0) return;
 
         performUpdate(server);
     }
