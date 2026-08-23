@@ -42,24 +42,23 @@ public class MapSyncer {
         VERSION = modContainer.getModInfo().getVersion().toString();
 
         DimensionPathMapping.getInstance().initialize();
-        LOGGER.info("DimensionPathMapping initialized for version 1.20.1 (legacy format)");
+        LOGGER.info("DimensionPathMapping initialized");
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
         ModLoadingContext.get().registerConfig(Type.CLIENT, ModConfig.CLIENT_SPEC);
 
         ForgeNetworkHandler networkHandler = new ForgeNetworkHandler();
         ForgeNetworkHandler.setInstance(networkHandler);
-        LOGGER.info("NetworkHandler initialized for Forge 1.20.1");
-
         networkHandler.registerHandlers();
+        LOGGER.info("NetworkHandler initialized");
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             MapPacketHandler.registerHandlers();
-            LOGGER.info("MapSyncer initialized (client mode, Forge 1.20.1)");
+            LOGGER.info("MapSyncer initialized");
         }
 
         ServerSyncHandlerLogic.registerHandlers();
-        LOGGER.info("MapSyncer server handlers registered (integrated server support)");
+        LOGGER.info("MapSyncer server handlers registered");
     }
 
     @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
