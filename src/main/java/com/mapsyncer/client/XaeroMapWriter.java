@@ -130,7 +130,8 @@ public final class XaeroMapWriter {
     private static void loadRegion(RegionCoord coord) {
         try {
             if (loadedRegions.contains(coord)) {
-                LOGGER.debug("Region ({}, {}) layer={} already loaded, skipping", coord.x(), coord.z(), coord.caveLayer());
+                LOGGER.debug(
+                        "Region ({}, {}) layer={} already loaded, skipping", coord.x(), coord.z(), coord.caveLayer());
                 return;
             }
 

@@ -42,7 +42,11 @@ public class MapSyncer {
     public static final Path CACHE_DIR = Path.of(MOD_ID);
 
     private static final String PROTOCOL_VERSION = "7";
-    private static SimpleChannel CHANNEL;
+    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+            new ResourceLocation(MOD_ID, "main"),
+            () -> PROTOCOL_VERSION,
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
 
     public MapSyncer() {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
@@ -50,11 +54,6 @@ public class MapSyncer {
 
         ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
 
-        CHANNEL = NetworkRegistry.newSimpleChannel(
-                new ResourceLocation(MOD_ID, "main"),
-                () -> PROTOCOL_VERSION,
-                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
-                NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
         CHANNEL.registerMessage(
                 0,
                 MapRequestPayload.class,

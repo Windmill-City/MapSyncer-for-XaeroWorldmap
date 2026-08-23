@@ -141,7 +141,9 @@ public class MapPacketHandler {
                 syncFailed = 0;
                 regionRequestInFlight = false;
                 LOGGER.debug(
-                        "[SYNC] per-region pull started: {} regions to fetch (generation={})", syncTotal, scanGeneration);
+                        "[SYNC] per-region pull started: {} regions to fetch (generation={})",
+                        syncTotal,
+                        scanGeneration);
                 requestNextRegion(scanGeneration);
             });
         });

@@ -13,6 +13,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
@@ -89,7 +90,7 @@ public class ManifestServer {
         return outputDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
     }
 
-    public Long getTimestamp(RegionRef ref) {
+    public @Nullable Long getTimestamp(RegionRef ref) {
         return manifest.get(ref);
     }
 
