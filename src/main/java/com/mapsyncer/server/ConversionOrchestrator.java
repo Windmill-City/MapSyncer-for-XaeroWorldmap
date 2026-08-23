@@ -70,8 +70,6 @@ public class ConversionOrchestrator {
         XaeroWriter.cleanStaleFiles(getCacheDir());
     }
 
-    private static @Nullable McaTimestampCache timestampCache;
-
     public enum SingleRegionResult {
         SUCCESS,
 
@@ -149,15 +147,6 @@ public class ConversionOrchestrator {
         } catch (IOException e) {
             LOGGER.error("Failed to clear dimension cache: {}", dimCacheDir, e);
         }
-    }
-
-    private static McaTimestampCache getTimestampCache() {
-        McaTimestampCache cache = timestampCache;
-        if (cache == null) {
-            cache = McaTimestampCache.getInstance(getCacheDir());
-            timestampCache = cache;
-        }
-        return cache;
     }
 
     public static boolean generateAll(MinecraftServer server) {
@@ -433,12 +422,9 @@ public class ConversionOrchestrator {
                 dimTypeInfo.logicalTopY(),
                 passes.size());
 
-        McaTimestampCache mcaCache = getTimestampCache();
         List<RegionCoords> needsUpdate = force
                 ? dimRegions.regions()
-                : (!dimRegions.fileEntries().isEmpty()
-                        ? mcaCache.classifyUpdates(dimPath, dimRegions.fileEntries())
-                        : mcaCache.scanAndUpdate(dimPath, regionDir));
+                : filterRegionsNeedingUpdate(dimRegions.fileEntries(), baseOutputDir, passes);
         List<RegionCoords> regions = dimRegions.regions();
 
         totalCount = regions.size() * passes.size();
@@ -465,10 +451,8 @@ public class ConversionOrchestrator {
                 regionDir,
                 baseOutputDir,
                 xaeroDimName,
-                dimPath,
                 dimTypeInfo,
                 passes,
-                mcaCache,
                 failedRegions,
                 true);
         waitForCompletion(futures, "Region conversion");
@@ -481,10 +465,8 @@ public class ConversionOrchestrator {
                     regionDir,
                     baseOutputDir,
                     xaeroDimName,
-                    dimPath,
                     dimTypeInfo,
                     passes,
-                    mcaCache,
                     failedRegions);
             waitForCompletion(futures, "New region conversion");
         }
@@ -509,8 +491,6 @@ public class ConversionOrchestrator {
         String friendlyName =
                 PathMapping.getFriendlyName(dimRegions.dimension().location().toString());
         completedDimensions.add(friendlyName);
-
-        mcaCache.saveCache();
     }
 
     private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
@@ -529,6 +509,38 @@ public class ConversionOrchestrator {
         return total;
     }
 
+    private static List<RegionCoords> filterRegionsNeedingUpdate(
+            List<RegionScanner.RegionFileEntry> fileEntries, Path baseOutputDir, List<RegionScanPass> passes) {
+        List<RegionCoords> needsUpdate = new ArrayList<>();
+
+        for (RegionScanner.RegionFileEntry entry : fileEntries) {
+            RegionCoords coords = entry.coords();
+            boolean needs = false;
+            for (RegionScanPass pass : passes) {
+                Path zipPath = ModConfig.outputDir(baseOutputDir, pass.caveLayer())
+                        .resolve(coords.x() + "_" + coords.z() + ".zip");
+                if (!Files.exists(zipPath)) {
+                    needs = true;
+                    break;
+                }
+                try {
+                    if (entry.lastModifiedMillis() > Files.getLastModifiedTime(zipPath).toMillis()) {
+                        needs = true;
+                        break;
+                    }
+                } catch (IOException e) {
+                    needs = true;
+                    break;
+                }
+            }
+            if (needs) {
+                needsUpdate.add(coords);
+            }
+        }
+
+        return needsUpdate;
+    }
+
     private static List<java.util.concurrent.Future<?>> submitConversionTasks(
             ExecutorService executor,
             List<RegionCoords> coordsToProcess,
@@ -536,10 +548,8 @@ public class ConversionOrchestrator {
             Path regionDir,
             Path baseOutputDir,
             String xaeroDimName,
-            String dimPath,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
-            McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
             boolean logProgress) {
 
@@ -554,10 +564,8 @@ public class ConversionOrchestrator {
                     regionDir,
                     baseOutputDir,
                     xaeroDimName,
-                    dimPath,
                     dimTypeInfo,
                     passes,
-                    mcaCache,
                     failedRegions,
                     logProgress,
                     "Converted"));
@@ -574,10 +582,8 @@ public class ConversionOrchestrator {
             Path regionDir,
             Path baseOutputDir,
             String xaeroDimName,
-            String dimPath,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
-            McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
 
         List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
@@ -605,10 +611,8 @@ public class ConversionOrchestrator {
                     regionDir,
                     baseOutputDir,
                     xaeroDimName,
-                    dimPath,
                     dimTypeInfo,
                     passes,
-                    mcaCache,
                     failedRegions,
                     true,
                     "Generated new"));
@@ -623,10 +627,8 @@ public class ConversionOrchestrator {
             Path regionDir,
             Path baseOutputDir,
             String xaeroDimName,
-            String dimPath,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
-            McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
             boolean logProgress,
             String logPrefix) {
@@ -703,9 +705,6 @@ public class ConversionOrchestrator {
             }
         }
 
-        if (anyWritten) {
-            mcaCache.updateTimestamp(dimPath, coords.x(), coords.z(), mcaPath);
-        }
         if (anyWritten || anyPurged) {
             ManifestServer.get().invalidate();
         }
@@ -836,7 +835,6 @@ public class ConversionOrchestrator {
         cancelRequested.set(false);
 
         try {
-            McaTimestampCache mcaCache = getTimestampCache();
             int totalUpdated = 0;
             totalCount = 0;
             processedCountAtomic.set(0);
@@ -855,7 +853,8 @@ public class ConversionOrchestrator {
                 List<RegionScanPass> passes = snapshot.passes();
                 DimensionInfo dimTypeInfo = snapshot.dimTypeInfo();
 
-                java.util.List<RegionCoords> needsUpdate = mcaCache.scanAndUpdate(dimPath, regionDir);
+                java.util.List<RegionCoords> needsUpdate =
+                        filterRegionsNeedingUpdate(RegionScanner.listRegionFiles(regionDir), baseOutputDir, passes);
 
                 if (needsUpdate.isEmpty()) {
                     LOGGER.debug("No updates needed for dimension {}", dimPath);
@@ -886,10 +885,8 @@ public class ConversionOrchestrator {
                         regionDir,
                         baseOutputDir,
                         xaeroDimName,
-                        dimPath,
                         dimTypeInfo,
                         passes,
-                        mcaCache,
                         failedRegions,
                         true);
                 waitForCompletion(futures, "Incremental update");
@@ -898,7 +895,6 @@ public class ConversionOrchestrator {
 
             if (totalUpdated > 0) {
                 LOGGER.info("Incremental scan completed: {} regions updated", totalUpdated);
-                mcaCache.saveCache();
             }
         } finally {
             isRunning.set(false);
