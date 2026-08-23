@@ -57,9 +57,8 @@ public class MapPacketHandler {
     }
 
     public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
+        LOGGER.info("[SYNC] <- manifest: entries={}", payload.timestamps().size());
         MapSyncer.enqueueWork(context, () -> {
-            LOGGER.info("[SYNC] <- manifest: entries={}", payload.timestamps().size());
-
             handleManifestReceived(payload);
         });
     }
