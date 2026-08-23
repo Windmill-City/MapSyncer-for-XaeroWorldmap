@@ -2,7 +2,7 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.util.RegionMeta;
-import com.mapsyncer.util.PropertiesCacheIO;
+import com.mapsyncer.util.RegionCacheIO;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -45,12 +45,12 @@ public class GenerationCache {
     }
 
     private void load() {
-        Map<String, RegionMeta> loaded = PropertiesCacheIO.load(cacheFile, PropertiesCacheIO::parseTimestampHash);
+        Map<String, RegionMeta> loaded = RegionCacheIO.load(cacheFile, RegionCacheIO::parseTimestampHash);
         cache.putAll(loaded);
     }
 
     public void save() {
-        PropertiesCacheIO.save(
+        RegionCacheIO.save(
                 cacheFile,
                 new HashMap<>(cache),
                 RegionMeta::format,

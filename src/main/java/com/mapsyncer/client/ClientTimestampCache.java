@@ -74,7 +74,7 @@ public class ClientTimestampCache {
 
             for (String key : props.stringPropertyNames()) {
                 if (!key.startsWith("_")) {
-                    RegionMeta entry = com.mapsyncer.util.PropertiesCacheIO.parseTimestampHash(props.getProperty(key));
+                    RegionMeta entry = com.mapsyncer.util.RegionCacheIO.parseTimestampHash(props.getProperty(key));
                     if (entry != null) {
                         cache.put(key, entry);
                     }

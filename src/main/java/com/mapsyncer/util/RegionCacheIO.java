@@ -13,9 +13,9 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class PropertiesCacheIO {
+public final class RegionCacheIO {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesCacheIO.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegionCacheIO.class);
 
     public static <T> Map<String, T> load(Path cacheFile, Function<String, T> parser) {
         Map<String, T> cache = new HashMap<>();
