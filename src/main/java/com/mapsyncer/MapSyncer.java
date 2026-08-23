@@ -20,6 +20,7 @@ import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import java.nio.file.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,8 @@ public class MapSyncer {
     public static final String MOD_ID = "mapsyncer";
     public static String VERSION = "unknown";
     public static final Logger LOGGER = LoggerFactory.getLogger(MapSyncer.class);
+
+    public static final Path CACHE_DIR = Path.of(MOD_ID);
 
     public MapSyncer() {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();

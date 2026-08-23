@@ -2,11 +2,11 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import com.mapsyncer.util.ChatUtils;
-import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionMeta;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -33,8 +33,6 @@ public class MapPacketHandler {
 
     private static final long PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
 
-    private static final long MANIFEST_PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
-
     private static final Set<XaeroMapDataHandler.RegionCoord> updatedRegionCoords = ConcurrentHashMap.newKeySet();
 
     private static final Set<XaeroMapDataHandler.RegionCoord> loadedRegions = ConcurrentHashMap.newKeySet();
@@ -44,11 +42,8 @@ public class MapPacketHandler {
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
     private static volatile boolean expectManifest = false;
-    private static final Map<Integer, SyncManifestPayload> manifestParts = new ConcurrentHashMap<>();
-    private static volatile int manifestTotalParts = 0;
-    private static volatile long manifestFirstPartArrivedMs = 0;
 
-    private static final ConcurrentLinkedQueue<String> pendingRegionPaths = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<RegionRef> pendingRegionPaths = new ConcurrentLinkedQueue<>();
     private static volatile boolean regionRequestInFlight = false;
 
     private static volatile int syncTotal = 0;
@@ -69,9 +64,6 @@ public class MapPacketHandler {
         session.invalidate();
         session.begin();
         expectManifest = true;
-        manifestParts.clear();
-        manifestTotalParts = 0;
-        manifestFirstPartArrivedMs = 0;
         pendingRegionPaths.clear();
         regionRequestInFlight = false;
         syncTotal = 0;
@@ -98,9 +90,6 @@ public class MapPacketHandler {
     public static void clearSyncData() {
         session.invalidate();
         expectManifest = false;
-        manifestParts.clear();
-        manifestTotalParts = 0;
-        manifestFirstPartArrivedMs = 0;
         pendingRegionPaths.clear();
         regionRequestInFlight = false;
         syncTotal = 0;
@@ -140,41 +129,12 @@ public class MapPacketHandler {
             }
 
             LOGGER.info(
-                    "[SYNC] <- manifest: entries={}, part={}/{} (receiving={}, expectManifest={})",
+                    "[SYNC] <- manifest: entries={} (receiving={}, expectManifest={})",
                     payload.timestamps().size(),
-                    payload.partIndex(),
-                    payload.totalParts(),
                     session.isReceiving(),
                     expectManifest);
 
-            SyncManifestPayload resolved = payload;
-            if (resolved.totalParts() > 1) {
-                if (manifestTotalParts == 0) {
-                    manifestParts.clear();
-                    manifestTotalParts = resolved.totalParts();
-                    manifestFirstPartArrivedMs = System.currentTimeMillis();
-                }
-                manifestParts.put(resolved.partIndex(), resolved);
-                if (System.currentTimeMillis() - manifestFirstPartArrivedMs > MANIFEST_PART_STALE_TIMEOUT_MS) {
-                    LOGGER.warn("Sync manifest assembly timed out, aborting");
-                    manifestParts.clear();
-                    manifestTotalParts = 0;
-                    clearSyncData();
-                    return;
-                }
-                if (manifestParts.size() < manifestTotalParts) {
-                    return;
-                }
-                Map<String, Long> merged = new HashMap<>();
-                for (SyncManifestPayload part : manifestParts.values()) {
-                    merged.putAll(part.timestamps());
-                }
-                manifestParts.clear();
-                manifestTotalParts = 0;
-                resolved = new SyncManifestPayload(merged);
-            }
-
-            handleManifestReceived(resolved, generationAtEnqueue);
+            handleManifestReceived(payload, generationAtEnqueue);
         });
     }
 
@@ -186,9 +146,6 @@ public class MapPacketHandler {
 
         if (!expectManifest) {
             LOGGER.debug("Ignoring unsolicited sync manifest (no sync expected)");
-            manifestParts.clear();
-            manifestTotalParts = 0;
-            manifestFirstPartArrivedMs = 0;
             return;
         }
         expectManifest = false;
@@ -212,14 +169,14 @@ public class MapPacketHandler {
             return;
         }
 
-        Map<String, Long> serverTimestamps = payload.timestamps();
+        Map<RegionRef, Long> serverTimestamps = payload.timestamps();
         if (serverTimestamps.isEmpty()) {
             LOGGER.info("Server manifest is empty, nothing to sync");
             finishUpToDate();
             return;
         }
 
-        ManifestClient.computeMetaForSyncAsync(serverDir, result -> {
+        ManifestClient.computeMetaForSyncAsync(serverDir, extractDimIds(serverTimestamps.keySet()), result -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
                 if (!session.isCurrent(generation)) {
@@ -240,17 +197,17 @@ public class MapPacketHandler {
                     return;
                 }
 
-                Map<String, RegionMeta> localMeta = result.meta();
-                Map<String, RegionMeta> diff = new HashMap<>();
+                Map<RegionRef, RegionMeta> localMeta = result.meta();
+                Map<RegionRef, RegionMeta> diff = new HashMap<>();
                 int upToDateCount = 0;
-                for (Map.Entry<String, Long> entry : serverTimestamps.entrySet()) {
-                    String path = entry.getKey();
+                for (Map.Entry<RegionRef, Long> entry : serverTimestamps.entrySet()) {
+                    RegionRef ref = entry.getKey();
                     long serverTs = entry.getValue();
-                    RegionMeta local = localMeta.get(path);
+                    RegionMeta local = localMeta.get(ref);
                     if (local != null && local.timestampMillis() >= serverTs) {
                         upToDateCount++;
                     } else {
-                        diff.put(path, local != null ? local : new RegionMeta(0));
+                        diff.put(ref, local != null ? local : new RegionMeta(0));
                     }
                 }
 
@@ -267,7 +224,7 @@ public class MapPacketHandler {
 
                 int playerBlockX = mc.player.getBlockX();
                 int playerBlockZ = mc.player.getBlockZ();
-                List<String> ordered = orderByViewDistance(diff.keySet(), playerBlockX, playerBlockZ);
+                List<RegionRef> ordered = orderByViewDistance(diff.keySet(), playerBlockX, playerBlockZ);
 
                 pendingRegionPaths.clear();
                 pendingRegionPaths.addAll(ordered);
@@ -282,25 +239,22 @@ public class MapPacketHandler {
         });
     }
 
-    private static List<String> orderByViewDistance(Set<String> paths, int playerBlockX, int playerBlockZ) {
-        int playerRegionX = playerBlockX >> 9;
-        int playerRegionZ = playerBlockZ >> 9;
-        List<String> list = new ArrayList<>(paths);
-        list.sort(Comparator.comparingInt(path -> regionDistance(path, playerRegionX, playerRegionZ)));
-        return list;
+    private static Set<String> extractDimIds(Set<RegionRef> keys) {
+        Set<String> dimIds = new java.util.HashSet<>();
+        for (RegionRef ref : keys) {
+            if (!ref.dimId().isEmpty()) {
+                dimIds.add(ref.dimId());
+            }
+        }
+        return dimIds;
     }
 
-    private static int regionDistance(String path, int playerRegionX, int playerRegionZ) {
-        try {
-            String[] parts = path.split("[/\\\\]");
-            String fileName = parts[parts.length - 1];
-            String[] coords = fileName.split("_");
-            int rx = Integer.parseInt(coords[0]);
-            int rz = Integer.parseInt(coords[1]);
-            return Math.max(Math.abs(rx - playerRegionX), Math.abs(rz - playerRegionZ));
-        } catch (Exception e) {
-            return Integer.MAX_VALUE;
-        }
+    private static List<RegionRef> orderByViewDistance(Set<RegionRef> keys, int playerBlockX, int playerBlockZ) {
+        int playerRegionX = playerBlockX >> 9;
+        int playerRegionZ = playerBlockZ >> 9;
+        List<RegionRef> list = new ArrayList<>(keys);
+        list.sort(Comparator.comparingInt(ref -> ref.regionDistance(playerRegionX, playerRegionZ)));
+        return list;
     }
 
     private static void handleSyncResponse(SyncResponsePayload payload, Supplier<NetworkEvent.Context> context) {
@@ -388,7 +342,9 @@ public class MapPacketHandler {
                         new XaeroMapDataHandler.RegionCoord(assembled.regionX, assembled.regionZ, assembled.caveLayer);
                 updatedRegionCoords.add(coord);
 
-                boolean syncingCaveDimension = PathMapping.isNether(assembled.dimension);
+                boolean syncingCaveDimension = "minecraft:the_nether".equals(assembled.dimension)
+                        || "the_nether".equals(assembled.dimension)
+                        || "DIM-1".equals(assembled.dimension);
                 boolean shouldProcess = syncingCaveDimension ? !assembled.isSurfaceLayer() : assembled.isSurfaceLayer();
 
                 syncPendingWrites.incrementAndGet();
@@ -448,8 +404,8 @@ public class MapPacketHandler {
         if (!session.isReceiving()) return;
         if (regionRequestInFlight) return;
 
-        String path = pendingRegionPaths.poll();
-        if (path == null) {
+        RegionRef ref = pendingRegionPaths.poll();
+        if (ref == null) {
             LOGGER.info(
                     "[SYNC] requestNextRegion: queue empty -> maybeCompleteSync (inFlight={}, writes={})",
                     regionRequestInFlight,
@@ -459,13 +415,13 @@ public class MapPacketHandler {
         }
 
         regionRequestInFlight = true;
-        List<String> single = List.of(path);
+        List<RegionRef> single = List.of(ref);
         NetworkHandler.sendToServer(new SyncRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",
                 seq,
-                path,
+                ref,
                 pendingRegionPaths.size(),
                 syncProcessed,
                 syncTotal);

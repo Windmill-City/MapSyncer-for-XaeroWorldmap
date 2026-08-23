@@ -20,7 +20,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class NetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "5";
+    private static final String PROTOCOL_VERSION = "6";
     private static @Nullable SimpleChannel CHANNEL;
 
     private static @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;

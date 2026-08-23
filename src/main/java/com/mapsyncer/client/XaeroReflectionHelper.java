@@ -29,6 +29,7 @@ public final class XaeroReflectionHelper {
     private static @Nullable Method setHasHadTerrainMethod;
     private static @Nullable Method setRegionDetectionCompleteMethod;
     private static @Nullable Method getCurrentWorldIdMethod;
+    private static @Nullable Method getDimensionNameMethod;
 
     private static @Nullable Field loadStateField;
     private static @Nullable Field shouldCacheField;
@@ -72,7 +73,9 @@ public final class XaeroReflectionHelper {
             setHasHadTerrainMethod = mapRegionClass.getMethod("setHasHadTerrain");
             setRegionDetectionCompleteMethod = mapSaveLoadClass.getMethod("setRegionDetectionComplete", boolean.class);
             getCurrentWorldIdMethod = mapProcessorClass.getMethod("getCurrentWorldId");
-            LOGGER.info("成功缓存 {} 个反射方法", 9);
+            getDimensionNameMethod = mapProcessorClass.getMethod(
+                    "getDimensionName", net.minecraft.resources.ResourceKey.class);
+            LOGGER.info("成功缓存 {} 个反射方法", 10);
 
             LOGGER.debug("获取并缓存反射字段...");
             loadStateField = mapRegionClass.getDeclaredField("loadState");
@@ -315,6 +318,66 @@ public final class XaeroReflectionHelper {
         }
     }
 
+    private static final java.util.concurrent.ConcurrentHashMap<String, String> dimNameCache =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static @Nullable String getDimensionName(String dimId) {
+        if (!initialized || getDimensionNameMethod == null) return null;
+
+        String cached = dimNameCache.get(dimId);
+        if (cached != null) {
+            return cached;
+        }
+
+        try {
+            Object processor = getMapProcessor();
+            if (processor == null) return null;
+            net.minecraft.resources.ResourceKey<?> key = toDimensionKey(dimId);
+            if (key == null) return null;
+            Object name = getDimensionNameMethod.invoke(processor, key);
+            if (name instanceof String s) {
+                dimNameCache.put(dimId, s);
+                return s;
+            }
+            return null;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get Xaero dimension name for '{}'", dimId, e);
+            return null;
+        }
+    }
+
+    private static @Nullable net.minecraft.resources.ResourceKey<?> toDimensionKey(String dimId) {
+        if (dimId == null || dimId.isEmpty()) {
+            return null;
+        }
+        if ("DIM-1".equals(dimId)) {
+            dimId = "minecraft:the_nether";
+        } else if ("DIM1".equals(dimId)) {
+            dimId = "minecraft:the_end";
+        } else if ("null".equals(dimId)) {
+            dimId = "minecraft:overworld";
+        } else if (dimId.startsWith("minecraft:")) {
+            dimId = dimId.substring("minecraft:".length());
+        }
+        if (dimId.contains("$")) {
+            return null;
+        }
+        String[] parts = dimId.split(":", 2);
+        String namespace = parts.length == 2 ? parts[0] : "minecraft";
+        String path = parts.length == 2 ? parts[1] : dimId;
+        if (path.contains("/") || path.contains("$")) {
+            return null;
+        }
+        try {
+            return net.minecraft.resources.ResourceKey.create(
+                    net.minecraft.core.registries.Registries.DIMENSION,
+                    new net.minecraft.resources.ResourceLocation(namespace, path));
+        } catch (Exception e) {
+            LOGGER.warn("Invalid dimension id '{}'", dimId, e);
+            return null;
+        }
+    }
+
     public static @Nullable String getDimId(Object mapRegion) {
         if (!initialized || dimIdField == null) return null;
 
@@ -401,6 +464,7 @@ public final class XaeroReflectionHelper {
         cachedSession = null;
         cachedMapProcessor = null;
         cachedMapSaveLoad = null;
+        dimNameCache.clear();
         LOGGER.info("Xaero reflection cache cleared");
     }
 

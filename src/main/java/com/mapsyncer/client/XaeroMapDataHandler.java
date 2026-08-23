@@ -46,7 +46,10 @@ public final class XaeroMapDataHandler {
     public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
     public static @Nullable RegionWriteResult writeChunkData(ChunkMapData chunk, Path serverDir, String worldId) {
-        String xaeroDim = chunk.dimension;
+        String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.dimension);
+        if (xaeroDim == null) {
+            xaeroDim = PathMapping.toXaeroDimension(chunk.dimension);
+        }
         Path dimDir = serverDir.resolve(xaeroDim);
         Path mwDir = dimDir.resolve("mw$" + worldId);
 
@@ -78,10 +81,6 @@ public final class XaeroMapDataHandler {
         }
 
         return new RegionWriteResult(mwDir, outputFile);
-    }
-
-    public static String buildRelativePathForCache(ChunkMapData chunk) {
-        return PathMapping.toRelativeRegionPath(chunk.dimension, chunk.caveLayer, chunk.regionX, chunk.regionZ);
     }
 
     public static void clearRegionCacheFiles(Path mwDir, RegionCoord coord) {

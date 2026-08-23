@@ -5,22 +5,22 @@ import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncRequestPayload {
-    private final List<String> paths;
+    private final List<RegionRef> regions;
     private final int partIndex;
     private final int totalParts;
 
-    public SyncRequestPayload(List<String> paths) {
-        this(paths, 0, 0);
+    public SyncRequestPayload(List<RegionRef> regions) {
+        this(regions, 0, 0);
     }
 
-    public SyncRequestPayload(List<String> paths, int partIndex, int totalParts) {
-        this.paths = paths;
+    public SyncRequestPayload(List<RegionRef> regions, int partIndex, int totalParts) {
+        this.regions = regions;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
     }
 
-    public List<String> paths() {
-        return paths;
+    public List<RegionRef> regions() {
+        return regions;
     }
 
     public int partIndex() {
@@ -32,9 +32,9 @@ public class SyncRequestPayload {
     }
 
     public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
-        buf.writeInt(payload.paths().size());
-        for (String path : payload.paths()) {
-            buf.writeUtf(path);
+        buf.writeInt(payload.regions().size());
+        for (RegionRef region : payload.regions()) {
+            RegionRef.write(buf, region);
         }
         buf.writeBoolean(payload.totalParts() > 1);
         if (payload.totalParts() > 1) {
@@ -45,9 +45,9 @@ public class SyncRequestPayload {
 
     public static SyncRequestPayload read(FriendlyByteBuf buf) {
         int size = buf.readInt();
-        List<String> paths = new ArrayList<>(size);
+        List<RegionRef> regions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            paths.add(buf.readUtf());
+            regions.add(RegionRef.read(buf));
         }
 
         int partIndex = 0;
@@ -58,6 +58,6 @@ public class SyncRequestPayload {
             totalParts = buf.readInt();
         }
 
-        return new SyncRequestPayload(paths, partIndex, totalParts);
+        return new SyncRequestPayload(regions, partIndex, totalParts);
     }
 }

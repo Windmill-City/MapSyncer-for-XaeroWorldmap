@@ -1,7 +1,9 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.impl.NetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
+import com.mapsyncer.network.payload.RegionRef;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
@@ -25,26 +27,14 @@ public class ServerSyncHandlerLogic {
 
     private static final int MAX_RESPONSE_PACKET_BYTES = 256 * 1024;
 
-    private record RegionSyncInfo(
-            Path zipPath,
-            String normalizedPath,
-            long timestampMillis,
-            int regionX,
-            int regionZ,
-            String dimension,
-            int caveLayer) {}
-
     public static void init() {
         NetworkHandler.registerSyncRequestHandler(
                 (payload, context) -> NetworkHandler.enqueueWork(context, () -> handleSyncRequest(payload, context)));
     }
 
     public static void pushManifestOnJoin(ServerPlayer player) {
-        Path absCacheDir = ConversionOrchestrator.getCacheDir().toAbsolutePath().normalize();
-        Map<String, Long> manifest = ManifestServer.get().build(absCacheDir);
-        for (SyncManifestPayload part : SyncManifestPayload.split(manifest)) {
-            NetworkHandler.sendToPlayer(player, part);
-        }
+        Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
+        NetworkHandler.sendToPlayer(player, new SyncManifestPayload(manifest));
         LOGGER.info("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
@@ -52,39 +42,34 @@ public class ServerSyncHandlerLogic {
         Player player = NetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;
 
-        List<String> requested = payload.paths();
+        List<RegionRef> requested = payload.regions();
 
         LOGGER.info(
                 "[SYNC-SRV] request from {}: regions={}", serverPlayer.getName().getString(), requested.size());
 
-        Path cacheDir = ConversionOrchestrator.getCacheDir();
+        Path cacheDir = MapSyncer.CACHE_DIR;
         if (!Files.exists(cacheDir)) return;
 
-        Path absCacheDir = cacheDir.toAbsolutePath().normalize();
+        ManifestServer.get().build(serverPlayer.server);
 
-        serveRequestedRegions(serverPlayer, requested, absCacheDir);
+        serveRequestedRegions(serverPlayer, requested);
     }
 
-    private static void serveRequestedRegions(ServerPlayer player, List<String> requested, Path absCacheDir) {
+    private static void serveRequestedRegions(ServerPlayer player, List<RegionRef> requested) {
         ManifestServer manifestCache = ManifestServer.get();
 
         List<ChunkMapData> parts = new ArrayList<>();
         int failed = 0;
 
-        for (String path : requested) {
-            Path zipPath = manifestCache.resolveZipPath(path);
-            Long timestamp = manifestCache.getTimestamp(path);
+        for (RegionRef region : requested) {
+            Path zipPath = manifestCache.resolveZipPath(region);
+            Long timestamp = manifestCache.getTimestamp(region);
             if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
                 failed++;
-                LOGGER.warn("Requested region not found or invalid: {}", path);
+                LOGGER.warn("Requested region not found or invalid: {}", region);
                 continue;
             }
-            RegionSyncInfo info = parseRegionInfo(zipPath, path, timestamp);
-            if (info == null) {
-                failed++;
-                continue;
-            }
-            ChunkMapData chunk = readRegionData(info);
+            ChunkMapData chunk = readRegionData(zipPath, timestamp, region);
             if (chunk == null) {
                 failed++;
                 continue;
@@ -103,41 +88,13 @@ public class ServerSyncHandlerLogic {
         sendRegionResponse(player, parts, failed > 0 ? "partial" : "ok");
     }
 
-    private static @Nullable RegionSyncInfo parseRegionInfo(Path zipPath, String normalizedPath, long timestampMillis) {
+    private static @Nullable ChunkMapData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
         try {
-            String[] parts = normalizedPath.split("[/\\\\]");
-
-            String dimension;
-            int caveLayer = Integer.MAX_VALUE;
-            String fileName;
-
-            if (parts.length >= 4 && parts[1].equals("caves")) {
-                dimension = parts[0];
-                caveLayer = Integer.parseInt(parts[2]);
-                fileName = parts[3];
-            } else {
-                dimension = parts[0];
-                fileName = parts[parts.length - 1];
-            }
-
-            String[] coords = fileName.split("_");
-            int regionX = Integer.parseInt(coords[0]);
-            int regionZ = Integer.parseInt(coords[1]);
-
-            return new RegionSyncInfo(zipPath, normalizedPath, timestampMillis, regionX, regionZ, dimension, caveLayer);
-        } catch (NumberFormatException e) {
-            LOGGER.error("Failed to parse path: {}", normalizedPath, e);
-            return null;
-        }
-    }
-
-    private static @Nullable ChunkMapData readRegionData(RegionSyncInfo info) {
-        try {
-            byte[] data = Files.readAllBytes(info.zipPath());
+            byte[] data = Files.readAllBytes(zipPath);
             return new ChunkMapData(
-                    info.regionX(), info.regionZ(), info.dimension(), data, info.timestampMillis(), info.caveLayer());
+                    region.regionX(), region.regionZ(), region.dimId(), data, timestampMillis, region.caveLayer());
         } catch (IOException e) {
-            LOGGER.error("Failed to read zip file: {}", info.zipPath(), e);
+            LOGGER.error("Failed to read zip file: {}", zipPath, e);
             return null;
         }
     }

@@ -2,7 +2,6 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.PathMapping;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,7 +65,7 @@ public class RegionScanner {
 
             String dimId = ApiHelper.getDimId(level.dimension());
 
-            Path regionDir = PathMapping.detectRegionDir(worldRoot, dimId);
+            Path regionDir = detectRegionDir(worldRoot, dimId);
 
             if (regionDir != null && Files.exists(regionDir)) {
                 return regionDir.toRealPath();
@@ -83,7 +82,7 @@ public class RegionScanner {
     private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
         String dimId = ApiHelper.getDimId(dimensionKey);
 
-        Path regionDir = PathMapping.detectRegionDir(worldRoot, dimId);
+        Path regionDir = detectRegionDir(worldRoot, dimId);
 
         if (regionDir == null || !Files.exists(regionDir)) {
             LOGGER.warn("Region directory not found for dimension: {}", dimId);
@@ -91,6 +90,33 @@ public class RegionScanner {
         }
 
         return scanRegionDirectory(regionDir);
+    }
+
+    private static @Nullable Path detectRegionDir(Path worldRoot, String dimId) {
+        if (worldRoot == null || !Files.exists(worldRoot)) {
+            return null;
+        }
+
+        String normalized = dimId;
+        if (normalized.startsWith("minecraft:")) {
+            normalized = normalized.substring("minecraft:".length());
+        }
+        if ("null".equals(normalized)) {
+            normalized = "overworld";
+        }
+
+        if (normalized.contains(":")) {
+            Path regionDir = worldRoot
+                    .resolve("dimensions")
+                    .resolve(normalized.replace(':', '/'))
+                    .resolve("region");
+            if (Files.exists(regionDir)) {
+                return regionDir;
+            }
+        }
+
+        LOGGER.warn("Could not detect region directory for dimension: {}", normalized);
+        return null;
     }
 
     public static List<RegionFileEntry> listRegionFiles(Path regionDir) {

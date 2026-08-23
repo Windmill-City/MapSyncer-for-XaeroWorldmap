@@ -1,5 +1,6 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.MapSyncer;
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
@@ -52,14 +53,8 @@ public class ConversionOrchestrator {
 
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
-    private static final Path DEFAULT_CACHE_DIR = Path.of("server_map_cache");
-
-    public static Path getCacheDir() {
-        return DEFAULT_CACHE_DIR;
-    }
-
     public static void cleanupCacheDir() {
-        XaeroWriter.cleanStaleFiles(getCacheDir());
+        XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
     }
 
     public static boolean generateAll(MinecraftServer server) {
@@ -116,12 +111,12 @@ public class ConversionOrchestrator {
 
         DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
 
-        String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
+        String dimFolderName = PathMapping.toServerFolderName(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
-        Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
+        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
 
         if (regionDir == null) {
-            LOGGER.error("Region directory not found for dimension: {}", xaeroDimName);
+            LOGGER.error("Region directory not found for dimension: {}", dimFolderName);
             return;
         }
 
@@ -167,7 +162,7 @@ public class ConversionOrchestrator {
         skippedEmptyContentCount.set(0);
 
         runConversionTasks(
-                needsUpdate, regions, regionDir, baseOutputDir, xaeroDimName, dimTypeInfo, passes, failedRegions, true);
+                needsUpdate, regions, regionDir, baseOutputDir, dimFolderName, dimTypeInfo, passes, failedRegions, true);
 
         if (!force) {
             runNewRegionTasks(
@@ -175,7 +170,7 @@ public class ConversionOrchestrator {
                     new HashSet<>(needsUpdate),
                     regionDir,
                     baseOutputDir,
-                    xaeroDimName,
+                    dimFolderName,
                     dimTypeInfo,
                     passes,
                     failedRegions);
@@ -199,7 +194,7 @@ public class ConversionOrchestrator {
                 failedRegions.size());
 
         String friendlyName =
-                PathMapping.getFriendlyName(dimRegions.dimension().location().toString());
+                friendlyDimensionName(dimRegions.dimension().location().toString());
         completedDimensions.add(friendlyName);
     }
 
@@ -257,7 +252,7 @@ public class ConversionOrchestrator {
             List<RegionCoords> allRegions,
             Path regionDir,
             Path baseOutputDir,
-            String xaeroDimName,
+            String dimFolderName,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
@@ -273,7 +268,7 @@ public class ConversionOrchestrator {
                     coords,
                     regionDir,
                     baseOutputDir,
-                    xaeroDimName,
+                    dimFolderName,
                     dimTypeInfo,
                     passes,
                     failedRegions,
@@ -287,7 +282,7 @@ public class ConversionOrchestrator {
             Set<RegionCoords> processedRegions,
             Path regionDir,
             Path baseOutputDir,
-            String xaeroDimName,
+            String dimFolderName,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
@@ -315,7 +310,7 @@ public class ConversionOrchestrator {
                     coords,
                     regionDir,
                     baseOutputDir,
-                    xaeroDimName,
+                    dimFolderName,
                     dimTypeInfo,
                     passes,
                     failedRegions,
@@ -328,7 +323,7 @@ public class ConversionOrchestrator {
             RegionCoords coords,
             Path regionDir,
             Path baseOutputDir,
-            String xaeroDimName,
+            String dimFolderName,
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
@@ -345,7 +340,7 @@ public class ConversionOrchestrator {
         if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
             for (RegionScanPass pass : passes) {
                 Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-                String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
+                String relativePath = ModConfig.relativePath(dimFolderName, pass.caveLayer(), coords.x(), coords.z());
                 purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
             }
             ManifestServer.get().invalidate();
@@ -371,7 +366,7 @@ public class ConversionOrchestrator {
             RegionScanPass pass = passes.get(i);
             LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
             Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-            String relativePath = ModConfig.relativePath(xaeroDimName, pass.caveLayer(), coords.x(), coords.z());
+            String relativePath = ModConfig.relativePath(dimFolderName, pass.caveLayer(), coords.x(), coords.z());
 
             ConvertedRegion single =
                     layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
@@ -419,7 +414,7 @@ public class ConversionOrchestrator {
 
     public record IncrementalScanSnapshot(
             String dimPath,
-            String xaeroDimName,
+            String dimFolderName,
             Path regionDir,
             Path baseOutputDir,
             DimensionInfo dimTypeInfo,
@@ -439,19 +434,19 @@ public class ConversionOrchestrator {
             String dimPath = dimRegions.dimension().location().getPath();
 
             DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
-            String xaeroDimName = PathMapping.toXaeroDimension(fullDimId);
+            String dimFolderName = PathMapping.toServerFolderName(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {
                 continue;
             }
 
-            Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
+        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
             snapshots.add(
-                    new IncrementalScanSnapshot(dimPath, xaeroDimName, regionDir, baseOutputDir, dimTypeInfo, passes));
+                    new IncrementalScanSnapshot(dimPath, dimFolderName, regionDir, baseOutputDir, dimTypeInfo, passes));
         }
 
         return snapshots;
@@ -497,7 +492,7 @@ public class ConversionOrchestrator {
                 String dimPath = snapshot.dimPath();
                 Path regionDir = snapshot.regionDir();
                 Path baseOutputDir = snapshot.baseOutputDir();
-                String xaeroDimName = snapshot.xaeroDimName();
+                String dimFolderName = snapshot.dimFolderName();
                 List<RegionScanPass> passes = snapshot.passes();
                 DimensionInfo dimTypeInfo = snapshot.dimTypeInfo();
 
@@ -531,7 +526,7 @@ public class ConversionOrchestrator {
                         needsUpdate,
                         regionDir,
                         baseOutputDir,
-                        xaeroDimName,
+                        dimFolderName,
                         dimTypeInfo,
                         passes,
                         failedRegions,
@@ -584,19 +579,38 @@ public class ConversionOrchestrator {
         }
     }
 
+    private static String friendlyDimensionName(String dimPath) {
+        if (dimPath == null || dimPath.isEmpty()) {
+            return "minecraft:overworld";
+        }
+        if (dimPath.startsWith("minecraft:")) {
+            return dimPath;
+        }
+        int dollarIndex = dimPath.indexOf('$');
+        if (dollarIndex > 0) {
+            String namespace = dimPath.substring(0, dollarIndex);
+            String path = dimPath.substring(dollarIndex + 1).replace('%', '/').replace(',', '.');
+            return namespace + ":" + path;
+        }
+        if (dimPath.contains(":")) {
+            return dimPath;
+        }
+        return "minecraft:" + dimPath;
+    }
+
     public static List<DimensionCacheStats> getCacheStats() {
         List<DimensionCacheStats> stats = new ArrayList<>();
 
-        if (!Files.exists(getCacheDir())) {
+        if (!Files.exists(MapSyncer.CACHE_DIR)) {
             return stats;
         }
 
-        try (DirectoryStream<Path> dimDirs = Files.newDirectoryStream(getCacheDir())) {
+        try (DirectoryStream<Path> dimDirs = Files.newDirectoryStream(MapSyncer.CACHE_DIR)) {
             for (Path dimDir : dimDirs) {
                 if (!dimDir.toFile().isDirectory()) continue;
 
                 String dimName = dimDir.getFileName().toString();
-                String friendlyName = PathMapping.getFriendlyName(dimName);
+                String friendlyName = friendlyDimensionName(dimName);
 
                 int regionCount = 0;
                 long totalSize = 0;
