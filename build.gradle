@@ -89,16 +89,3 @@ spotless {
 tasks.named('jarJar') {
     enabled = false
 }
-
-publishing {
-    publications {
-        register('forge120MavenJava', MavenPublication) {
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/repo"
-        }
-    }
-}
