@@ -15,31 +15,29 @@ public class XaeroWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWriter.class);
 
-    private static final long TEMP_FILE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-    public static int cleanStaleTempFiles(Path rootDir) {
-        if (!Files.exists(rootDir)) return 0;
-        long cutoff = System.currentTimeMillis() - TEMP_FILE_MAX_AGE_MS;
-        int[] count = {0};
+    public static void cleanStaleFiles(Path rootDir) {
+        if (!Files.exists(rootDir)) return;
         try (var stream = Files.walk(rootDir)) {
-            stream.filter(p -> p.getFileName().toString().endsWith(".zip.temp")).forEach(p -> {
-                try {
-                    if (Files.getLastModifiedTime(p).toMillis() < cutoff) {
-                        Files.deleteIfExists(p);
-                        count[0]++;
-                        LOGGER.debug("Cleaned stale temp file: {}", p);
-                    }
-                } catch (IOException ignored) {
-
-                }
-            });
+            long deleted = stream
+                    .filter(p -> p.getFileName().toString().endsWith(".zip.temp"))
+                    .filter(p -> {
+                        try {
+                            boolean removed = Files.deleteIfExists(p);
+                            if (removed) {
+                                LOGGER.debug("Cleaned stale temp file: {}", p);
+                            }
+                            return removed;
+                        } catch (IOException e) {
+                            return false;
+                        }
+                    })
+                    .count();
+            if (deleted > 0) {
+                LOGGER.info("Cleaned {} stale .temp files from {}", deleted, rootDir);
+            }
         } catch (IOException e) {
             LOGGER.warn("Failed to scan for stale temp files in {}", rootDir, e);
         }
-        if (count[0] > 0) {
-            LOGGER.info("Cleaned {} stale .temp files from {}", count[0], rootDir);
-        }
-        return count[0];
     }
 
     public static void writeRegionFile(Path outputDir, ConvertedRegion region) throws IOException {

@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
-import com.mapsyncer.mca.DimensionTypeInfo;
+import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.io.McaRegionLoader;
 import com.mapsyncer.mca.convert.io.McaRegionLoader.PassMapData;
@@ -20,7 +20,7 @@ public final class RegionConversionPipeline {
             Path mcaPath,
             int regionX,
             int regionZ,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             BlockPropertyLookup blockLookup)
             throws IOException {

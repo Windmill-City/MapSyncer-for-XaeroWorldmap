@@ -1,6 +1,6 @@
 package com.mapsyncer.util;
 
-import com.mapsyncer.mca.DimensionTypeInfo;
+import com.mapsyncer.mca.DimensionInfo;
 import java.util.function.Predicate;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceKey;
@@ -13,8 +13,8 @@ public final class ApiHelper {
         return key.location().toString();
     }
 
-    public static DimensionTypeInfo fromDimensionType(DimensionType dimensionType) {
-        return new DimensionTypeInfo(
+    public static DimensionInfo fromDimensionType(DimensionType dimensionType) {
+        return new DimensionInfo(
                 dimensionType.hasSkyLight(),
                 dimensionType.hasCeiling(),
                 dimensionType.minY(),

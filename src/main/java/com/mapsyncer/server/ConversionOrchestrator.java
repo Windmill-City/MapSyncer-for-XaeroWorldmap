@@ -3,7 +3,7 @@ package com.mapsyncer.server;
 import com.mapsyncer.config.DimensionScanConfig;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.RegionGenerationPlanner;
-import com.mapsyncer.mca.DimensionTypeInfo;
+import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
@@ -12,7 +12,6 @@ import com.mapsyncer.server.RegionScanner.DimensionRegions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathMapping;
-import com.mapsyncer.util.XaeroPathResolver;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -36,7 +35,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,28 +61,13 @@ public class ConversionOrchestrator {
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
     private static final Path DEFAULT_CACHE_DIR = Path.of("server_map_cache");
-    private static volatile @Nullable Path effectiveCacheDir = null;
 
     public static Path getCacheDir() {
-        return effectiveCacheDir != null ? effectiveCacheDir : DEFAULT_CACHE_DIR;
+        return DEFAULT_CACHE_DIR;
     }
 
-    public static void setCacheDir(Path dir) {
-        effectiveCacheDir = dir;
-        LOGGER.info("Cache directory set to: {}", dir);
-    }
-
-    public static void tryInitIntegratedServerCache(MinecraftServer server, Path gameDir) {
-        if (!server.isDedicatedServer()) {
-            Path worldRoot = server.getWorldPath(LevelResource.ROOT);
-            Path worldRootParent = worldRoot.getParent();
-            if (worldRootParent != null) {
-                String worldName = worldRootParent.getFileName().toString();
-                setCacheDir(XaeroPathResolver.getWorldMapDir(gameDir).resolve(worldName));
-            }
-        }
-
-        XaeroWriter.cleanStaleTempFiles(getCacheDir());
+    public static void cleanupCacheDir() {
+        XaeroWriter.cleanStaleFiles(getCacheDir());
     }
 
     private static @Nullable McaTimestampCache timestampCache;
@@ -357,7 +340,7 @@ public class ConversionOrchestrator {
             return SingleRegionResult.CONVERSION_FAILED;
         }
 
-        DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
+        DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
         List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
         Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
 
@@ -429,7 +412,7 @@ public class ConversionOrchestrator {
             return;
         }
 
-        DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
+        DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
         List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
         try {
@@ -539,7 +522,7 @@ public class ConversionOrchestrator {
             }
             String dimPath = dimRegions.dimension().location().getPath();
             DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
-            DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
+            DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = RegionGenerationPlanner.countPasses(scanConfig, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
         }
@@ -554,7 +537,7 @@ public class ConversionOrchestrator {
             Path baseOutputDir,
             String xaeroDimName,
             String dimPath,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
@@ -592,7 +575,7 @@ public class ConversionOrchestrator {
             Path baseOutputDir,
             String xaeroDimName,
             String dimPath,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions) {
@@ -641,7 +624,7 @@ public class ConversionOrchestrator {
             Path baseOutputDir,
             String xaeroDimName,
             String dimPath,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             McaTimestampCache mcaCache,
             ConcurrentLinkedQueue<RegionCoords> failedRegions,
@@ -791,7 +774,7 @@ public class ConversionOrchestrator {
             String xaeroDimName,
             Path regionDir,
             Path baseOutputDir,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes) {}
 
     public static List<IncrementalScanSnapshot> buildIncrementalScanSnapshots(MinecraftServer server) {
@@ -816,7 +799,7 @@ public class ConversionOrchestrator {
             }
 
             Path baseOutputDir = getCacheDir().resolve(xaeroDimName);
-            DimensionTypeInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
+            DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
 
             snapshots.add(
@@ -870,7 +853,7 @@ public class ConversionOrchestrator {
                 Path baseOutputDir = snapshot.baseOutputDir();
                 String xaeroDimName = snapshot.xaeroDimName();
                 List<RegionScanPass> passes = snapshot.passes();
-                DimensionTypeInfo dimTypeInfo = snapshot.dimTypeInfo();
+                DimensionInfo dimTypeInfo = snapshot.dimTypeInfo();
 
                 java.util.List<RegionCoords> needsUpdate = mcaCache.scanAndUpdate(dimPath, regionDir);
 

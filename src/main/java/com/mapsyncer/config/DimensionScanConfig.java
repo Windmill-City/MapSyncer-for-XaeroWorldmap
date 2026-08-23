@@ -1,5 +1,5 @@
 package com.mapsyncer.config;
 
-import com.mapsyncer.mca.DimensionTypeInfo;
+import com.mapsyncer.mca.DimensionInfo;
 
-public record DimensionScanConfig(String dimension, LayerPlan layerPlan, DimensionTypeInfo dimTypeInfo) {}
+public record DimensionScanConfig(String dimension, LayerPlan layerPlan, DimensionInfo dimTypeInfo) {}

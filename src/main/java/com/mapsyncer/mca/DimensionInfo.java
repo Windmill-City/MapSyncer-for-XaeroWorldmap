@@ -1,6 +1,6 @@
 package com.mapsyncer.mca;
 
-public record DimensionTypeInfo(boolean hasSkylight, boolean hasCeiling, int minY, int height, int logicalHeight) {
+public record DimensionInfo(boolean hasSkylight, boolean hasCeiling, int minY, int height, int logicalHeight) {
 
     public int maxY() {
         return minY + height;
@@ -14,19 +14,19 @@ public record DimensionTypeInfo(boolean hasSkylight, boolean hasCeiling, int min
         return hasCeiling && logicalHeight < height;
     }
 
-    public static DimensionTypeInfo overworld() {
-        return new DimensionTypeInfo(true, false, -64, 384, 384);
+    public static DimensionInfo overworld() {
+        return new DimensionInfo(true, false, -64, 384, 384);
     }
 
-    public static DimensionTypeInfo nether() {
-        return new DimensionTypeInfo(false, true, 0, 256, 128);
+    public static DimensionInfo nether() {
+        return new DimensionInfo(false, true, 0, 256, 128);
     }
 
-    public static DimensionTypeInfo theEnd() {
-        return new DimensionTypeInfo(false, false, 0, 256, 256);
+    public static DimensionInfo theEnd() {
+        return new DimensionInfo(false, false, 0, 256, 256);
     }
 
-    public static DimensionTypeInfo fromDimensionId(String dimensionId) {
+    public static DimensionInfo fromDimensionId(String dimensionId) {
         if (dimensionId == null || dimensionId.isEmpty()) {
             return overworld();
         }

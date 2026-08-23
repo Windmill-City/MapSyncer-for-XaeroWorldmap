@@ -387,7 +387,6 @@ public class CommandHandler {
     public static boolean reloadConfig(MinecraftServer server) {
         try {
             ModConfig.reloadServerFromDisk();
-            DimensionRegistry.resetRegistration();
             DimensionConfigParser.invalidateCache();
 
             if (!ConversionOrchestrator.isRunning()) {

@@ -35,7 +35,7 @@ public class RegionConverter {
             Path mcaPath,
             int regionX,
             int regionZ,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes,
             BlockPropertyLookup blockLookup) {
         try {

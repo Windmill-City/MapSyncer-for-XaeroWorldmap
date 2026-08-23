@@ -1,6 +1,6 @@
 package com.mapsyncer.config;
 
-import com.mapsyncer.mca.DimensionTypeInfo;
+import com.mapsyncer.mca.DimensionInfo;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -81,10 +81,10 @@ public final class DimensionConfigParser {
                 return null;
             }
             LayerPlan layerPlan = planStr.isEmpty() ? LayerPlan.empty() : LayerPlan.parse(planStr);
-            return new DimensionScanConfig(dimension, layerPlan, DimensionTypeInfo.fromDimensionId(dimension));
+            return new DimensionScanConfig(dimension, layerPlan, DimensionInfo.fromDimensionId(dimension));
         }
 
-        return new DimensionScanConfig(trimmed, LayerPlan.empty(), DimensionTypeInfo.fromDimensionId(trimmed));
+        return new DimensionScanConfig(trimmed, LayerPlan.empty(), DimensionInfo.fromDimensionId(trimmed));
     }
 
     private static @Nullable DimensionScanConfig parsePipeFormat(String configStr) {
@@ -95,7 +95,7 @@ public final class DimensionConfigParser {
 
         String dimension = parts[0].trim();
         LayerPlan layerPlan = LayerPlan.empty();
-        DimensionTypeInfo dimTypeInfo = DimensionTypeInfo.fromDimensionId(dimension);
+        DimensionInfo dimTypeInfo = DimensionInfo.fromDimensionId(dimension);
 
         int dimTypeStartIndex;
         if (parts.length > 2 && isLegacyScanModeToken(parts[1]) && !looksLikeDimTypeField(parts[2])) {
@@ -121,7 +121,7 @@ public final class DimensionConfigParser {
     private static DimensionScanConfig finishParse(
             String dimension,
             LayerPlan layerPlan,
-            DimensionTypeInfo dimTypeInfo,
+            DimensionInfo dimTypeInfo,
             String[] parts,
             int dimTypeStartIndex,
             String configStr) {
@@ -163,16 +163,16 @@ public final class DimensionConfigParser {
             switch (normalizedPath) {
                 case "the_nether":
                     return new DimensionScanConfig(
-                            "minecraft:the_nether", LayerPlan.mixed(DEFAULT_CAVE_START), DimensionTypeInfo.nether());
+                            "minecraft:the_nether", LayerPlan.mixed(DEFAULT_CAVE_START), DimensionInfo.nether());
                 case "overworld":
                     return new DimensionScanConfig(
-                            "minecraft:overworld", LayerPlan.surfaceOnly(), DimensionTypeInfo.overworld());
+                            "minecraft:overworld", LayerPlan.surfaceOnly(), DimensionInfo.overworld());
                 default:
                     return new DimensionScanConfig(
-                            "minecraft:the_end", LayerPlan.surfaceOnly(), DimensionTypeInfo.theEnd());
+                            "minecraft:the_end", LayerPlan.surfaceOnly(), DimensionInfo.theEnd());
             }
         }
 
-        return new DimensionScanConfig(dimensionPath, defaultPlan, DimensionTypeInfo.fromDimensionId(dimensionPath));
+        return new DimensionScanConfig(dimensionPath, defaultPlan, DimensionInfo.fromDimensionId(dimensionPath));
     }
 }
