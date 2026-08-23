@@ -9,14 +9,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class PropertiesCacheIO {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PropertiesCacheIO.class);
-
-    private PropertiesCacheIO() {}
 
     public static <T> Map<String, T> load(Path cacheFile, Function<String, T> parser) {
         Map<String, T> cache = new HashMap<>();

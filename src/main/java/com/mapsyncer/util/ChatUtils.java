@@ -17,8 +17,6 @@ public final class ChatUtils {
 
     public static final int HEADER_COLOR = 0xFFFF55;
 
-    private ChatUtils() {}
-
     public static MutableComponent prefix() {
         return Component.translatable("mapsyncer.prefix").withStyle(style -> style.withColor(PREFIX_COLOR));
     }

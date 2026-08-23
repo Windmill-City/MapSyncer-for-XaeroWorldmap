@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.CRC32;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +14,6 @@ public final class HashUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(HashUtils.class);
 
     public static final String DEFAULT_HASH = "00000000";
-
-    private HashUtils() {}
 
     public static String computeFileHash(Path filePath) {
         if (filePath == null || !Files.exists(filePath)) {
