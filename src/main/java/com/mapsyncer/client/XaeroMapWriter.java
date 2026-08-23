@@ -16,9 +16,9 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class XaeroMapDataHandler {
+public final class XaeroMapWriter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapDataHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapWriter.class);
 
     private static final Set<RegionCoord> updatedRegions = ConcurrentHashMap.newKeySet();
 
@@ -45,11 +45,32 @@ public final class XaeroMapDataHandler {
 
     public record RegionWriteResult(Path mwDir, Path outputFile) {}
 
-    public static @Nullable RegionWriteResult writeChunkData(RegionData chunk, Path serverDir, String worldId) {
+    public static @Nullable RegionWriteResult writeChunkData(RegionData chunk) {
         String xaeroDim = XaeroReflectionHelper.getDimensionName(chunk.ref.dimId());
         if (xaeroDim == null) {
             xaeroDim = PathMapping.toXaeroDimension(chunk.ref.dimId());
         }
+
+        Path serverDir = XaeroMapIntegrator.getCurrentServerDirectory();
+        if (serverDir == null) {
+            LOGGER.error(
+                    "Unable to resolve server directory, skipping region ({}, {}) dim={}",
+                    chunk.ref.regionX(),
+                    chunk.ref.regionZ(),
+                    chunk.ref.dimId());
+            return null;
+        }
+
+        String worldId = XaeroReflectionHelper.getCurrentWorldId();
+        if (worldId == null || worldId.isEmpty()) {
+            LOGGER.error(
+                    "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
+                    chunk.ref.regionX(),
+                    chunk.ref.regionZ(),
+                    chunk.ref.dimId());
+            return null;
+        }
+
         Path dimDir = serverDir.resolve(xaeroDim);
         Path mwDir = dimDir.resolve("mw$" + worldId);
 

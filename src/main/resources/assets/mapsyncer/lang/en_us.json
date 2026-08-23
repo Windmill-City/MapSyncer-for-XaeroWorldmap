@@ -5,7 +5,6 @@
   "mapsyncer.sync.server_dir_missing": "Unable to resolve server map directory; sync cancelled.",
   "mapsyncer.sync.timeout": "Sync timed out, please try again",
   "mapsyncer.sync.partial": "Some regions were updated; retry sync for any that failed to write or conflict with local exploration",
-  "mapsyncer.sync.reflection_failed": "Xaero map reflection failed. Files were saved but the map may not refresh — ensure a compatible Xaero's World Map is installed",
 
   "mapsyncer.command.no_regions": "Local map is up-to-date, nothing to sync",
 

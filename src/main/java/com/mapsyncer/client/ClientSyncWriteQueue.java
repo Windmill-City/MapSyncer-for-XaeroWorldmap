@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionData;
-import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -45,20 +44,16 @@ public final class ClientSyncWriteQueue {
         return pendingWrites.get() > 0;
     }
 
-    public static void submit(
-            RegionData chunk,
-            Path serverDir,
-            String worldId,
-            Consumer<XaeroMapDataHandler.RegionWriteResult> callback) {
+    public static void submit(RegionData chunk, Consumer<XaeroMapWriter.RegionWriteResult> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
-            XaeroMapDataHandler.RegionWriteResult result = null;
+            XaeroMapWriter.RegionWriteResult result = null;
             try {
-                result = XaeroMapDataHandler.writeChunkData(chunk, serverDir, worldId);
+                result = XaeroMapWriter.writeChunkData(chunk);
                 if (result != null) {
-                    XaeroMapDataHandler.clearRegionCacheFiles(
+                    XaeroMapWriter.clearRegionCacheFiles(
                             result.mwDir(),
-                            new XaeroMapDataHandler.RegionCoord(
+                            new XaeroMapWriter.RegionCoord(
                                     chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
                 }
             } catch (Exception e) {
@@ -84,8 +79,8 @@ public final class ClientSyncWriteQueue {
 
     private static void invokeCallback(
             RegionData chunk,
-            Consumer<XaeroMapDataHandler.RegionWriteResult> callback,
-            @Nullable XaeroMapDataHandler.RegionWriteResult result) {
+            Consumer<XaeroMapWriter.RegionWriteResult> callback,
+            @Nullable XaeroMapWriter.RegionWriteResult result) {
         try {
             callback.accept(result);
         } catch (Exception e) {

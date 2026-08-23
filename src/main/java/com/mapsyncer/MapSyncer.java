@@ -115,11 +115,6 @@ public class MapSyncer {
     @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
     public static class ClientEventHandler {
         @SubscribeEvent
-        public static void onPlayerLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
-            com.mapsyncer.client.MapPacketHandler.prepareJoinSync();
-        }
-
-        @SubscribeEvent
         public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
             com.mapsyncer.client.MapPacketHandler.onDisconnect();
         }
