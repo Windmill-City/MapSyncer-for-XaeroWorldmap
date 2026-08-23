@@ -97,25 +97,39 @@ public class RegionScanner {
             return null;
         }
 
-        String normalized = dimId;
-        if (normalized.startsWith("minecraft:")) {
-            normalized = normalized.substring("minecraft:".length());
-        }
-        if ("null".equals(normalized)) {
-            normalized = "overworld";
-        }
-
-        if (normalized.contains(":")) {
-            Path regionDir = worldRoot
-                    .resolve("dimensions")
-                    .resolve(normalized.replace(':', '/'))
-                    .resolve("region");
-            if (Files.exists(regionDir)) {
-                return regionDir;
+        switch (dimId) {
+            case "minecraft:overworld" -> {
+                Path overworldDir = worldRoot.resolve("region");
+                if (Files.exists(overworldDir)) {
+                    return overworldDir;
+                }
+            }
+            case "minecraft:the_nether" -> {
+                Path netherDir = worldRoot.resolve("DIM-1").resolve("region");
+                if (Files.exists(netherDir)) {
+                    return netherDir;
+                }
+            }
+            case "minecraft:the_end" -> {
+                Path endDir = worldRoot.resolve("DIM1").resolve("region");
+                if (Files.exists(endDir)) {
+                    return endDir;
+                }
+            }
+            default -> {
+                if (dimId.contains(":")) {
+                    Path regionDir = worldRoot
+                            .resolve("dimensions")
+                            .resolve(dimId.replace(':', '/'))
+                            .resolve("region");
+                    if (Files.exists(regionDir)) {
+                        return regionDir;
+                    }
+                }
             }
         }
 
-        LOGGER.warn("Could not detect region directory for dimension: {}", normalized);
+        LOGGER.warn("Could not detect region directory for dimension: {}", dimId);
         return null;
     }
 

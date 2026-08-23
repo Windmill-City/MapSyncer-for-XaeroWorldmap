@@ -183,10 +183,9 @@ public class CommandHandler {
             return false;
         }
 
-        server.saveEverything(false, true, true);
         Thread worker = new Thread(
                 () -> {
-                    if (MapConverter.generateAll(server) && onSuccess != null) {
+                    if (MapConverter.generate(server) && onSuccess != null) {
                         onSuccess.run();
                     }
                 },

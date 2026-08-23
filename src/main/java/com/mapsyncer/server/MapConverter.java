@@ -57,9 +57,9 @@ public class MapConverter {
         XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
     }
 
-    public static boolean generateAll(MinecraftServer server) {
+    public static boolean generate(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.warn("Conversion already in progress, rejecting generateAll");
+            LOGGER.warn("Conversion already in progress, rejecting...");
             return false;
         }
         cancelRequested.set(false);
