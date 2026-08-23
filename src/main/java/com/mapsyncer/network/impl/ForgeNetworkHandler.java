@@ -7,9 +7,6 @@ import com.mapsyncer.network.payload.SyncRequestPayload;
 import com.mapsyncer.network.payload.SyncResponsePayload;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
@@ -23,10 +20,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class ForgeNetworkHandler {
 
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "4";
     private static @Nullable SimpleChannel CHANNEL;
-
-    static final Set<UUID> confirmedPlayers = ConcurrentHashMap.newKeySet();
 
     private static @Nullable BiConsumer<SyncResponsePayload, Supplier<NetworkEvent.Context>> syncResponseHandler;
     private static @Nullable BiConsumer<SyncManifestPayload, Supplier<NetworkEvent.Context>> syncManifestHandler;
@@ -65,10 +60,6 @@ public final class ForgeNetworkHandler {
     }
 
     private static void handleSyncRequest(ForgeSyncRequestMessage msg, Supplier<NetworkEvent.Context> ctx) {
-        ServerPlayer sender = ctx.get().getSender();
-        if (sender != null) {
-            confirmPlayer(sender.getUUID());
-        }
         if (syncRequestHandler != null) {
             syncRequestHandler.accept(msg.getData(), ctx);
         }
@@ -91,12 +82,10 @@ public final class ForgeNetworkHandler {
     }
 
     public static void sendToPlayer(ServerPlayer player, SyncResponsePayload payload) {
-        if (!confirmedPlayers.contains(player.getUUID())) return;
         channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncResponseMessage(payload));
     }
 
     public static void sendToPlayer(ServerPlayer player, SyncManifestPayload payload) {
-        if (!confirmedPlayers.contains(player.getUUID())) return;
         channel().send(PacketDistributor.PLAYER.with(() -> player), new ForgeSyncManifestMessage(payload));
     }
 
@@ -125,14 +114,6 @@ public final class ForgeNetworkHandler {
 
     public static ServerPlayer getPlayerFromContext(Supplier<NetworkEvent.Context> ctx) {
         return ctx.get().getSender();
-    }
-
-    public static void confirmPlayer(UUID playerId) {
-        confirmedPlayers.add(playerId);
-    }
-
-    public static void onPlayerDisconnect(UUID playerId) {
-        confirmedPlayers.remove(playerId);
     }
 
     public static class ForgeSyncRequestMessage {

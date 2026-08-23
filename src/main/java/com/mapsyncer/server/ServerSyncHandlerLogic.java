@@ -4,8 +4,6 @@ import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import com.mapsyncer.network.payload.ChunkMapData;
 import com.mapsyncer.network.payload.SyncManifestPayload;
 import com.mapsyncer.network.payload.SyncRequestPayload;
-import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.ChatUtils;
 import com.mapsyncer.util.PathMapping;
 import com.mapsyncer.util.RegionMeta;
 import java.io.BufferedReader;
@@ -14,12 +12,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -62,21 +57,13 @@ public class ServerSyncHandlerLogic {
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
 
-        Set<String> dimensions = discoverDimensionsFromCache(absCacheDir);
-        if (dimensions.isEmpty()) {
-            LOGGER.debug("No cached dimensions, pushing no_cache manifest to player {}", player.getUUID());
-            pushNoCacheManifest(player);
-            return;
-        }
-
-        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(absCacheDir, dimensions);
+        Map<String, Long> manifest = ManifestCache.getInstance().buildFullManifest(absCacheDir);
         if (manifest.isEmpty()) {
             LOGGER.debug("Manifest is empty, pushing no_cache manifest to player {}", player.getUUID());
             pushNoCacheManifest(player);
             return;
         }
 
-        ForgeNetworkHandler.confirmPlayer(player.getUUID());
         int worldId = readWorldIdFromXaeroMap(player);
         for (SyncManifestPayload part : SyncManifestPayload.split(manifest, worldId, "ok")) {
             SyncTransferScheduler.enqueueManifest(player, part);
@@ -85,7 +72,6 @@ public class ServerSyncHandlerLogic {
     }
 
     private static void pushNoCacheManifest(ServerPlayer player) {
-        ForgeNetworkHandler.confirmPlayer(player.getUUID());
         int worldId = readWorldIdFromXaeroMap(player);
         ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
     }
@@ -94,84 +80,40 @@ public class ServerSyncHandlerLogic {
         Player player = ForgeNetworkHandler.getPlayerFromContext(context);
         if (!(player instanceof ServerPlayer serverPlayer)) return;
 
-        Map<String, RegionMeta> clientMeta = payload.clientMeta();
-        boolean syncAll = payload.syncAll();
-        String targetDimension = payload.targetDimension();
-        boolean silent = payload.silent();
+        Map<String, RegionMeta> regionMeta = payload.regionMeta();
 
         LOGGER.info(
-                "[SYNC-SRV] request from {}: metaEntries={}, syncAll={}, targetDimension={}, silent={}",
+                "[SYNC-SRV] request from {}: metaEntries={}",
                 serverPlayer.getName().getString(),
-                clientMeta.size(),
-                syncAll,
-                targetDimension,
-                silent);
+                regionMeta.size());
 
         Path cacheDir = ConversionOrchestrator.getCacheDir();
         if (!Files.exists(cacheDir)) {
             int worldId = readWorldIdFromXaeroMap(serverPlayer);
-            if (!silent) {
-                serverPlayer.sendSystemMessage(
-                        ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
-            }
             ForgeNetworkHandler.sendToPlayer(serverPlayer, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
 
         Path absCacheDir = cacheDir.toAbsolutePath().normalize();
 
-        if (isManifestRequest(clientMeta)) {
-            sendManifest(serverPlayer, syncAll, targetDimension, silent, absCacheDir);
+        if (isManifestRequest(regionMeta)) {
+            sendManifest(serverPlayer, absCacheDir);
             return;
         }
 
-        serveRequestedRegions(serverPlayer, clientMeta, absCacheDir);
+        serveRequestedRegions(serverPlayer, regionMeta, absCacheDir);
     }
 
-    private static void sendManifest(
-            ServerPlayer player,
-            boolean syncAll,
-            String targetDimension,
-            boolean silent,
-            Path absCacheDir) {
+    private static void sendManifest(ServerPlayer player, Path absCacheDir) {
         int worldId = readWorldIdFromXaeroMap(player);
-
-        Set<String> requestedDimensions = new HashSet<>();
-        if (syncAll) {
-            requestedDimensions.addAll(discoverDimensionsFromCache(absCacheDir));
-            LOGGER.info("Sync-all: discovered {} dimensions from cache", requestedDimensions.size());
-        } else if (targetDimension != null && !targetDimension.isEmpty()) {
-            requestedDimensions.add(targetDimension);
-            LOGGER.debug("Single-dimension sync: {}", targetDimension);
-        } else {
-            requestedDimensions.add(PathMapping.toXaeroDimension(
-                    ApiHelper.getDimId(player.level().dimension())));
-        }
-
-        Map<String, Long> manifest = ManifestCache.getInstance().buildManifest(absCacheDir, requestedDimensions);
+        Map<String, Long> manifest = ManifestCache.getInstance().buildFullManifest(absCacheDir);
 
         if (manifest.isEmpty()) {
-            if (!silent) {
-                if (targetDimension != null && !targetDimension.isEmpty()) {
-                    String friendlyDim = PathMapping.toServerDimension(targetDimension);
-                    player.sendSystemMessage(ChatUtils.error(
-                            "mapsyncer.server.dim_not_available",
-                            friendlyDim,
-                            CommandHandler.serverCommandPrefix(),
-                            friendlyDim));
-                } else {
-                    player.sendSystemMessage(
-                            ChatUtils.message("mapsyncer.server.no_cache", CommandHandler.serverCommandPrefix()));
-                }
-            }
-            ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "dim_not_available"));
+            ForgeNetworkHandler.sendToPlayer(player, new SyncManifestPayload(Map.of(), worldId, "no_cache"));
             return;
         }
 
         SyncManifestPayload[] parts = SyncManifestPayload.split(manifest, worldId, "ok");
-        if (!silent) {
-            player.sendSystemMessage(ChatUtils.message("mapsyncer.server.manifest_ready", manifest.size()));
-        }
         for (SyncManifestPayload part : parts) {
             SyncTransferScheduler.enqueueManifest(player, part);
         }
@@ -217,28 +159,6 @@ public class ServerSyncHandlerLogic {
                 failed);
         SyncTransferScheduler.enqueueRegionResponse(player, parts, worldId, failed > 0 ? "partial" : "ok");
         SyncTransferScheduler.onRequestReceived(player);
-    }
-
-    private static Set<String> discoverDimensionsFromCache(Path cacheDir) {
-        Set<String> dims = new HashSet<>();
-        if (!Files.exists(cacheDir)) {
-            return dims;
-        }
-        try (Stream<Path> topLevel = Files.list(cacheDir)) {
-            topLevel.filter(Files::isDirectory).forEach(dimDir -> {
-                String xaeroDim = dimDir.getFileName().toString();
-                try (Stream<Path> stream = Files.walk(dimDir)) {
-                    if (stream.anyMatch(p -> p.toString().endsWith(".zip"))) {
-                        dims.add(xaeroDim);
-                    }
-                } catch (IOException e) {
-                    LOGGER.warn("Failed to walk dimension {} cache", xaeroDim, e);
-                }
-            });
-        } catch (IOException e) {
-            LOGGER.warn("Failed to list cache directory", e);
-        }
-        return dims;
     }
 
     private static int readWorldIdFromXaeroMap(ServerPlayer serverPlayer) {

@@ -5,7 +5,6 @@ import com.mapsyncer.client.MapPacketHandler;
 import com.mapsyncer.client.XaeroMapDataHandler;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.config.UpdateMode;
-import com.mapsyncer.network.impl.ForgeNetworkHandler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,7 +31,6 @@ public class PlayerJoinHandlerLogic {
 
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
-        ForgeNetworkHandler.onPlayerDisconnect(event.getEntity().getUUID());
         SyncTransferScheduler.onPlayerDisconnect(event.getEntity().getUUID());
         IncrementalUpdateHandlerLogic.getInstance().onPlayerLoggedOut();
     }

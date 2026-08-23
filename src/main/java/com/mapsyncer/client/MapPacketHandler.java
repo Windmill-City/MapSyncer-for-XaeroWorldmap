@@ -457,7 +457,7 @@ public class MapPacketHandler {
         regionRequestInFlight = true;
         Map<String, RegionMeta> single = new HashMap<>();
         single.put(path, new RegionMeta(0));
-        ForgeNetworkHandler.sendToServer(new SyncRequestPayload(single, false, "", true));
+        ForgeNetworkHandler.sendToServer(new SyncRequestPayload(single));
         int seq = requestCounter.incrementAndGet();
         LOGGER.info(
                 "[SYNC] -> request #{}: {} (pendingLeft={}, syncProcessed={}/{})",

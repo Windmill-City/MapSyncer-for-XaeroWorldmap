@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -40,7 +39,7 @@ public class ManifestCache {
         return current;
     }
 
-    public Map<String, Long> buildManifest(Path absCacheDir, Set<String> requestedDimensions) {
+    public Map<String, Long> buildFullManifest(Path absCacheDir) {
         if (!isValid(absCacheDir)) {
             synchronized (this) {
                 if (!isValid(absCacheDir)) {
@@ -48,17 +47,7 @@ public class ManifestCache {
                 }
             }
         }
-
-        Map<String, Long> snapshot = manifest;
-        Map<String, Long> filtered = new HashMap<>();
-        for (Map.Entry<String, Long> entry : snapshot.entrySet()) {
-            String[] pathParts = entry.getKey().split("[/\\\\]");
-            String xaeroDim = pathParts.length > 1 ? pathParts[0] : "unknown";
-            if (requestedDimensions.contains(xaeroDim)) {
-                filtered.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return filtered;
+        return new HashMap<>(manifest);
     }
 
     private boolean isValid(Path absCacheDir) {

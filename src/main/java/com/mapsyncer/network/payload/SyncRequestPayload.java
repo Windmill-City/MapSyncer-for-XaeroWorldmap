@@ -6,35 +6,22 @@ import java.util.Map;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class SyncRequestPayload {
-    private final Map<String, RegionMeta> clientMeta;
+    private final Map<String, RegionMeta> regionMeta;
     private final int partIndex;
     private final int totalParts;
-    private final boolean syncAll;
-    private final String targetDimension;
-    private final boolean silent;
 
-    public SyncRequestPayload(
-            Map<String, RegionMeta> clientMeta, boolean syncAll, String targetDimension, boolean silent) {
-        this(clientMeta, 0, 0, syncAll, targetDimension, silent);
+    public SyncRequestPayload(Map<String, RegionMeta> clientMeta) {
+        this(clientMeta, 0, 0);
     }
 
-    public SyncRequestPayload(
-            Map<String, RegionMeta> clientMeta,
-            int partIndex,
-            int totalParts,
-            boolean syncAll,
-            String targetDimension,
-            boolean silent) {
-        this.clientMeta = clientMeta;
+    public SyncRequestPayload(Map<String, RegionMeta> clientMeta, int partIndex, int totalParts) {
+        this.regionMeta = clientMeta;
         this.partIndex = partIndex;
         this.totalParts = totalParts;
-        this.syncAll = syncAll;
-        this.targetDimension = targetDimension != null ? targetDimension : "";
-        this.silent = silent;
     }
 
-    public Map<String, RegionMeta> clientMeta() {
-        return clientMeta;
+    public Map<String, RegionMeta> regionMeta() {
+        return regionMeta;
     }
 
     public int partIndex() {
@@ -45,21 +32,9 @@ public class SyncRequestPayload {
         return totalParts;
     }
 
-    public boolean syncAll() {
-        return syncAll;
-    }
-
-    public String targetDimension() {
-        return targetDimension;
-    }
-
-    public boolean silent() {
-        return silent;
-    }
-
     public static void write(FriendlyByteBuf buf, SyncRequestPayload payload) {
-        buf.writeInt(payload.clientMeta().size());
-        for (var entry : payload.clientMeta().entrySet()) {
+        buf.writeInt(payload.regionMeta().size());
+        for (var entry : payload.regionMeta().entrySet()) {
             buf.writeUtf(entry.getKey());
             buf.writeLong(entry.getValue().timestampMillis());
         }
@@ -68,11 +43,6 @@ public class SyncRequestPayload {
             buf.writeInt(payload.partIndex());
             buf.writeInt(payload.totalParts());
         }
-        buf.writeBoolean(payload.syncAll());
-        if (!payload.syncAll()) {
-            buf.writeUtf(payload.targetDimension());
-        }
-        buf.writeBoolean(payload.silent());
     }
 
     public static SyncRequestPayload read(FriendlyByteBuf buf) {
@@ -92,14 +62,6 @@ public class SyncRequestPayload {
             totalParts = buf.readInt();
         }
 
-        boolean syncAll = buf.readBoolean();
-        String targetDimension = "";
-        if (!syncAll) {
-            targetDimension = buf.readUtf();
-        }
-
-        boolean silent = buf.readBoolean();
-
-        return new SyncRequestPayload(metaMap, partIndex, totalParts, syncAll, targetDimension, silent);
+        return new SyncRequestPayload(metaMap, partIndex, totalParts);
     }
 }
