@@ -14,54 +14,51 @@ public final class RegionConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverter.class);
 
-    private record PassMapData(int cave, MapRegionData data) {}
-
     public static void convert(RegionScanner.Region entry, BlockPropertyLookup blockLookup) throws IOException {
         RegionScanner.Bounds bounds = entry.bounds();
         Plan plan = Plan.getPlan(entry.dimId());
-        if (plan.caveStarts().isEmpty()) {
+        if (plan.caveLayers().isEmpty()) {
             return;
         }
 
-        Path mcaPath = resolveRegionPath(entry.regionDir(), entry.regionX(), entry.regionZ());
+        Path mcaPath = resolveRegionPath(entry);
         if (mcaPath == null || !Files.exists(mcaPath)) {
             return;
         }
 
-        List<PassMapData> loaded = load(mcaPath, bounds, plan, blockLookup);
+        List<RegionRef> refs = plan.caveLayers().stream()
+                .map(caveLayer -> new RegionRef(entry.dimId(), caveLayer, entry.regionX(), entry.regionZ()))
+                .toList();
+        List<MapRegionData> loaded = load(mcaPath, bounds, refs, blockLookup);
 
-        for (PassMapData passData : loaded) {
-            MapRegionData regionData = passData.data();
+        for (MapRegionData regionData : loaded) {
             if (!regionData.hasAnyMapData()) {
                 continue;
             }
             byte[] xaeroData = XaeroBinaryWriter.serialize(regionData, bounds.minY(), blockLookup);
-            XaeroWriter.writeRegionFile(new RegionData(
-                    new RegionRef(entry.dimId(), Plan.caveLayer(passData.cave()), entry.regionX(), entry.regionZ()),
-                    xaeroData));
+            XaeroWriter.writeRegionFile(new RegionData(regionData.ref, xaeroData));
         }
     }
 
-    private static Path resolveRegionPath(Path regionDir, int regionX, int regionZ) {
-        Path mcaPath = regionDir.resolve("r." + regionX + "." + regionZ + ".mca");
+    private static Path resolveRegionPath(RegionScanner.Region entry) {
+        Path mcaPath = entry.regionDir().resolve("r." + entry.regionX() + "." + entry.regionZ() + ".mca");
+        Path mcrPath = entry.regionDir().resolve("r." + entry.regionX() + "." + entry.regionZ() + ".mcr");
         if (Files.exists(mcaPath)) {
             return mcaPath;
         }
-        Path mcrPath = regionDir.resolve("r." + regionX + "." + regionZ + ".mcr");
         return Files.exists(mcrPath) ? mcrPath : null;
     }
 
-    private static List<PassMapData> load(
-            Path mcaPath, RegionScanner.Bounds bounds, Plan plan, BlockPropertyLookup blockLookup) throws IOException {
-        List<Integer> caveStarts = plan.caveStarts();
-        if (caveStarts.isEmpty()) {
+    private static List<MapRegionData> load(
+            Path mcaPath, RegionScanner.Bounds bounds, List<RegionRef> refs, BlockPropertyLookup blockLookup)
+            throws IOException {
+        if (refs.isEmpty()) {
             return List.of();
         }
 
-        List<PassMapData> results = new ArrayList<>(caveStarts.size());
-        for (int caveStart : caveStarts) {
-            results.add(
-                    new PassMapData(caveStart, new MapRegionData(bounds.minY(), Plan.lightMode(caveStart), caveStart)));
+        List<MapRegionData> results = new ArrayList<>(refs.size());
+        for (RegionRef ref : refs) {
+            results.add(new MapRegionData(bounds.minY(), ref));
         }
 
         try (McaReader reader = McaReader.open(mcaPath.toString())) {
@@ -74,15 +71,14 @@ public final class RegionConverter {
                     if (chunkInfo == null) {
                         continue;
                     }
-                    for (PassMapData passData : results) {
-                        int caveStart = passData.cave();
+                    for (MapRegionData data : results) {
                         ChunkColumnScanner.scan(
-                                passData.data(),
+                                data,
                                 chunkInfo,
                                 bounds.minY(),
                                 bounds.maxY(),
-                                Plan.lightMode(caveStart),
-                                caveStart,
+                                data.lightMode(),
+                                data.caveStart(),
                                 bounds.hasSkylight(),
                                 blockLookup);
                     }
@@ -90,8 +86,8 @@ public final class RegionConverter {
             }
         }
 
-        for (PassMapData passData : results) {
-            BiomeResolver.fill(passData.data());
+        for (MapRegionData data : results) {
+            BiomeResolver.fill(data);
         }
         return results;
     }

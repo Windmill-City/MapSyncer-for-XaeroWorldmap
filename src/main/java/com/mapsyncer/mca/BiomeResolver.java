@@ -218,13 +218,13 @@ public final class BiomeResolver {
                 int lz = rz & 0xF;
                 int[][] heightmap = chunk.heightmap();
 
-                boolean caveMode = data.lightMode == LightMode.CAVE && data.cave != Integer.MAX_VALUE;
+                boolean caveMode = !data.ref.isSurface();
 
                 int sampleY;
                 if (data.hasData[rx][rz]) {
                     sampleY = data.heightMap[rx][rz];
                 } else if (caveMode) {
-                    sampleY = data.cave;
+                    sampleY = data.caveStart();
                 } else if (heightmap != null) {
                     sampleY = heightmap[lx][lz];
                     data.heightMap[rx][rz] = sampleY;

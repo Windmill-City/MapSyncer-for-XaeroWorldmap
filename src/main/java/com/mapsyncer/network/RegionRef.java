@@ -4,12 +4,14 @@ import net.minecraft.network.FriendlyByteBuf;
 
 public record RegionRef(String dimId, int cave, int regionX, int regionZ) {
 
+    public static final int SURFACE_CAVE = Integer.MAX_VALUE;
+
     public int regionDistance(int playerRegionX, int playerRegionZ) {
         return Math.max(Math.abs(regionX - playerRegionX), Math.abs(regionZ - playerRegionZ));
     }
 
     public boolean isSurface() {
-        return cave == Integer.MAX_VALUE;
+        return cave == SURFACE_CAVE;
     }
 
     public static void write(FriendlyByteBuf buf, RegionRef region) {

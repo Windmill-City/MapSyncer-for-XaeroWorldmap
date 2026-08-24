@@ -1,6 +1,7 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.ChunkParser.BlockState;
+import com.mapsyncer.network.RegionRef;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -32,15 +33,13 @@ public class MapRegionData {
     public final boolean[][] hasData;
     public final boolean[][] chunkExists;
     public final Map<Integer, List<OverlayEntry>> overlays;
-    public final LightMode lightMode;
-    public final int cave;
+    public final RegionRef ref;
     public final ChunkParser.ChunkInfo[][] chunkGrid;
 
     private int dataCount = 0;
 
-    public MapRegionData(int minBuildHeight, LightMode lightMode, int cave) {
-        this.lightMode = lightMode;
-        this.cave = cave;
+    public MapRegionData(int minBuildHeight, RegionRef ref) {
+        this.ref = ref;
         blockStates = new BlockState[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
         topBlockY = new int[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
         for (int x = 0; x < Constants.REGION_SIZE_BLOCKS; x++) {
@@ -56,6 +55,14 @@ public class MapRegionData {
         chunkExists = new boolean[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
         overlays = new HashMap<>();
         chunkGrid = new ChunkParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
+    }
+
+    public LightMode lightMode() {
+        return ref.isSurface() ? LightMode.SURFACE : LightMode.CAVE;
+    }
+
+    public int caveStart() {
+        return ref.isSurface() ? RegionRef.SURFACE_CAVE : ref.cave() << 4;
     }
 
     public void markData(int x, int z) {

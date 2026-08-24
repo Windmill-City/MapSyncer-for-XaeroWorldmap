@@ -100,7 +100,7 @@ public final class XaeroBinaryWriter {
                                     int rz = baseZ + bz;
 
                                     if (!data.hasData[rx][rz]) {
-                                        boolean caveMode = data.lightMode == LightMode.CAVE;
+                                        boolean caveMode = data.lightMode() == LightMode.CAVE;
                                         writeEmptyPixel(
                                                 dos,
                                                 data,
@@ -118,7 +118,7 @@ public final class XaeroBinaryWriter {
                             }
 
                             dos.writeByte(1);
-                            dos.writeInt(data.cave);
+                            dos.writeInt(data.caveStart());
                             dos.writeByte(Constants.CAVE_DEPTH & 0xFF);
                         }
                     }

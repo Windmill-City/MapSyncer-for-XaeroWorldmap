@@ -1,5 +1,6 @@
 package com.mapsyncer.mca;
 
+import com.mapsyncer.network.RegionRef;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -15,25 +16,13 @@ public record Plan(boolean surface, Set<Integer> caves) {
 
     private static volatile Map<String, Plan> Plans = Map.of();
 
-    public List<Integer> caveStarts() {
-        List<Integer> starts = new ArrayList<>();
+    public List<Integer> caveLayers() {
+        List<Integer> layers = new ArrayList<>();
         if (surface) {
-            starts.add(Integer.MAX_VALUE);
+            layers.add(RegionRef.SURFACE_CAVE);
         }
-        caves.stream().sorted().forEach(starts::add);
-        return List.copyOf(starts);
-    }
-
-    public static boolean isSurface(int caveStart) {
-        return caveStart == Integer.MAX_VALUE;
-    }
-
-    public static int caveLayer(int caveStart) {
-        return isSurface(caveStart) ? Integer.MAX_VALUE : caveStart >> 4;
-    }
-
-    public static LightMode lightMode(int caveStart) {
-        return isSurface(caveStart) ? LightMode.SURFACE : LightMode.CAVE;
+        caves.stream().mapToInt(cave -> cave >> 4).sorted().forEach(layers::add);
+        return List.copyOf(layers);
     }
 
     @Override
