@@ -168,7 +168,7 @@ public class CommandHandler {
 
     private static boolean generate(MinecraftServer server, Runnable onSuccess) {
         if (MapConverter.isRunning()) {
-            LOGGER.warn("Conversion already in progress, rejecting generateAll command");
+            LOGGER.warn("Conversion already in progress, rejecting generate command");
             return false;
         }
 
