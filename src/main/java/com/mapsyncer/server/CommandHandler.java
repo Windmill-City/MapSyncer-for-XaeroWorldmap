@@ -218,7 +218,7 @@ public class CommandHandler {
 
     public static boolean reloadConfig() {
         try {
-            ModConfig.reloadServerFromDisk();
+            ModConfig.reloadFromDisk();
 
             AutoUpdater.stop();
 

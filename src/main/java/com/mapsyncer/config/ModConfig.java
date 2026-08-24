@@ -1,35 +1,40 @@
 package com.mapsyncer.config;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.LoggerFactory;
+
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ModConfig {
 
-    public record ForgeConfig(ServerConfig config, ForgeConfigSpec spec) {}
+    public record ForgeConfig(ServerConfig config, ForgeConfigSpec spec) {
+    }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ModConfig.class);
 
-    private static Map<String, LayerPlan> layerPlans = Map.of();
+    private static Map<String, LayerPlan> plans = Map.of();
 
     public static final ForgeConfig SERVER;
 
     public static LayerPlan getPlan(String dimId) {
-        return layerPlans.getOrDefault(dimId, new LayerPlan());
+        return plans.getOrDefault(dimId, new LayerPlan());
     }
 
     private static List<String> getDefaultDimensionConfigStrings() {
-        Map<String, LayerPlan> defaults = new LinkedHashMap<>();
+        var defaults = new LinkedHashMap<>();
         defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
         defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(64)));
         defaults.put("minecraft:the_end", new LayerPlan(true, List.of()));
-        return List.of(defaults.toString());
+        return defaults.entrySet().stream()
+                .map(Map.Entry::toString)
+                .toList();
     }
 
     static {
@@ -39,65 +44,57 @@ public class ModConfig {
     }
 
     private static void rebuildLayerPlans() {
-        Map<String, LayerPlan> map = new LinkedHashMap<>();
-        for (String configStr : SERVER.config().dimensionConfigs.get()) {
-            if (configStr == null || configStr.isBlank()) {
+        plans.clear();
+        for (var entryStr : SERVER.config().dimensionConfigs.get()) {
+            if (entryStr == null || entryStr.isBlank()) {
                 continue;
             }
-            String trimmed = configStr.trim();
-            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-                for (String entry : trimmed.substring(1, trimmed.length() - 1).split(",\\s+")) {
-                    putPlanEntry(map, entry, configStr);
-                }
-            } else {
-                putPlanEntry(map, trimmed, configStr);
+            var entry = parsePlanEntry(entryStr);
+            if (entry != null) {
+                plans.put(entry.getKey(), entry.getValue());
             }
         }
-        layerPlans = Map.copyOf(map);
     }
 
-    private static void putPlanEntry(Map<String, LayerPlan> map, String entry, String configStr) {
-        if (entry == null || entry.isBlank()) {
-            return;
+    private static Map.Entry<String, LayerPlan> parsePlanEntry(String configStr) {
+        if (configStr == null || configStr.isBlank()) {
+            return null;
         }
-        int eq = entry.indexOf('=');
+        String trimmed = configStr.trim();
+        int eq = trimmed.indexOf('=');
         String dimension;
         String planStr;
-        if (eq >= 0) {
-            dimension = entry.substring(0, eq).trim();
-            planStr = entry.substring(eq + 1).trim();
+        if (eq > 0) {
+            dimension = trimmed.substring(0, eq).trim();
+            planStr = trimmed.substring(eq + 1).trim();
         } else {
-            dimension = entry.trim();
-            planStr = "";
+            LOGGER.warn("Invalid dimension config: [{}]", configStr);
+            return null;
         }
-        if (dimension.isEmpty()) {
-            LOGGER.warn("Invalid dimension config (empty dimension): [{}]", configStr);
-            return;
-        }
-        map.put(dimension, planStr.isEmpty() ? new LayerPlan(false, List.of()) : LayerPlan.parse(planStr));
+        return Map.entry(dimension, LayerPlan.parse(planStr));
     }
 
     public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
         if (config.getType() == net.minecraftforge.fml.config.ModConfig.Type.SERVER) {
-            boundServerConfig = config;
+            modConfig = config;
         }
     }
 
-    public static void reloadServerFromDisk() {
-        if (boundServerConfig != null) {
-            Path path = boundServerConfig.getFullPath();
-            CommentedFileConfig disk = CommentedFileConfig.of(path);
-            disk.load();
+    public static void reloadFromDisk() {
+        if (modConfig != null) {
             try {
-                SERVER.spec().acceptConfig(disk);
+                Path path = modConfig.getFullPath();
+                CommentedFileConfig file = CommentedFileConfig.of(path);
+                file.load();
+                SERVER.spec().acceptConfig(file);
                 rebuildLayerPlans();
             } finally {
-                disk.close();
+                file.close();
             }
         }
     }
 
-    private static volatile net.minecraftforge.fml.config.ModConfig boundServerConfig;
+    private static net.minecraftforge.fml.config.ModConfig modConfig;
 
     public static class ServerConfig {
 
@@ -106,11 +103,6 @@ public class ModConfig {
         public final ConfigValue<List<? extends String>> plans;
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
-            builder.push("general");
-            builder.comment("General settings");
-
-            builder.pop();
-
             builder.push("automatic_update");
             builder.comment("Automatic update settings");
 
@@ -125,9 +117,9 @@ public class ModConfig {
 
             dimensionConfigs = builder.comment(
                     "Per-dimension scan configuration list (one string per dimension)",
-                    "Preferred format: \"dimension = layerPlan\"",
+                    "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
-                    "Example: \"minecraft:the_nether = SURFACE,63\"")
+                    "Example: \"minecraft:overworld = SURFACE\"")
                     .defineList("dimension_configs", getDefaultDimensionConfigStrings(), obj -> obj instanceof String);
 
             builder.pop();
