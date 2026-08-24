@@ -50,7 +50,7 @@ public final class XaeroWriter {
         Path mwDir = dimDir.resolve("mw$" + worldId);
 
         Path targetDir;
-        if (chunk.ref.cave() == Integer.MAX_VALUE) {
+        if (chunk.ref.isSurface()) {
             targetDir = mwDir;
         } else {
             targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.cave()));
@@ -69,7 +69,7 @@ public final class XaeroWriter {
             LOGGER.debug(
                     "Wrote map file: {} (layer={}, {} bytes)",
                     outputFile,
-                    chunk.isSurface() ? "surface" : chunk.ref.cave(),
+                    chunk.ref.isSurface() ? "surface" : chunk.ref.cave(),
                     chunk.data.length);
         } catch (IOException e) {
             LOGGER.error("Failed to write map file: {}", outputFile, e);

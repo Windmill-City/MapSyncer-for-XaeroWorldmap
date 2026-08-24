@@ -8,6 +8,10 @@ public record RegionRef(String dimId, int cave, int regionX, int regionZ) {
         return Math.max(Math.abs(regionX - playerRegionX), Math.abs(regionZ - playerRegionZ));
     }
 
+    public boolean isSurface() {
+        return cave == Integer.MAX_VALUE;
+    }
+
     public static void write(FriendlyByteBuf buf, RegionRef region) {
         buf.writeUtf(region.dimId);
         buf.writeInt(region.cave);

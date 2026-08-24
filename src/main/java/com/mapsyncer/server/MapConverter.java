@@ -124,7 +124,7 @@ public class MapConverter {
 
         try {
             for (RegionScanPass pass : passes) {
-                        Files.createDirectories(pass.cave() == Integer.MAX_VALUE
+                        Files.createDirectories(pass.isSurface()
                                 ? baseOutputDir
                                 : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
             }
@@ -231,7 +231,7 @@ public class MapConverter {
             RegionCoords coords = entry.coords();
             boolean needs = false;
             for (RegionScanPass pass : passes) {
-                Path zipPath = (pass.cave() == Integer.MAX_VALUE
+                Path zipPath = (pass.isSurface()
                                 ? baseOutputDir
                                 : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())))
                         .resolve(coords.x() + "_" + coords.z() + ".zip");
@@ -304,7 +304,7 @@ public class MapConverter {
 
             boolean allExist = true;
             for (RegionScanPass pass : passes) {
-                Path outputDir = pass.cave() == Integer.MAX_VALUE
+                Path outputDir = pass.isSurface()
                         ? baseOutputDir
                         : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
                 if (!XaeroWriter.regionFileExists(outputDir, coords.x(), coords.z())) {
@@ -352,7 +352,7 @@ public class MapConverter {
 
         if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
             for (RegionScanPass pass : passes) {
-                Path outputDir = pass.cave() == Integer.MAX_VALUE
+                Path outputDir = pass.isSurface()
                         ? baseOutputDir
                         : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
                 String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
@@ -380,7 +380,7 @@ public class MapConverter {
         for (int i = 0; i < passes.size(); i++) {
             RegionScanPass pass = passes.get(i);
             LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
-            Path outputDir = pass.cave() == Integer.MAX_VALUE
+            Path outputDir = pass.isSurface()
                     ? baseOutputDir
                     : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
             String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
@@ -529,7 +529,7 @@ public class MapConverter {
 
                 try {
                     for (RegionScanPass pass : passes) {
-                Files.createDirectories(pass.cave() == Integer.MAX_VALUE
+                Files.createDirectories(pass.isSurface()
                         ? baseOutputDir
                         : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
                     }

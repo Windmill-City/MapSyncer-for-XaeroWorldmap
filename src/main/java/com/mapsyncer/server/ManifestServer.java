@@ -80,7 +80,7 @@ public final class ManifestServer {
     public static Path resolveZipPath(RegionRef ref) {
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathMapping.toServerFolderName(ref.dimId()));
         int caveLayer = ref.cave();
-        Path outputDir = caveLayer == Integer.MAX_VALUE
+        Path outputDir = ref.isSurface()
                 ? baseOutputDir
                 : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));
         return outputDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");

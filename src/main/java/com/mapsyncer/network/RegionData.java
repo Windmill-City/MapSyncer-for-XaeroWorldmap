@@ -16,10 +16,6 @@ public class RegionData {
         this.data = data;
     }
 
-    public boolean isSurface() {
-        return ref.cave() == Integer.MAX_VALUE;
-    }
-
     public static void write(FriendlyByteBuf buf, RegionData data) {
         RegionRef.write(buf, data.ref);
         buf.writeLong(data.timestampMillis);

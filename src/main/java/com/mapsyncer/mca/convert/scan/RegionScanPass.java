@@ -5,7 +5,7 @@ import com.mapsyncer.mca.RegionConverter.CaveModeParams;
 
 public record RegionScanPass(
         int caveLayer, LightMode lightMode, CaveModeParams caveParams, ScanVerticalBounds verticalBounds) {
-    public boolean isSurfaceLayer() {
+    public boolean isSurface() {
         return caveLayer == Integer.MAX_VALUE;
     }
 
