@@ -197,7 +197,7 @@ public class MapSyncer {
     public static class ForgeEvents {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
-            XaeroWriter.cleanStaleFiles(PathUtils.CACHE_DIR);
+            XaeroWriter.cleanStaleFiles();
             AutoUpdater.performScan(event.getServer());
         }
 

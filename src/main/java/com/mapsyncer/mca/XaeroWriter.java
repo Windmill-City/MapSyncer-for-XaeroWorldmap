@@ -16,7 +16,8 @@ public final class XaeroWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWriter.class);
 
-    public static void cleanStaleFiles(Path rootDir) {
+    public static void cleanStaleFiles() {
+        Path rootDir = PathUtils.CACHE_DIR;
         if (!Files.exists(rootDir)) return;
         try (var stream = Files.walk(rootDir)) {
             long deleted = stream.filter(p -> p.getFileName().toString().endsWith(".zip.temp"))

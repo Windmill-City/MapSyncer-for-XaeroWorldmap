@@ -20,33 +20,10 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record Region(int regionX, int regionZ, String dimId, Path regionDir, Bounds bounds) {}
-
-    public record Bounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
-
-        public int maxY() {
-            return minY + height;
-        }
-
-        public int logicalTopY() {
-            return minY + logicalHeight - 1;
-        }
-
-        public boolean hasUpperZone() {
-            return hasCeiling && logicalHeight < height;
-        }
-    }
+    public record Region(int regionX, int regionZ, ServerLevel level) {}
 
     public static List<Region> scan(ServerLevel level) {
-        String dimId = PathUtils.getDimId(level);
-        Path regionDir = getRegionDir(level);
-        Bounds bounds = new Bounds(
-                level.getMinBuildHeight(),
-                level.getHeight(),
-                level.dimensionType().logicalHeight(),
-                level.dimensionType().hasCeiling(),
-                level.dimensionType().hasSkyLight());
-        return scanRegionFiles(regionDir, dimId, bounds);
+        return scanRegionFiles(getRegionDir(level), level);
     }
 
     private static Path getRegionDir(ServerLevel level) {
@@ -77,7 +54,7 @@ public class RegionScanner {
         }
     }
 
-    private static List<Region> scanRegionFiles(Path regionDir, String dimId, Bounds bounds) {
+    private static List<Region> scanRegionFiles(Path regionDir, ServerLevel level) {
         if (regionDir == null || !Files.exists(regionDir)) {
             return List.of();
         }
@@ -93,7 +70,7 @@ public class RegionScanner {
                 try {
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new Region(regionX, regionZ, dimId, regionDir, bounds));
+                    entries.add(new Region(regionX, regionZ, level));
                 } catch (NumberFormatException e) {
                     LOGGER.warn("Invalid region coordinates for {}", fileName, e);
                 }
