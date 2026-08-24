@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public record LayerPlan(boolean surface, Set<Integer> caves) {
+public record Plan(boolean surface, Set<Integer> caves) {
 
     @Override
     public String toString() {
@@ -17,9 +17,9 @@ public record LayerPlan(boolean surface, Set<Integer> caves) {
         return String.join(",", parts);
     }
 
-    public static LayerPlan parse(String planStr) {
+    public static Plan parse(String planStr) {
         if (planStr == null || planStr.isBlank()) {
-            return new LayerPlan(false, Set.of());
+            return new Plan(false, Set.of());
         }
 
         boolean hasSurface = false;
@@ -39,6 +39,6 @@ public record LayerPlan(boolean surface, Set<Integer> caves) {
             }
         }
 
-        return new LayerPlan(hasSurface, Set.copyOf(caves));
+        return new Plan(hasSurface, Set.copyOf(caves));
     }
 }

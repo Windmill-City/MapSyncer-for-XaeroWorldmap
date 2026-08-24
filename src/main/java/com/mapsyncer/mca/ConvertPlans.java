@@ -11,14 +11,14 @@ public class ConvertPlans {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvertPlans.class);
 
-    private static volatile Map<String, LayerPlan> Plans = Map.of();
+    private static volatile Map<String, Plan> Plans = Map.of();
 
-    public static LayerPlan getPlan(String dimId) {
-        return Plans.getOrDefault(dimId, new LayerPlan(false, Set.of()));
+    public static Plan getPlan(String dimId) {
+        return Plans.getOrDefault(dimId, new Plan(false, Set.of()));
     }
 
     public static void build(List<? extends String> planEntries) {
-        Map<String, LayerPlan> rebuilt = new LinkedHashMap<>();
+        Map<String, Plan> rebuilt = new LinkedHashMap<>();
         for (var entryStr : planEntries) {
             if (entryStr == null || entryStr.isBlank()) {
                 continue;
@@ -32,14 +32,14 @@ public class ConvertPlans {
     }
 
     public static List<String> getDefaultPlans() {
-        var defaults = new LinkedHashMap<String, LayerPlan>();
-        defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
-        defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
-        defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
+        var defaults = new LinkedHashMap<String, Plan>();
+        defaults.put("minecraft:overworld", new Plan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new Plan(true, Set.of(64)));
+        defaults.put("minecraft:the_end", new Plan(true, Set.of()));
         return defaults.entrySet().stream().map(Map.Entry::toString).toList();
     }
 
-    private static Map.Entry<String, LayerPlan> parsePlanEntry(String configStr) {
+    private static Map.Entry<String, Plan> parsePlanEntry(String configStr) {
         if (configStr == null || configStr.isBlank()) {
             return null;
         }
@@ -54,6 +54,6 @@ public class ConvertPlans {
             LOGGER.warn("Invalid dimension config: [{}]", configStr);
             return null;
         }
-        return Map.entry(dimension, LayerPlan.parse(planStr));
+        return Map.entry(dimension, Plan.parse(planStr));
     }
 }
