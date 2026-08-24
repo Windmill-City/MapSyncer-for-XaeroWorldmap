@@ -53,7 +53,7 @@ public class PacketHandler {
 
     public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         LOGGER.debug("[SYNC] <- manifest: entries={}", payload.timestamps().size());
-        MapSyncer.enqueueWork(context, () -> handleManifestReceived(payload));
+        Minecraft.getInstance().execute(() -> handleManifestReceived(payload));
         context.get().setPacketHandled(true);
     }
 
