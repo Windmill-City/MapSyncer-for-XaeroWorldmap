@@ -2,12 +2,12 @@ package com.mapsyncer.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 
-public record RegionRef(String dimId, int cave, int regionX, int regionZ) {
+public record RegionRef(String dimId, int cave, int X, int Z) {
 
     public static final int SURFACE_CAVE = Integer.MAX_VALUE;
 
     public int regionDistance(int playerRegionX, int playerRegionZ) {
-        return Math.max(Math.abs(regionX - playerRegionX), Math.abs(regionZ - playerRegionZ));
+        return Math.max(Math.abs(X - playerRegionX), Math.abs(Z - playerRegionZ));
     }
 
     public boolean isSurface() {
@@ -17,8 +17,8 @@ public record RegionRef(String dimId, int cave, int regionX, int regionZ) {
     public static void write(FriendlyByteBuf buf, RegionRef region) {
         buf.writeUtf(region.dimId);
         buf.writeInt(region.cave);
-        buf.writeInt(region.regionX);
-        buf.writeInt(region.regionZ);
+        buf.writeInt(region.X);
+        buf.writeInt(region.Z);
     }
 
     public static RegionRef read(FriendlyByteBuf buf) {

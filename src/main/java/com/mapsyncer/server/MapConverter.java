@@ -55,7 +55,7 @@ public class MapConverter {
                     try {
                         RegionConverter.convert(entry);
                     } catch (IOException e) {
-                        LOGGER.warn("Failed to convert region ({}, {})", entry.regionX(), entry.regionZ(), e);
+                        LOGGER.warn("Failed to convert region ({}, {})", entry.X(), entry.Z(), e);
                     }
                     processed++;
                 }

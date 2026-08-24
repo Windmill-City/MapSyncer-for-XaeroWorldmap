@@ -47,7 +47,7 @@ public final class XaeroWriter {
                 region.ref.isSurface() ? dimDir : dimDir.resolve("caves").resolve(String.valueOf(region.ref.cave()));
         Files.createDirectories(outDir);
 
-        String fileName = region.ref.regionX() + "_" + region.ref.regionZ();
+        String fileName = region.ref.X() + "_" + region.ref.Z();
         Path tempFile = outDir.resolve(fileName + ".zip.temp");
         Path finalFile = outDir.resolve(fileName + ".zip");
 

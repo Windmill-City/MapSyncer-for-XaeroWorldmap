@@ -26,7 +26,7 @@ public final class AsyncWriter {
                 try {
                     success = XaeroWriter.writeChunkData(chunk);
                 } catch (Exception e) {
-                    LOGGER.error("Async region write failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
+                    LOGGER.error("Async region write failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
                 } finally {
                     pendingWrites.decrementAndGet();
                     invokeCallback(chunk, callback, success);
@@ -36,8 +36,8 @@ public final class AsyncWriter {
             pendingWrites.decrementAndGet();
             LOGGER.error(
                     "Sync write queue rejected task for ({}, {}), executor shutdown?",
-                    chunk.ref.regionX(),
-                    chunk.ref.regionZ(),
+                    chunk.ref.X(),
+                    chunk.ref.Z(),
                     e);
             invokeCallback(chunk, callback, false);
         }
@@ -47,7 +47,7 @@ public final class AsyncWriter {
         try {
             callback.accept(success);
         } catch (Exception e) {
-            LOGGER.error("Sync write callback failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
+            LOGGER.error("Sync write callback failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
         }
     }
 }

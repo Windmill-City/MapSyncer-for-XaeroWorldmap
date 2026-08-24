@@ -20,8 +20,8 @@ public final class XaeroWriter {
             LOGGER.error(
                     "Unable to resolve Xaero dimension name for {}, skipping region ({}, {})",
                     chunk.ref.dimId(),
-                    chunk.ref.regionX(),
-                    chunk.ref.regionZ());
+                    chunk.ref.X(),
+                    chunk.ref.Z());
             return false;
         }
 
@@ -29,8 +29,8 @@ public final class XaeroWriter {
         if (serverDir == null) {
             LOGGER.error(
                     "Unable to resolve server directory, skipping region ({}, {}) dim={}",
-                    chunk.ref.regionX(),
-                    chunk.ref.regionZ(),
+                    chunk.ref.X(),
+                    chunk.ref.Z(),
                     chunk.ref.dimId());
             return false;
         }
@@ -39,8 +39,8 @@ public final class XaeroWriter {
         if (worldId == null || worldId.isEmpty()) {
             LOGGER.error(
                     "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
-                    chunk.ref.regionX(),
-                    chunk.ref.regionZ(),
+                    chunk.ref.X(),
+                    chunk.ref.Z(),
                     chunk.ref.dimId());
             return false;
         }
@@ -55,8 +55,8 @@ public final class XaeroWriter {
             targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.cave()));
         }
 
-        Path outputFile = targetDir.resolve(chunk.ref.regionX() + "_" + chunk.ref.regionZ() + ".zip");
-        Path tempFile = targetDir.resolve(chunk.ref.regionX() + "_" + chunk.ref.regionZ() + ".zip.temp");
+        Path outputFile = targetDir.resolve(chunk.ref.X() + "_" + chunk.ref.Z() + ".zip");
+        Path tempFile = targetDir.resolve(chunk.ref.X() + "_" + chunk.ref.Z() + ".zip.temp");
 
         try {
             Files.createDirectories(targetDir);
@@ -76,7 +76,7 @@ public final class XaeroWriter {
         }
 
         Minecraft.getInstance()
-                .execute(() -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.cave()));
+                .execute(() -> XaeroBridge.loadRegion(chunk.ref.X(), chunk.ref.Z(), chunk.ref.cave()));
 
         return true;
     }

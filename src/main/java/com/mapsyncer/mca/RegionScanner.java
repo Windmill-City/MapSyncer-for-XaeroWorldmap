@@ -20,7 +20,7 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record Region(int regionX, int regionZ, ServerLevel level) {}
+    public record Region(int X, int Z, ServerLevel level) {}
 
     public static List<Region> scan(ServerLevel level) {
         return scanRegionFiles(getRegionDir(level), level);

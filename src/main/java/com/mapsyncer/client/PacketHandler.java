@@ -61,8 +61,8 @@ public class PacketHandler {
                     if (!success) {
                         LOGGER.error(
                                 "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",
-                                chunk.ref.regionX(),
-                                chunk.ref.regionZ(),
+                                chunk.ref.X(),
+                                chunk.ref.Z(),
                                 chunk.data.length);
                         syncFailed++;
                     }

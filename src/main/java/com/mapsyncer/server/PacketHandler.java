@@ -69,6 +69,6 @@ public class PacketHandler {
     private static Path resolveZipPath(RegionRef ref) {
         Path dimDir = PathUtils.getDimDirServer(ref.dimId());
         Path dstDir = ref.isSurface() ? dimDir : dimDir.resolve("caves").resolve(String.valueOf(ref.cave()));
-        return dstDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
+        return dstDir.resolve(ref.X() + "_" + ref.Z() + ".zip");
     }
 }
