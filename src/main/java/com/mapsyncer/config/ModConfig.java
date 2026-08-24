@@ -27,7 +27,7 @@ public class ModConfig {
         return Plans.getOrDefault(dimId, new LayerPlan());
     }
 
-    private static List<String> getDefaultDimensionConfigStrings() {
+    private static List<String> getDefaultDimensionConfig() {
         var defaults = new LinkedHashMap<>();
         defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
         defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(64)));
@@ -118,7 +118,7 @@ public class ModConfig {
                     "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
                     "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("dimension_configs", getDefaultDimensionConfigStrings(), obj -> obj instanceof String);
+                    .defineList("dimension_configs", getDefaultDimensionConfig(), obj -> obj instanceof String);
 
             builder.pop();
         }
