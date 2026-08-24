@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.Util;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -56,7 +57,7 @@ public class CommandHandler {
 
     private static int generateStart(CommandContext<CommandSourceStack> ctx) {
         MinecraftServer server = ctx.getSource().getServer();
-        if (!generateAll(server, () -> {
+        if (!generate(server, () -> {
             String dimList = String.join(", ", getCompletedDimensions());
             ctx.getSource()
                     .sendSuccess(
@@ -167,20 +168,17 @@ public class CommandHandler {
         return ChatUtils.message("mapsyncer.command.automatic_off");
     }
 
-    public static boolean generateAll(MinecraftServer server, Runnable onSuccess) {
+    public static boolean generate(MinecraftServer server, Runnable onSuccess) {
         if (MapConverter.isRunning()) {
             LOGGER.warn("Conversion already in progress, rejecting generateAll command");
             return false;
         }
 
-        Thread worker = new Thread(
-                () -> {
-                    if (MapConverter.generate(server) && onSuccess != null) {
-                        onSuccess.run();
-                    }
-                },
-                "xaero-map-generator");
-        worker.start();
+        Util.ioPool().execute(() -> {
+            if (MapConverter.generate(server) && onSuccess != null) {
+                onSuccess.run();
+            }
+        });
         return true;
     }
 
