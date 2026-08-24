@@ -41,7 +41,6 @@ public class PacketHandler {
 
     public static void onDisconnect() {
         stop();
-        LOGGER.info("[SYNC] client disconnected, all resources cleaned up");
     }
 
     public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
