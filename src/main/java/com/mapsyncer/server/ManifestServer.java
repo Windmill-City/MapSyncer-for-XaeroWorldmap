@@ -38,7 +38,7 @@ public final class ManifestServer {
         Map<RegionRef, Long> rebuilt = new HashMap<>();
 
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = PathUtils.getDimId(level.dimension());
+            String dimId = PathUtils.getDimId(level);
             Path dimDir = PathUtils.getDimDirServer(dimId);
             if (!Files.isDirectory(dimDir)) {
                 continue;

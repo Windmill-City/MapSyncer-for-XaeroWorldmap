@@ -1,15 +1,14 @@
 package com.mapsyncer.util;
 
 import java.nio.file.Path;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
 public final class PathUtils {
 
     public static final Path CACHE_DIR = Path.of("mapsyncer");
 
-    public static String getDimId(ResourceKey<Level> key) {
-        return key.location().toString();
+    public static String getDimId(Level level) {
+        return level.dimension().location().toString();
     }
 
     public static Path getDimDirServer(String dimId) {

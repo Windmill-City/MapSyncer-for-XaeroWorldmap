@@ -1,6 +1,5 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,10 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,114 +22,48 @@ public class RegionScanner {
 
     public record RegionCoords(int x, int z) {}
 
-    public record RegionFileEntry(RegionCoords coords, Path path, long lastModifiedMillis, long sizeBytes) {}
+    public record RegionEntry(RegionCoords coords, long lastModifiedMillis) {}
 
-    public record RegionScanResult(
-            List<RegionCoords> regions, int skippedEmptyCount, List<RegionFileEntry> fileEntries) {}
+    public record Regions(Path path, List<RegionEntry> entries) {}
 
-    public record Regions(
-            ResourceKey<Level> dimension,
-            List<RegionCoords> regions,
-            int skippedEmptyCount,
-            List<RegionFileEntry> fileEntries) {}
-
-    public static List<Regions> scanAllDimensions(MinecraftServer server) {
-        List<DimensionNames> dimNames = new ArrayList<>();
-        for (ServerLevel level : server.getAllLevels()) {
-            String dimId = PathUtils.getDimId(level.dimension());
-            final String finalDimId = dimId;
-            if (!dimNames.stream().anyMatch(d -> d.name().equals(finalDimId))) {
-                dimNames.add(new DimensionNames(dimId));
-            }
+    public static Regions scanDimension(ServerLevel level) {
+        Path regionDir = getRegionDir(level);
+        if (regionDir == null) {
+            return new Regions(null, List.of());
         }
-
-        List<Regions> result = new ArrayList<>();
-        for (DimensionNames dn : dimNames) {
-            RegionScanResult scanResult = scanRegionDir(server.getWorldPath(LevelResource.ROOT), dn.key());
-            result.add(new Regions(
-                    dn.key(), scanResult.regions(), scanResult.skippedEmptyCount(), scanResult.fileEntries()));
-        }
-        return result;
+        return new Regions(regionDir, scanRegionDirectory(regionDir));
     }
 
-    public static Path getRegionDir(ServerLevel level) {
-        try {
-            Path worldRoot = level.getServer().getWorldPath(LevelResource.ROOT);
-            if (!Files.exists(worldRoot)) return null;
-            worldRoot = worldRoot.toRealPath();
-
-            String dimId = PathUtils.getDimId(level.dimension());
-
-            Path regionDir = getRegionDir(worldRoot, dimId);
-
-            if (regionDir != null && Files.exists(regionDir)) {
-                return regionDir.toRealPath();
-            }
-
-            LOGGER.warn("Region directory not found for dimension {} after detection", dimId);
-            return null;
-        } catch (IOException e) {
-            LOGGER.error("Failed to get region directory", e);
-            return null;
-        }
-    }
-
-    private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
-        String dimId = PathUtils.getDimId(dimensionKey);
-
-        Path regionDir = getRegionDir(worldRoot, dimId);
-
-        if (regionDir == null || !Files.exists(regionDir)) {
-            LOGGER.warn("Region directory not found for dimension: {}", dimId);
-            return new RegionScanResult(List.of(), 0, List.of());
-        }
-
-        return scanRegionDirectory(regionDir);
-    }
-
-    private static Path getRegionDir(Path worldRoot, String dimId) {
-        if (worldRoot == null || !Files.exists(worldRoot)) {
-            return null;
-        }
-
+    private static Path getRegionDir(ServerLevel level) {
+        String dimId = PathUtils.getDimId(level);
+        Path root = level.getServer().getWorldPath(LevelResource.ROOT);
+        Path path = null;
         switch (dimId) {
             case "minecraft:overworld" -> {
-                Path overworldDir = worldRoot.resolve("region");
-                if (Files.exists(overworldDir)) {
-                    return overworldDir;
-                }
+                path = root.resolve("region");
             }
             case "minecraft:the_nether" -> {
-                Path netherDir = worldRoot.resolve("DIM-1").resolve("region");
-                if (Files.exists(netherDir)) {
-                    return netherDir;
-                }
+                path = root.resolve("DIM-1").resolve("region");
             }
             case "minecraft:the_end" -> {
-                Path endDir = worldRoot.resolve("DIM1").resolve("region");
-                if (Files.exists(endDir)) {
-                    return endDir;
-                }
+                path = root.resolve("DIM1").resolve("region");
             }
             default -> {
-                if (dimId.contains(":")) {
-                    Path regionDir = worldRoot
-                            .resolve("dimensions")
-                            .resolve(dimId.replace(':', '/'))
-                            .resolve("region");
-                    if (Files.exists(regionDir)) {
-                        return regionDir;
-                    }
-                }
+                path = root.resolve("dimensions")
+                        .resolve(dimId.replace(':', '/'))
+                        .resolve("region");
             }
         }
-
-        LOGGER.warn("Could not detect region directory for dimension: {}", dimId);
-        return null;
+        try {
+            return path.toRealPath();
+        } catch (IOException e) {
+            LOGGER.warn("Failed to resolve region directory for dimension {} (resolved to {})", dimId, path, e);
+            return null;
+        }
     }
 
-    public static List<RegionFileEntry> listRegionFiles(Path regionDir) {
-        List<RegionFileEntry> entries = new ArrayList<>();
+    private static List<RegionEntry> scanRegionDirectory(Path regionDir) {
+        List<RegionEntry> entries = new ArrayList<>();
         if (!Files.exists(regionDir)) {
             return entries;
         }
@@ -147,75 +77,18 @@ public class RegionScanner {
                 }
                 try {
                     BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
-                    long size = attrs.size();
-                    if (size == 0 || !McaReader.hasAnyChunk(file)) {
-                        continue;
-                    }
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new RegionFileEntry(
+                    entries.add(new RegionEntry(
                             new RegionCoords(regionX, regionZ),
-                            file,
-                            attrs.lastModifiedTime().toMillis(),
-                            size));
+                            attrs.lastModifiedTime().toMillis()));
                 } catch (IOException e) {
                     LOGGER.warn("Failed to read attributes for {}", fileName, e);
                 }
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to list region directory: {}", regionDir, e);
+            LOGGER.error("Failed to scan region directory: {}", regionDir, e);
         }
         return entries;
     }
-
-    private static RegionScanResult scanRegionDirectory(Path regionDir) {
-        List<RegionCoords> regions = new ArrayList<>();
-        if (!Files.exists(regionDir)) {
-            return new RegionScanResult(regions, 0, List.of());
-        }
-
-        int skippedEmpty = 0;
-        List<RegionFileEntry> fileEntries = new ArrayList<>();
-
-        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
-            for (Path file : stream) {
-                String fileName = file.getFileName().toString();
-                Matcher matcher = REGION_PATTERN.matcher(fileName);
-                if (matcher.matches()) {
-                    try {
-                        BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
-                        long fileSize = attrs.size();
-                        if (fileSize == 0) {
-                            skippedEmpty++;
-                            LOGGER.debug("Skipping empty MCA file: {} (0 bytes)", fileName);
-                            continue;
-                        }
-                        if (!McaReader.hasAnyChunk(file)) {
-                            skippedEmpty++;
-                            LOGGER.debug("Skipping header-only MCA file: {} ({} bytes)", fileName, fileSize);
-                            continue;
-                        }
-                        int regionX = Integer.parseInt(matcher.group(1));
-                        int regionZ = Integer.parseInt(matcher.group(2));
-                        RegionCoords coords = new RegionCoords(regionX, regionZ);
-                        regions.add(coords);
-                        fileEntries.add(new RegionFileEntry(
-                                coords, file, attrs.lastModifiedTime().toMillis(), fileSize));
-                    } catch (IOException e) {
-                        LOGGER.warn("Failed to check file attributes for {}", fileName, e);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            LOGGER.error("Failed to scan region directory: {}", regionDir, e);
-        }
-
-        if (skippedEmpty > 0) {
-            LOGGER.info("Skipped {} empty (0KB) MCA files in {}", skippedEmpty, regionDir);
-        }
-
-        return new RegionScanResult(regions, skippedEmpty, fileEntries);
-    }
-
-    private record DimensionNames(ResourceKey<Level> key) {}
 }
