@@ -7,8 +7,6 @@ import java.util.ArrayList;
 
 public final class ChunkColumnScanner {
 
-    private static final BlockState FALLBACK_SINGLE_STATE = new BlockState(Constants.BLOCK_AIR, java.util.Map.of());
-
     public static final class ColumnScanContext {
 
         public final boolean[] blockFound = new boolean[256];
@@ -81,7 +79,7 @@ public final class ChunkColumnScanner {
 
         int sectionIndex = 0;
         for (SectionData section : chunk.sections()) {
-            if (section.blockPalette().isEmpty()) {
+            if (!section.hasBlocks()) {
                 continue;
             }
 
@@ -93,9 +91,6 @@ public final class ChunkColumnScanner {
             if (sectionTopY < chunkBottomY) {
                 continue;
             }
-
-            boolean singlePalette = section.blockPalette().size() == 1 && section.blockData() == null;
-            BlockState singleState = singlePalette ? section.blockPalette().get(0) : FALLBACK_SINGLE_STATE;
 
             for (int lx = 0; lx < Constants.CHUNK_SIZE; lx++) {
                 for (int lz = 0; lz < Constants.CHUNK_SIZE; lz++) {
@@ -155,8 +150,6 @@ public final class ChunkColumnScanner {
                             isCaveMode,
                             worldHasSkylight,
                             isSurface,
-                            singlePalette,
-                            singleState,
                             ctx,
                             data,
                             blockLookup);

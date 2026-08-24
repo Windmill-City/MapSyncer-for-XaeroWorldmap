@@ -1,21 +1,58 @@
 package com.mapsyncer.mca;
 
+import com.mojang.serialization.Codec;
 import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.util.Mth;
+import net.minecraft.util.SimpleBitStorage;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Biomes;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.chunk.DataLayer;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.level.chunk.PalettedContainer;
+import net.minecraft.world.level.chunk.PalettedContainerRO;
 
 public final class ChunkParser {
 
     private static final Set<String> ACCEPTABLE_STATUSES = Set.of(
             "minecraft:features", "minecraft:light", "minecraft:spawn", "minecraft:heightmaps", "minecraft:full");
 
+    private static final Codec<PalettedContainer<net.minecraft.world.level.block.state.BlockState>> BLOCK_STATE_CODEC =
+            PalettedContainer.codecRW(
+                    Block.BLOCK_STATE_REGISTRY,
+                    net.minecraft.world.level.block.state.BlockState.CODEC,
+                    PalettedContainer.Strategy.SECTION_STATES,
+                    Blocks.AIR.defaultBlockState());
+
+    private static final Map<net.minecraft.world.level.block.state.BlockState, BlockState> VANILLA_STATE_CACHE =
+            new ConcurrentHashMap<>();
+
     public record BlockState(String name, Map<String, String> properties) {
 
         public static final Map<String, String> EMPTY_PROPERTIES = Map.of();
+
+        public static final BlockState AIR = new BlockState(Constants.BLOCK_AIR, EMPTY_PROPERTIES);
+
+        static BlockState fromVanilla(net.minecraft.world.level.block.state.BlockState state) {
+            return VANILLA_STATE_CACHE.computeIfAbsent(state, ChunkParser::convertVanilla);
+        }
 
         public boolean isAir() {
             return name.equals(Constants.BLOCK_AIR)
@@ -42,21 +79,47 @@ public final class ChunkParser {
     }
 
     public record SectionData(
-            int sectionY,
-            List<BlockState> blockPalette,
-            long[] blockData,
-            int blockBitsPerEntry,
-            List<String> biomePalette,
-            long[] biomeData,
-            int biomeBitsPerEntry,
-            byte[] blockLight,
-            byte[] skyLight,
-            int blockUVal,
-            long blockMask) {}
+            int sectionY, LevelChunkSection section, DataLayer blockLight, DataLayer skyLight, boolean hasBiomes) {
 
-    private record BlockData(List<BlockState> palette, long[] data) {}
+        public boolean hasBlocks() {
+            return section != null;
+        }
 
-    private record BiomeData(List<String> palette, long[] data) {}
+        public BlockState getBlockState(int x, int y, int z) {
+            if (section == null) {
+                return BlockState.AIR;
+            }
+            return BlockState.fromVanilla(section.getBlockState(x, y, z));
+        }
+
+        public byte getBlockLight(int x, int y, int z) {
+            return blockLight == null ? 0 : (byte) blockLight.get(x, y, z);
+        }
+
+        public byte getSkyLight(int x, int y, int z) {
+            return skyLight == null ? 0 : (byte) skyLight.get(x, y, z);
+        }
+
+        public String getBiomeAt(int x, int y, int z, boolean smoothBoundary) {
+            if (section == null) {
+                return null;
+            }
+            int voxelX = x >> 2;
+            int voxelY = y >> 2;
+            int voxelZ = z >> 2;
+            if (smoothBoundary) {
+                int relX = x & 3;
+                int relZ = z & 3;
+                if (relX >= 2 && voxelX < 3) {
+                    voxelX++;
+                }
+                if (relZ >= 2 && voxelZ < 3) {
+                    voxelZ++;
+                }
+            }
+            return biomeName(section.getNoiseBiome(voxelX, voxelY, voxelZ));
+        }
+    }
 
     public record ChunkInfo(
             int chunkX,
@@ -68,81 +131,32 @@ public final class ChunkParser {
             SectionData[] sectionLookup,
             BiomeResolver.BiomeQuartGrid biomeGrid) {}
 
-    private static final class HeightmapFields {
-
-        long[] worldSurface;
-
-        long[] motionBlocking;
+    public static ChunkInfo parseChunk(
+            int localX, int localZ, byte[] nbtData, int worldHeightRange, Registry<Biome> biomeRegistry)
+            throws IOException {
+        CompoundTag tag = NbtIo.read(new DataInputStream(new ByteArrayInputStream(nbtData)));
+        return parseChunk(localX, localZ, tag, worldHeightRange, biomeRegistry);
     }
 
-    public static ChunkInfo parseChunk(int localX, int localZ, byte[] nbtData, int worldHeightRange)
-            throws IOException {
-        try (NbtStream stream = new NbtStream(new ByteArrayInputStream(nbtData))) {
-            return parseChunk(localX, localZ, stream, worldHeightRange);
-        }
-    }
-
-    private static ChunkInfo parseChunk(int localX, int localZ, NbtStream stream, int worldHeightRange)
-            throws IOException {
-        byte rootType = stream.readTagType();
-        if (rootType != Constants.TAG_COMPOUND) {
-            throw new IOException("NBT document must start with Compound, actual type: " + rootType);
-        }
-        stream.readString();
-
-        String status = null;
-        int yPos = 0;
-        List<SectionData> sections = new ArrayList<>();
-        HeightmapFields heightmaps = new HeightmapFields();
-
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_STATUS:
-                    if (type == Constants.TAG_STRING) {
-                        status = stream.readString();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_Y_POS:
-                    if (type == Constants.TAG_INT) {
-                        yPos = stream.readInt();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_SECTIONS:
-                    if (type == Constants.TAG_LIST) {
-                        readSections(stream, sections);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_HEIGHTMAPS:
-                    if (type == Constants.TAG_COMPOUND) {
-                        readHeightmapCompound(stream, heightmaps);
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
-
-        if (!ACCEPTABLE_STATUSES.contains(status)) {
+    private static ChunkInfo parseChunk(
+            int localX, int localZ, CompoundTag tag, int worldHeightRange, Registry<Biome> biomeRegistry) {
+        if (!ACCEPTABLE_STATUSES.contains(tag.getString(Constants.NBT_KEY_STATUS))) {
             return null;
+        }
+
+        int chunkBottomY = tag.getInt(Constants.NBT_KEY_Y_POS) * Constants.CHUNK_SIZE;
+
+        List<SectionData> sections = new ArrayList<>();
+        ListTag sectionsTag = tag.getList(Constants.NBT_KEY_SECTIONS, Constants.TAG_COMPOUND);
+        for (int i = 0; i < sectionsTag.size(); i++) {
+            sections.add(parseSection(sectionsTag.getCompound(i), biomeRegistry));
         }
 
         if (sections.isEmpty()) {
             return null;
         }
 
-        int chunkBottomY = yPos * Constants.CHUNK_SIZE;
-
-        int[][] heightmap = parseHeightmap(heightmaps, chunkBottomY, worldHeightRange);
+        int[][] heightmap = parseHeightmap(tag, chunkBottomY, worldHeightRange);
 
         sections.sort((a, b) -> Integer.compare(b.sectionY(), a.sectionY()));
 
@@ -161,420 +175,104 @@ public final class ChunkParser {
         return new ChunkInfo(localX, localZ, chunkBottomY, heightmap, sections, minSectionY, sectionLookup, biomeGrid);
     }
 
-    private static void readSections(NbtStream stream, List<SectionData> sections) throws IOException {
-        byte elementType = stream.readListElementType();
-        int length = stream.readListLength();
-        if (elementType != Constants.TAG_COMPOUND) {
-            for (int i = 0; i < length; i++) {
-                stream.skip(elementType);
+    private static SectionData parseSection(CompoundTag tag, Registry<Biome> biomeRegistry) {
+        int sectionY = tag.getByte(Constants.NBT_KEY_SECTION_Y);
+
+        LevelChunkSection section = null;
+        boolean hasBiomes = false;
+        if (tag.contains(Constants.NBT_KEY_BLOCK_STATES, Constants.TAG_COMPOUND)) {
+            PalettedContainer<net.minecraft.world.level.block.state.BlockState> blocks = BLOCK_STATE_CODEC
+                    .parse(NbtOps.INSTANCE, tag.getCompound(Constants.NBT_KEY_BLOCK_STATES))
+                    .getOrThrow(false, e -> {});
+            PalettedContainerRO<Holder<Biome>> biomes;
+            if (tag.contains(Constants.NBT_KEY_BIOMES, Constants.TAG_COMPOUND)) {
+                biomes = biomeCodec(biomeRegistry)
+                        .parse(NbtOps.INSTANCE, tag.getCompound(Constants.NBT_KEY_BIOMES))
+                        .getOrThrow(false, e -> {});
+                hasBiomes = true;
+            } else {
+                biomes = new PalettedContainer<>(
+                        biomeRegistry.asHolderIdMap(),
+                        biomeRegistry.getHolderOrThrow(Biomes.PLAINS),
+                        PalettedContainer.Strategy.SECTION_BIOMES);
             }
-            return;
+            section = new LevelChunkSection(blocks, biomes);
         }
-        for (int i = 0; i < length; i++) {
-            sections.add(parseSection(stream));
-        }
+
+        DataLayer blockLight = readLight(tag, Constants.NBT_KEY_BLOCK_LIGHT);
+        DataLayer skyLight = readLight(tag, Constants.NBT_KEY_SKY_LIGHT);
+
+        return new SectionData(sectionY, section, blockLight, skyLight, hasBiomes);
     }
 
-    private static void readHeightmapCompound(NbtStream stream, HeightmapFields heightmaps) throws IOException {
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_WORLD_SURFACE:
-                    if (type == Constants.TAG_LONG_ARRAY) {
-                        heightmaps.worldSurface = stream.readLongArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_MOTION_BLOCKING_NO_LEAVES:
-                    if (type == Constants.TAG_LONG_ARRAY) {
-                        heightmaps.motionBlocking = stream.readLongArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
+    private static Codec<PalettedContainerRO<Holder<Biome>>> biomeCodec(Registry<Biome> biomeRegistry) {
+        return PalettedContainer.codecRO(
+                biomeRegistry.asHolderIdMap(),
+                biomeRegistry.holderByNameCodec(),
+                PalettedContainer.Strategy.SECTION_BIOMES,
+                biomeRegistry.getHolderOrThrow(Biomes.PLAINS));
     }
 
-    private static int[][] parseHeightmap(HeightmapFields heightmaps, int chunkBottomY, int worldHeightRange) {
+    private static DataLayer readLight(CompoundTag tag, String key) {
+        if (!tag.contains(key, Constants.TAG_BYTE_ARRAY)) {
+            return null;
+        }
+        byte[] raw = tag.getByteArray(key);
+        return raw.length == DataLayer.SIZE ? new DataLayer(raw) : null;
+    }
+
+    private static String biomeName(Holder<Biome> biome) {
+        return biome.unwrapKey().map(key -> key.location().toString()).orElse(null);
+    }
+
+    private static BlockState convertVanilla(net.minecraft.world.level.block.state.BlockState state) {
+        String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+        if (state.getValues().isEmpty()) {
+            return new BlockState(name, BlockState.EMPTY_PROPERTIES);
+        }
+        Map<String, String> properties = new LinkedHashMap<>();
+        for (Map.Entry<Property<?>, Comparable<?>> entry : state.getValues().entrySet()) {
+            properties.put(entry.getKey().getName(), entry.getValue().toString());
+        }
+        return new BlockState(name, properties);
+    }
+
+    private static int[][] parseHeightmap(CompoundTag tag, int chunkBottomY, int worldHeightRange) {
         int[][] heightmap = new int[Constants.CHUNK_SIZE][Constants.CHUNK_SIZE];
-
-        if (tryDecodeHeightmap(heightmaps.worldSurface, worldHeightRange, chunkBottomY, heightmap)) {
+        CompoundTag heightmapsTag = tag.getCompound(Constants.NBT_KEY_HEIGHTMAPS);
+        if (tryDecodeHeightmap(
+                heightmapsTag, Constants.NBT_KEY_WORLD_SURFACE, chunkBottomY, worldHeightRange, heightmap)) {
             return heightmap;
         }
-        tryDecodeHeightmap(heightmaps.motionBlocking, worldHeightRange, chunkBottomY, heightmap);
-
+        tryDecodeHeightmap(
+                heightmapsTag, Constants.NBT_KEY_MOTION_BLOCKING_NO_LEAVES, chunkBottomY, worldHeightRange, heightmap);
         return heightmap;
     }
 
-    private static boolean tryDecodeHeightmap(long[] data, int worldHeightRange, int chunkBottomY, int[][] heightmap) {
-        if (data == null) {
+    private static boolean tryDecodeHeightmap(
+            CompoundTag heightmapsTag, String key, int chunkBottomY, int worldHeightRange, int[][] heightmap) {
+        if (!heightmapsTag.contains(key, Constants.TAG_LONG_ARRAY)) {
             return false;
         }
-        int bitsPerHeight = calculateBitsPerHeight(data.length, worldHeightRange);
-        if (bitsPerHeight <= 0 || bitsPerHeight > 10) {
-            return false;
-        }
-        decodeHeightmapLongArray(data, bitsPerHeight, chunkBottomY, heightmap);
-        return true;
-    }
-
-    private static int calculateBitsPerHeight(int longArrayLength, int worldHeightRange) {
-
-        if (worldHeightRange > 0) {
-
-            return 32 - Integer.numberOfLeadingZeros(worldHeightRange - 1);
-        }
-
-        if (longArrayLength <= 0) return 0;
-        int u = (256 + longArrayLength - 1) / longArrayLength;
-        return 64 / u;
-    }
-
-    private static void decodeHeightmapLongArray(long[] data, int bitsPerHeight, int chunkBottomY, int[][] heightmap) {
+        long[] data = heightmapsTag.getLongArray(key);
         if (data.length == 0) {
-            return;
+            return false;
         }
-
-        int u = 64 / bitsPerHeight;
-        long mask = (1L << bitsPerHeight) - 1L;
-
-        for (int z = 0; z < Constants.CHUNK_SIZE; z++) {
-            for (int x = 0; x < Constants.CHUNK_SIZE; x++) {
-                int i = x + Constants.CHUNK_SIZE * z;
-                heightmap[x][z] = chunkBottomY + readBitsFast(data, i, u, bitsPerHeight, mask);
+        int bits = Mth.ceillog2(worldHeightRange + 1);
+        if (bits < 1) {
+            return false;
+        }
+        try {
+            SimpleBitStorage storage = new SimpleBitStorage(bits, Constants.CHUNK_SIZE * Constants.CHUNK_SIZE, data);
+            for (int z = 0; z < Constants.CHUNK_SIZE; z++) {
+                for (int x = 0; x < Constants.CHUNK_SIZE; x++) {
+                    heightmap[x][z] = chunkBottomY + storage.get(x + z * Constants.CHUNK_SIZE);
+                }
             }
+            return true;
+        } catch (SimpleBitStorage.InitializationException e) {
+            return false;
         }
-    }
-
-    static SectionData parseSection(NbtStream stream) throws IOException {
-        int sectionY = 0;
-        List<BlockState> blockPalette = new ArrayList<>();
-        long[] blockData = null;
-        List<String> biomePalette = new ArrayList<>();
-        long[] biomeData = null;
-        byte[] rawBlockLight = null;
-        byte[] rawSkyLight = null;
-
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_SECTION_Y:
-                    if (type == Constants.TAG_BYTE) {
-                        sectionY = stream.readByte();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_BLOCK_STATES:
-                    if (type == Constants.TAG_COMPOUND) {
-                        BlockData blockStates = readBlockStates(stream);
-                        blockPalette = blockStates.palette;
-                        blockData = blockStates.data;
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_BIOMES:
-                    if (type == Constants.TAG_COMPOUND) {
-                        BiomeData biomes = readBiomes(stream);
-                        biomePalette = biomes.palette;
-                        biomeData = biomes.data;
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_BLOCK_LIGHT:
-                    if (type == Constants.TAG_BYTE_ARRAY) {
-                        rawBlockLight = stream.readByteArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_SKY_LIGHT:
-                    if (type == Constants.TAG_BYTE_ARRAY) {
-                        rawSkyLight = stream.readByteArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
-
-        int blockBitsPerEntry = Math.max(4, calculateBitsPerEntry(blockPalette.size()));
-        int biomeBitsPerEntry = calculateBitsPerEntry(biomePalette.size());
-
-        byte[] decodedBlockLight = decodeLightArray(rawBlockLight);
-        byte[] decodedSkyLight = decodeLightArray(rawSkyLight);
-
-        int blockUVal = 0;
-        long blockMask = 0;
-        if (blockData != null && blockData.length > 0) {
-            blockUVal = 64 / blockBitsPerEntry;
-            blockMask = (1L << blockBitsPerEntry) - 1L;
-        }
-
-        return new SectionData(
-                sectionY,
-                blockPalette,
-                blockData,
-                blockBitsPerEntry,
-                biomePalette,
-                biomeData,
-                biomeBitsPerEntry,
-                decodedBlockLight,
-                decodedSkyLight,
-                blockUVal,
-                blockMask);
-    }
-
-    private static byte[] decodeLightArray(byte[] raw) {
-        if (raw == null || raw.length != 2048) {
-            return null;
-        }
-        byte[] decoded = new byte[4096];
-        for (int i = 0; i < 2048; i++) {
-            int b = raw[i] & 0xFF;
-            int idx = i << 1;
-            decoded[idx] = (byte) (b & 0xF);
-            decoded[idx + 1] = (byte) ((b >> 4) & 0xF);
-        }
-        return decoded;
-    }
-
-    private static BlockData readBlockStates(NbtStream stream) throws IOException {
-        List<BlockState> palette = new ArrayList<>();
-        long[] data = null;
-
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_PALETTE:
-                    if (type == Constants.TAG_LIST) {
-                        byte elementType = stream.readListElementType();
-                        int length = stream.readListLength();
-                        if (elementType == Constants.TAG_COMPOUND) {
-                            for (int i = 0; i < length; i++) {
-                                BlockState blockState = parseBlockState(stream);
-                                palette.add(blockState);
-                            }
-                        } else {
-                            for (int i = 0; i < length; i++) {
-                                stream.skip(elementType);
-                            }
-                        }
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_DATA:
-                    if (type == Constants.TAG_LONG_ARRAY) {
-                        data = stream.readLongArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
-        return new BlockData(palette, data);
-    }
-
-    private static BiomeData readBiomes(NbtStream stream) throws IOException {
-        List<String> palette = new ArrayList<>();
-        long[] data = null;
-
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_PALETTE:
-                    if (type == Constants.TAG_LIST) {
-                        byte elementType = stream.readListElementType();
-                        int length = stream.readListLength();
-                        if (elementType == Constants.TAG_STRING) {
-                            for (int i = 0; i < length; i++) {
-                                palette.add(stream.readString());
-                            }
-                        } else {
-                            for (int i = 0; i < length; i++) {
-                                stream.skip(elementType);
-                            }
-                        }
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_DATA:
-                    if (type == Constants.TAG_LONG_ARRAY) {
-                        data = stream.readLongArray();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
-        return new BiomeData(palette, data);
-    }
-
-    private static BlockState parseBlockState(NbtStream stream) throws IOException {
-        String name = null;
-        Map<String, String> properties = null;
-
-        byte type;
-        while ((type = stream.readTagType()) != Constants.TAG_END) {
-            String key = stream.readString();
-            switch (key) {
-                case Constants.NBT_KEY_NAME:
-                    if (type == Constants.TAG_STRING) {
-                        name = stream.readString();
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                case Constants.NBT_KEY_PROPERTIES:
-                    if (type == Constants.TAG_COMPOUND) {
-                        Map<String, String> props = new LinkedHashMap<>();
-                        byte pt;
-                        while ((pt = stream.readTagType()) != Constants.TAG_END) {
-                            String propKey = stream.readString();
-                            if (pt == Constants.TAG_STRING) {
-                                props.put(propKey, stream.readString());
-                            } else {
-                                stream.skip(pt);
-                            }
-                        }
-                        properties = props;
-                    } else {
-                        stream.skip(type);
-                    }
-                    break;
-                default:
-                    stream.skip(type);
-            }
-        }
-
-        return new BlockState(
-                name == null ? "" : name,
-                properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties);
-    }
-
-    private static int calculateBitsPerEntry(int paletteSize) {
-        if (paletteSize <= 1) {
-            return 0;
-        }
-
-        return 32 - Integer.numberOfLeadingZeros(paletteSize - 1);
-    }
-
-    public static BlockState getBlockStateAt(SectionData section, int x, int y, int z) {
-        if (section.blockPalette.isEmpty()) {
-            return new BlockState(Constants.BLOCK_AIR, Map.of());
-        }
-
-        if (section.blockPalette.size() == 1) {
-            return section.blockPalette.get(0);
-        }
-
-        if (section.blockData == null) {
-            return new BlockState(Constants.BLOCK_AIR, Map.of());
-        }
-
-        int blockIndex = (y << 8) | (z << 4) | x;
-
-        int u = section.blockUVal();
-        long mask = section.blockMask();
-        int paletteIndex = readBitsFast(section.blockData, blockIndex, u, section.blockBitsPerEntry(), mask);
-
-        if (paletteIndex < 0 || paletteIndex >= section.blockPalette.size()) {
-            return new BlockState(Constants.BLOCK_AIR, Map.of());
-        }
-
-        return section.blockPalette.get(paletteIndex);
-    }
-
-    public static String getBiomeAt(SectionData section, int x, int y, int z, boolean smoothBoundary) {
-
-        if (section.biomePalette.isEmpty()) {
-            return null;
-        }
-
-        if (section.biomePalette.size() == 1) {
-            return section.biomePalette.get(0);
-        }
-
-        if (section.biomeData == null) {
-            return null;
-        }
-
-        int voxelY = y >> 2;
-        int voxelZ = z >> 2;
-        int voxelX = x >> 2;
-
-        if (smoothBoundary) {
-
-            int relX = x & 3;
-            int relZ = z & 3;
-
-            if (relX >= 2 && voxelX < 3) {
-                voxelX++;
-            }
-            if (relZ >= 2 && voxelZ < 3) {
-                voxelZ++;
-            }
-        }
-
-        int voxelIndex = (voxelY << 4) | (voxelZ << 2) | voxelX;
-
-        int paletteIndex = readBitsFromArray(section.biomeData, voxelIndex, section.biomeBitsPerEntry);
-
-        if (paletteIndex < 0 || paletteIndex >= section.biomePalette.size()) {
-            return null;
-        }
-
-        return section.biomePalette.get(paletteIndex);
-    }
-
-    public static int readBitsFromArray(long[] data, int index, int bitsPerEntry) {
-        if (data == null || data.length == 0 || bitsPerEntry <= 0) {
-            return 0;
-        }
-        int u = 64 / bitsPerEntry;
-        long mask = (1L << bitsPerEntry) - 1L;
-        return readBitsFast(data, index, u, bitsPerEntry, mask);
-    }
-
-    public static int readBitsFast(long[] data, int index, int u, int bitsPerEntry, long mask) {
-        int longIndex = index / u;
-        if (longIndex >= data.length) return 0;
-        int bitOffset = (index % u) * bitsPerEntry;
-        return (int) ((data[longIndex] >>> bitOffset) & mask);
-    }
-
-    public static byte getBlockLight(SectionData section, int x, int y, int z) {
-        return getLight(section.blockLight(), x, y, z);
-    }
-
-    public static byte getSkyLight(SectionData section, int x, int y, int z) {
-        return getLight(section.skyLight(), x, y, z);
-    }
-
-    private static byte getLight(byte[] light, int x, int y, int z) {
-        if (light != null && light.length == 4096) {
-            return light[(y << 8) | (z << 4) | x];
-        }
-        return 0;
     }
 
     public static String getBiomeAt(ChunkInfo chunk, int x, int worldY, int z, boolean smoothBoundary) {
@@ -584,7 +282,7 @@ public final class ChunkParser {
         if (lookup != null) {
             int idx = sectionY - chunk.minSectionY();
             if (idx >= 0 && idx < lookup.length && lookup[idx] != null) {
-                return getBiomeAt(lookup[idx], x, localY, z, smoothBoundary);
+                return lookup[idx].getBiomeAt(x, localY, z, smoothBoundary);
             }
         }
         return null;

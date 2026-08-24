@@ -22,8 +22,6 @@ public final class PixelColumnProcessor {
             boolean isCaveMode,
             boolean worldHasSkylight,
             boolean isSurface,
-            boolean singlePalette,
-            BlockState singleState,
             ChunkColumnScanner.ColumnScanContext ctx,
             MapRegionData data,
             BlockPropertyLookup blockLookup) {
@@ -33,29 +31,9 @@ public final class PixelColumnProcessor {
             return false;
         }
 
-        if (singlePalette) {
-            if (singleState.isAir()) {
-                if (isCaveMode) {
-                    ctx.onAir(pos);
-                }
-                return false;
-            }
-            if (isCaveMode && ChunkColumnScanner.ColumnScanContext.hasFluid(singleState, blockLookup)) {
-                ctx.onFluid(pos, true);
-            }
-            if (!ctx.canProcessCaveBlock(pos, isCaveMode)) {
-                return false;
-            }
-        }
-
         int localStartY = Constants.CHUNK_SIZE - 1;
         if (effectiveStartY >= sectionBaseY && effectiveStartY <= sectionBaseY + (Constants.CHUNK_SIZE - 1)) {
             localStartY = effectiveStartY - sectionBaseY;
-        } else if (singlePalette) {
-            localStartY = Math.min(effectiveStartY - sectionBaseY, Constants.CHUNK_SIZE - 1);
-            if (localStartY < 0) {
-                localStartY = Constants.CHUNK_SIZE - 1;
-            }
         }
         int localScanBottomY = Math.max(0, scanBottomY - sectionBaseY);
 
@@ -68,7 +46,7 @@ public final class PixelColumnProcessor {
                 break;
             }
 
-            BlockState state = singlePalette ? singleState : ChunkParser.getBlockStateAt(section, lx, ly, lz);
+            BlockState state = section.getBlockState(lx, ly, lz);
 
             if (state.isAir()) {
                 if (isCaveMode) {
@@ -320,13 +298,13 @@ public final class PixelColumnProcessor {
         if (sectionY == currentSection.sectionY()) {
             int localY = worldY - (sectionY * Constants.CHUNK_SIZE);
             if (localY >= 0 && localY <= Constants.CHUNK_SIZE - 1) {
-                return ChunkParser.getBlockLight(currentSection, lx, localY, lz);
+                return currentSection.getBlockLight(lx, localY, lz);
             }
         }
         SectionData targetSection = findSectionAt(chunk, worldY);
         if (targetSection != null) {
             int localY = worldY - (targetSection.sectionY() * Constants.CHUNK_SIZE);
-            return ChunkParser.getBlockLight(targetSection, lx, localY, lz);
+            return targetSection.getBlockLight(lx, localY, lz);
         }
         return 0;
     }
@@ -350,13 +328,13 @@ public final class PixelColumnProcessor {
         if (worldYSkySectionY == currentSection.sectionY()) {
             int localY = worldY - (worldYSkySectionY * Constants.CHUNK_SIZE);
             if (localY >= 0 && localY <= Constants.CHUNK_SIZE - 1) {
-                skyLight = ChunkParser.getSkyLight(currentSection, lx, localY, lz);
+                skyLight = currentSection.getSkyLight(lx, localY, lz);
             }
         } else {
             stateSection = findSectionAt(chunk, worldY);
             if (stateSection != null) {
                 int localY = worldY - (stateSection.sectionY() * Constants.CHUNK_SIZE);
-                skyLight = ChunkParser.getSkyLight(stateSection, lx, localY, lz);
+                skyLight = stateSection.getSkyLight(lx, localY, lz);
             }
         }
 
@@ -383,7 +361,7 @@ public final class PixelColumnProcessor {
             stateLocalY = ly;
         }
         boolean isGlowing = blockLookup.isGlowing(
-                ChunkParser.getBlockStateAt(stateSection, lx, stateLocalY, lz).name());
+                stateSection.getBlockState(lx, stateLocalY, lz).name());
 
         return getLight(isSurface, blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
     }

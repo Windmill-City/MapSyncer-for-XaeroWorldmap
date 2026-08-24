@@ -7,6 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.biome.Biome;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +18,8 @@ public final class RegionConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverter.class);
 
-    public static void convert(RegionScanner.Region entry, BlockPropertyLookup blockLookup) throws IOException {
+    public static void convert(RegionScanner.Region entry, ServerLevel level, BlockPropertyLookup blockLookup)
+            throws IOException {
         RegionScanner.Bounds bounds = entry.bounds();
         Plan plan = Plan.getPlan(entry.dimId());
         if (plan.caveLayers().isEmpty()) {
@@ -29,7 +34,7 @@ public final class RegionConverter {
         List<RegionRef> refs = plan.caveLayers().stream()
                 .map(caveLayer -> new RegionRef(entry.dimId(), caveLayer, entry.regionX(), entry.regionZ()))
                 .toList();
-        List<MapRegionData> loaded = load(mcaPath, bounds, refs, blockLookup);
+        List<MapRegionData> loaded = load(mcaPath, bounds, refs, level, blockLookup);
 
         for (MapRegionData regionData : loaded) {
             if (!regionData.hasAnyMapData()) {
@@ -50,7 +55,11 @@ public final class RegionConverter {
     }
 
     private static List<MapRegionData> load(
-            Path mcaPath, RegionScanner.Bounds bounds, List<RegionRef> refs, BlockPropertyLookup blockLookup)
+            Path mcaPath,
+            RegionScanner.Bounds bounds,
+            List<RegionRef> refs,
+            ServerLevel level,
+            BlockPropertyLookup blockLookup)
             throws IOException {
         if (refs.isEmpty()) {
             return List.of();
@@ -63,7 +72,8 @@ public final class RegionConverter {
 
         try (McaReader reader = McaReader.open(mcaPath.toString())) {
             int worldHeightRange = bounds.maxY() - bounds.minY();
-            ChunkParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange);
+            Registry<Biome> biomeRegistry = level.registryAccess().registryOrThrow(Registries.BIOME);
+            ChunkParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange, biomeRegistry);
 
             for (int localX = 0; localX < Constants.CHUNKS_PER_REGION; localX++) {
                 for (int localZ = 0; localZ < Constants.CHUNKS_PER_REGION; localZ++) {
@@ -92,7 +102,8 @@ public final class RegionConverter {
         return results;
     }
 
-    private static ChunkParser.ChunkInfo[][] readAllChunks(McaReader reader, int worldHeightRange) throws IOException {
+    private static ChunkParser.ChunkInfo[][] readAllChunks(
+            McaReader reader, int worldHeightRange, Registry<Biome> biomeRegistry) throws IOException {
         ChunkParser.ChunkInfo[][] grid =
                 new ChunkParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
 
@@ -101,8 +112,9 @@ public final class RegionConverter {
                 ChunkParser.ChunkInfo chunkInfo;
                 try {
                     byte[] nbtData = reader.readChunkData(localX, localZ);
-                    chunkInfo =
-                            nbtData == null ? null : ChunkParser.parseChunk(localX, localZ, nbtData, worldHeightRange);
+                    chunkInfo = nbtData == null
+                            ? null
+                            : ChunkParser.parseChunk(localX, localZ, nbtData, worldHeightRange, biomeRegistry);
                 } catch (Throwable t) {
                     LOGGER.warn(
                             "Failed to read chunk ({}, {}) from region file, skipping: {}",
