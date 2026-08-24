@@ -22,7 +22,7 @@ public class PacketHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
     public static void pushManifest(ServerPlayer player) {
-        Map<RegionRef, Long> manifest = ManifestServer.build(player.server);
+        Map<RegionRef, Long> manifest = ManifestServer.get(player.server);
         MapSyncer.sendToPlayer(player, new ManifestPayload(manifest));
         LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
@@ -42,7 +42,7 @@ public class PacketHandler {
             Path cacheDir = PathUtils.CACHE_DIR;
             if (!Files.exists(cacheDir)) return;
 
-            ManifestServer.build(serverPlayer.server);
+            ManifestServer.get(serverPlayer.server);
 
             serveRequestedRegion(serverPlayer, requested);
         });

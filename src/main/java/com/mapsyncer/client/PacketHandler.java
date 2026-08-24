@@ -102,7 +102,7 @@ public class PacketHandler {
         syncStartMs = System.currentTimeMillis();
         LOGGER.info("[SYNC] sync started");
 
-        ManifestClient.getManifestAsync(extractDimIds(serverTimestamps.keySet()), localMeta -> {
+        ManifestClient.get(extractDimIds(serverTimestamps.keySet()), localMeta -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
                 if (mc.player == null) {

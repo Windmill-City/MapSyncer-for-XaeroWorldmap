@@ -23,11 +23,11 @@ public class ManifestClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
 
-    public static void getManifestAsync(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
+    public static void get(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
         try {
             Util.ioPool().execute(() -> {
                 try {
-                    callback.accept(getManifest(dimIds));
+                    callback.accept(_get(dimIds));
                 } catch (Exception e) {
                     LOGGER.error("Exception occurred while processing client manifest", e);
                 }
@@ -38,7 +38,7 @@ public class ManifestClient {
         }
     }
 
-    private static Map<RegionRef, Long> getManifest(Set<String> dimIds) {
+    private static Map<RegionRef, Long> _get(Set<String> dimIds) {
         Map<RegionRef, Long> manifest = new HashMap<>();
 
         Path serverDir = XaeroBridge.getCurrentServerDirectory();

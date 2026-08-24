@@ -23,18 +23,18 @@ public final class ManifestServer {
 
     private static volatile boolean isValid = false;
 
-    public static Map<RegionRef, Long> build(MinecraftServer server) {
+    public static Map<RegionRef, Long> get(MinecraftServer server) {
         if (!isValid) {
             synchronized (ManifestServer.class) {
                 if (!isValid) {
-                    _build(server);
+                    _get(server);
                 }
             }
         }
         return Collections.unmodifiableMap(manifest);
     }
 
-    private static void _build(MinecraftServer server) {
+    private static void _get(MinecraftServer server) {
         Map<RegionRef, Long> rebuilt = new HashMap<>();
 
         for (ServerLevel level : server.getAllLevels()) {
