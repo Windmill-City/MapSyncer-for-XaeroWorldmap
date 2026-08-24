@@ -40,15 +40,9 @@ public class PacketHandler {
     private static volatile ManifestPayload deferredManifest = null;
 
     public static void onXaeroWorldContextReady() {
-        if (deferredManifest == null) {
-            return;
-        }
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> {
-            ManifestPayload manifest = deferredManifest;
-            if (manifest != null && isWorldContextReady()) {
-                deferredManifest = null;
-                handleManifestReceived(manifest);
+        Minecraft.getInstance().execute(() -> {
+            if (deferredManifest != null) {
+                handleManifestReceived(deferredManifest);
             }
         });
     }
