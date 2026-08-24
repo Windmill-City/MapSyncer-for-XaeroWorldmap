@@ -2,6 +2,7 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -75,7 +76,7 @@ public class RegionScanner {
         }
 
         List<RegionEntry> entries = new ArrayList<>();
-        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
             for (Path file : stream) {
                 String fileName = file.getFileName().toString();
                 Matcher matcher = REGION_PATTERN.matcher(fileName);
