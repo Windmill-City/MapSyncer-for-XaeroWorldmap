@@ -24,7 +24,6 @@
   "mapsyncer.generate.full_complete": "Map generation complete: %d/%d regions across %d dimensions: %s",
   "mapsyncer.generate.in_progress": "Generation in progress: %d/%d regions",
   "mapsyncer.generate.no_progress": "No generation in progress",
-  "mapsyncer.command.conversion_busy": "A map generation task is already in progress. Please wait for it to complete before starting a new one.",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
   "mapsyncer.status.cache_detail": "Cache stats: %d dimensions, %d regions, %s MB\n%s"

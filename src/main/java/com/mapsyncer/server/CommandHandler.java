@@ -57,21 +57,20 @@ public class CommandHandler {
 
     private static int generateStart(CommandContext<CommandSourceStack> ctx) {
         MinecraftServer server = ctx.getSource().getServer();
-        if (!generate(server, () -> {
-            String dimList = String.join(", ", getCompletedDimensions());
-            ctx.getSource()
-                    .sendSuccess(
-                            () -> ChatUtils.success(
-                                    "mapsyncer.generate.full_complete",
-                                    getProcessedCount(),
-                                    getTotalCount(),
-                                    getCompletedDimensions().size(),
-                                    dimList),
-                            false);
-        })) {
-            ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_busy"));
-            return 0;
-        }
+        Util.ioPool().execute(() -> {
+            if (MapConverter.generate(server)) {
+                String dimList = String.join(", ", MapConverter.getCompletedDimensions());
+                ctx.getSource()
+                        .sendSuccess(
+                                () -> ChatUtils.success(
+                                        "mapsyncer.generate.full_complete",
+                                        MapConverter.getProcessedCount(),
+                                        MapConverter.getTotalCount(),
+                                        MapConverter.getCompletedDimensions().size(),
+                                        dimList),
+                                false);
+            }
+        });
         ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_full"), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -164,20 +163,6 @@ public class CommandHandler {
             return ChatUtils.message("mapsyncer.command.autoupdate_on");
         }
         return ChatUtils.message("mapsyncer.command.autoupdate_off");
-    }
-
-    private static boolean generate(MinecraftServer server, Runnable onSuccess) {
-        if (MapConverter.isRunning()) {
-            LOGGER.warn("Conversion already in progress, rejecting generate command");
-            return false;
-        }
-
-        Util.ioPool().execute(() -> {
-            if (MapConverter.generate(server) && onSuccess != null) {
-                onSuccess.run();
-            }
-        });
-        return true;
     }
 
     private static boolean reloadConfig() {
