@@ -49,10 +49,12 @@ public class MapConverter {
                 if (entries.isEmpty())
                     continue;
 
+                var dimId = PathUtils.getDimId(level);
+
                 total += entries.size();
                 LOGGER.info(
                         "Converting dimension {} ({} regions)",
-                        entries.get(0).dimId(),
+                        dimId,
                         entries.size());
 
                 for (Region entry : entries) {
@@ -70,7 +72,6 @@ public class MapConverter {
                     }
                     processed++;
                 }
-                var dimId = PathUtils.getDimId(level);
                 completed.add(dimId);
                 LOGGER.info("Dimension {} conversion complete", dimId);
             }
