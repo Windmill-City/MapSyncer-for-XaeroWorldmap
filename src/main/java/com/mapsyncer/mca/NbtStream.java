@@ -6,15 +6,7 @@ import java.io.InputStream;
 
 final class NbtStream implements AutoCloseable {
 
-    private static final int MAX_ARRAY_SIZE = 125_000;
-
-    private static final int MAX_LIST_SIZE = 100_000;
-
-    private static final int MAX_SKIP_DEPTH = 30;
-
     private final DataInputStream in;
-
-    private int skipDepth = 0;
 
     NbtStream(InputStream in) {
         this.in = new DataInputStream(in);
@@ -37,14 +29,14 @@ final class NbtStream implements AutoCloseable {
     }
 
     byte[] readByteArray() throws IOException {
-        int length = readArrayLength();
+        int length = in.readInt();
         byte[] data = new byte[length];
         in.readFully(data);
         return data;
     }
 
     long[] readLongArray() throws IOException {
-        int length = readArrayLength();
+        int length = in.readInt();
         long[] data = new long[length];
         for (int i = 0; i < length; i++) {
             data[i] = in.readLong();
@@ -57,11 +49,7 @@ final class NbtStream implements AutoCloseable {
     }
 
     int readListLength() throws IOException {
-        int length = in.readInt();
-        if (length < 0 || length > MAX_LIST_SIZE) {
-            throw new IOException("NBT size limit exceeded: List length=" + length + " (max " + MAX_LIST_SIZE + ")");
-        }
-        return length;
+        return in.readInt();
     }
 
     void skip(byte type) throws IOException {
@@ -105,19 +93,10 @@ final class NbtStream implements AutoCloseable {
                 break;
             }
             case Constants.TAG_COMPOUND: {
-                skipDepth++;
-                if (skipDepth > MAX_SKIP_DEPTH) {
-                    skipDepth--;
-                    throw new IOException("NBT skip depth exceeded: " + skipDepth);
-                }
-                try {
-                    byte innerType;
-                    while ((innerType = in.readByte()) != Constants.TAG_END) {
-                        in.readUTF();
-                        skip(innerType);
-                    }
-                } finally {
-                    skipDepth--;
+                byte innerType;
+                while ((innerType = in.readByte()) != Constants.TAG_END) {
+                    in.readUTF();
+                    skip(innerType);
                 }
                 break;
             }
@@ -137,18 +116,6 @@ final class NbtStream implements AutoCloseable {
             }
             default:
                 throw new IOException("Unknown NBT type: " + type);
-        }
-    }
-
-    private int readArrayLength() throws IOException {
-        int length = in.readInt();
-        checkLength(length);
-        return length;
-    }
-
-    private static void checkLength(int length) throws IOException {
-        if (length < 0 || length > MAX_ARRAY_SIZE) {
-            throw new IOException("NBT size limit exceeded: length=" + length + " (max " + MAX_ARRAY_SIZE + ")");
         }
     }
 
