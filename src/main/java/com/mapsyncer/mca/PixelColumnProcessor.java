@@ -385,8 +385,7 @@ public final class PixelColumnProcessor {
         boolean isGlowing = blockLookup.isGlowing(
                 ChunkParser.getBlockStateAt(stateSection, lx, stateLocalY, lz).name());
 
-        return getLight(
-                isSurface, blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
+        return getLight(isSurface, blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
     }
 
     static byte getLight(

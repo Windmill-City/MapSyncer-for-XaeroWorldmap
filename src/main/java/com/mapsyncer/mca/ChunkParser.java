@@ -11,11 +11,7 @@ import java.util.Set;
 public final class ChunkParser {
 
     private static final Set<String> ACCEPTABLE_STATUSES = Set.of(
-            "minecraft:features",
-            "minecraft:light",
-            "minecraft:spawn",
-            "minecraft:heightmaps",
-            "minecraft:full");
+            "minecraft:features", "minecraft:light", "minecraft:spawn", "minecraft:heightmaps", "minecraft:full");
 
     public record BlockState(String name, Map<String, String> properties) {
 
@@ -136,7 +132,7 @@ public final class ChunkParser {
             }
         }
 
-        if (shouldSkipChunk(status)) {
+        if (!ACCEPTABLE_STATUSES.contains(status)) {
             return null;
         }
 
@@ -163,16 +159,6 @@ public final class ChunkParser {
                 BiomeResolver.BiomeQuartGrid.build(sections, minSectionY, sectionLookup);
 
         return new ChunkInfo(localX, localZ, chunkBottomY, heightmap, sections, minSectionY, sectionLookup, biomeGrid);
-    }
-
-    private static boolean shouldSkipChunk(String status) {
-        if (status == null || status.isEmpty()) {
-            return true;
-        }
-
-        String normalizedStatus = status.contains(":") ? status : "minecraft:" + status;
-
-        return !ACCEPTABLE_STATUSES.contains(normalizedStatus);
     }
 
     private static void readSections(NbtStream stream, List<SectionData> sections) throws IOException {
