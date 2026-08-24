@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -34,7 +35,7 @@ public final class ManifestServer {
                 }
             }
         }
-        return manifest;
+        return Collections.unmodifiableMap(manifest);
     }
 
     private static void _build(MinecraftServer server) {

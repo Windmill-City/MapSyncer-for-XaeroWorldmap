@@ -8,7 +8,7 @@ public class ManifestPayload {
     private final Map<RegionRef, Long> timestamps;
 
     public ManifestPayload(Map<RegionRef, Long> timestamps) {
-        this.timestamps = timestamps;
+        this.timestamps = Map.copyOf(timestamps);
     }
 
     public Map<RegionRef, Long> timestamps() {

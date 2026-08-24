@@ -3,6 +3,7 @@ package com.mapsyncer.config;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 import org.slf4j.LoggerFactory;
@@ -19,17 +20,17 @@ public class ModConfig {
 
     public static final ForgeConfig Config;
 
-    private static final Map<String, LayerPlan> Plans = Map.of();
+    private static volatile Map<String, LayerPlan> Plans = Map.of();
 
     public static LayerPlan getPlan(String dimId) {
-        return Plans.getOrDefault(dimId, new LayerPlan());
+        return Plans.getOrDefault(dimId, new LayerPlan(false, Set.of()));
     }
 
     private static List<String> getDefaultPlans() {
         var defaults = new LinkedHashMap<>();
-        defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
-        defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(64)));
-        defaults.put("minecraft:the_end", new LayerPlan(true, List.of()));
+        defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new LayerPlan(false, Set.of(64)));
+        defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
         return defaults.entrySet().stream()
                 .map(Map.Entry::toString)
                 .toList();
@@ -42,16 +43,17 @@ public class ModConfig {
     }
 
     private static void rebuildPlans() {
-        Plans.clear();
+        Map<String, LayerPlan> rebuilt = new LinkedHashMap<>();
         for (var entryStr : Config.config().dimensionConfigs.get()) {
             if (entryStr == null || entryStr.isBlank()) {
                 continue;
             }
             var entry = parsePlanEntry(entryStr);
             if (entry != null) {
-                Plans.put(entry.getKey(), entry.getValue());
+                rebuilt.put(entry.getKey(), entry.getValue());
             }
         }
+        Plans = rebuilt;
     }
 
     private static Map.Entry<String, LayerPlan> parsePlanEntry(String configStr) {
