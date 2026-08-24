@@ -13,8 +13,6 @@ public final class ClientSyncWriteQueue {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientSyncWriteQueue.class);
 
-    private static final int IO_THREADS = Math.max(2, Runtime.getRuntime().availableProcessors() / 4);
-
     private static volatile ExecutorService executor = null;
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
@@ -27,7 +25,7 @@ public final class ClientSyncWriteQueue {
         synchronized (ClientSyncWriteQueue.class) {
             current = executor;
             if (current == null || current.isShutdown()) {
-                current = Executors.newFixedThreadPool(IO_THREADS, r -> {
+                current = Executors.newSingleThreadExecutor(r -> {
                     Thread t = new Thread(r, "mapsyncer-sync-io");
                     t.setDaemon(true);
                     return t;
