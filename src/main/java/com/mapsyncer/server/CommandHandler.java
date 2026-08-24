@@ -21,12 +21,12 @@ public class CommandHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandler.class);
 
-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher, String prefix) {
-        dispatcher.register(Commands.literal(prefix)
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(Commands.literal("mapsyncer")
                 .requires(source -> source.hasPermission(4))
-                .executes(ctx -> showHelp(ctx, prefix))
+                .executes(ctx -> showHelp(ctx))
                 .then(Commands.literal("generate")
-                        .executes(ctx -> showHelp(ctx, prefix))
+                        .executes(ctx -> showHelp(ctx))
                         .then(Commands.literal("start").executes(CommandHandler::generateStart))
                         .then(Commands.literal("stop").executes(CommandHandler::generateStop))
                         .then(Commands.literal("status").executes(CommandHandler::generateStatus)))
@@ -35,11 +35,11 @@ public class CommandHandler {
                         .then(Commands.literal("off").executes(CommandHandler::setAutoUpdateOff))
                         .then(Commands.literal("on").executes(CommandHandler::setAutoUpdateOn)))
                 .then(Commands.literal("reloadconfig").executes(CommandHandler::reloadConfig))
-                .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
+                .then(Commands.literal("help").executes(ctx -> showHelp(ctx))));
     }
 
-    private static int showHelp(CommandContext<CommandSourceStack> ctx, String prefix) {
-        showHelp(component -> ctx.getSource().sendSuccess(() -> component, false), prefix);
+    private static int showHelp(CommandContext<CommandSourceStack> ctx) {
+        showHelp(component -> ctx.getSource().sendSuccess(() -> component, false));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -102,8 +102,8 @@ public class CommandHandler {
             StringBuilder dims = new StringBuilder();
             for (DimensionCacheStats stat : cacheStats) {
                 if (dims.length() > 0) dims.append("\n");
-                dims.append(
-                        String.format("  %s: %d regions, %.2f MB", stat.dimId(), stat.regionCount(), stat.sizeMB()));
+                dims.append(String.format(
+                        "  %s: %d regions, %.2f MB", stat.dimension(), stat.regionCount(), stat.sizeMB()));
             }
 
             ctx.getSource()
@@ -132,20 +132,20 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static void showHelp(Consumer<Component> sender, String prefix) {
+    private static void showHelp(Consumer<Component> sender) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig"));
     }
 
     private static void showAutoUpdateStatus(Consumer<Component> sender) {
         sender.accept(autoUpdateStatusMessage());
-        sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint", "mapsyncer"));
+        sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint"));
     }
 
     private static MutableComponent generationStatusMessage() {

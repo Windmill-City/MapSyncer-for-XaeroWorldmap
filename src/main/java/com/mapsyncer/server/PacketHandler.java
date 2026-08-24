@@ -39,7 +39,7 @@ public class PacketHandler {
                     serverPlayer.getName().getString(),
                     requested);
 
-            Path cacheDir = MapSyncer.CACHE_DIR;
+            Path cacheDir = PathUtils.CACHE_DIR;
             if (!Files.exists(cacheDir)) return;
 
             ManifestServer.build(serverPlayer.server);

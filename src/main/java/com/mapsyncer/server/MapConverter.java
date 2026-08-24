@@ -1,6 +1,5 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.MapSyncer;
 import com.mapsyncer.config.PlanConfig;
 import com.mapsyncer.config.ScanPlanner;
 import com.mapsyncer.mca.DimensionInfo;
@@ -108,9 +107,9 @@ public class MapConverter {
 
         LayerPlan plan = PlanConfig.getPlan(dimPath);
 
-        String dimFolderName = PathUtils.dimToFolder(fullDimId);
+        String dimFolderName = PathUtils.getDimFolderServer(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
+        Path baseOutputDir = PathUtils.CACHE_DIR.resolve(dimFolderName);
 
         if (regionDir == null) {
             LOGGER.error("Region directory not found for dimension: {}", dimFolderName);
@@ -450,14 +449,14 @@ public class MapConverter {
             String dimPath = dimRegions.dimension().location().getPath();
 
             LayerPlan plan = PlanConfig.getPlan(dimPath);
-            String dimFolderName = PathUtils.dimToFolder(fullDimId);
+            String dimFolderName = PathUtils.getDimFolderServer(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {
                 continue;
             }
 
-            Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
+            Path baseOutputDir = PathUtils.CACHE_DIR.resolve(dimFolderName);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             List<RegionScanPass> passes = ScanPlanner.plan(plan, dimTypeInfo);
 
@@ -620,11 +619,11 @@ public class MapConverter {
     public static List<DimensionCacheStats> getCacheStats() {
         List<DimensionCacheStats> stats = new ArrayList<>();
 
-        if (!Files.exists(MapSyncer.CACHE_DIR)) {
+        if (!Files.exists(PathUtils.CACHE_DIR)) {
             return stats;
         }
 
-        try (DirectoryStream<Path> dimDirs = Files.newDirectoryStream(MapSyncer.CACHE_DIR)) {
+        try (DirectoryStream<Path> dimDirs = Files.newDirectoryStream(PathUtils.CACHE_DIR)) {
             for (Path dimDir : dimDirs) {
                 if (!dimDir.toFile().isDirectory()) continue;
 

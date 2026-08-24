@@ -1,6 +1,5 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
@@ -40,17 +39,16 @@ public final class ManifestServer {
 
         for (ServerLevel level : server.getAllLevels()) {
             String dimId = PathUtils.getDimId(level.dimension());
-            String dimFolderName = PathUtils.dimToFolder(dimId);
-            Path dimDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
+            Path dimDir = PathUtils.getDimDirServer(dimId);
             if (!Files.isDirectory(dimDir)) {
                 continue;
             }
 
             try (Stream<Path> stream = Files.walk(dimDir)) {
                 stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
-                    String relative = dimDir.relativize(zipPath).toString().replace("\\", "/");
-                    int caveLayer = PathUtils.caveFromPath(relative);
-                    int[] coords = PathUtils.coordsFromPath(zipPath);
+                    Path relative = dimDir.relativize(zipPath);
+                    int caveLayer = PathUtils.getCaveByDir(relative);
+                    int[] coords = PathUtils.getCoordByZip(zipPath);
                     RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
                     long timestamp = readMtimeMillis(zipPath);
                     rebuilt.put(ref, timestamp);
@@ -62,7 +60,7 @@ public final class ManifestServer {
 
         manifest = rebuilt;
         isValid = true;
-        LOGGER.info("Manifest cache built for {} with {} entries", MapSyncer.CACHE_DIR, rebuilt.size());
+        LOGGER.info("Manifest cache built for {} with {} entries", PathUtils.CACHE_DIR, rebuilt.size());
     }
 
     private static long readMtimeMillis(Path zipPath) {
@@ -76,7 +74,7 @@ public final class ManifestServer {
     }
 
     public static Path resolveZipPath(RegionRef ref) {
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathUtils.dimToFolder(ref.dimId()));
+        Path baseOutputDir = PathUtils.CACHE_DIR.resolve(PathUtils.getDimFolderServer(ref.dimId()));
         int caveLayer = ref.cave();
         Path outputDir =
                 ref.isSurface() ? baseOutputDir : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));

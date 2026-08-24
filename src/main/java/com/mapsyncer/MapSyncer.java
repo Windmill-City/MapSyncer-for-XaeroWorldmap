@@ -9,6 +9,7 @@ import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.XaeroWriter;
+import com.mapsyncer.util.PathUtils;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
@@ -45,8 +46,6 @@ public class MapSyncer {
     public static final String MOD_ID = "mapsyncer";
     public static String VERSION = "unknown";
     public static final Logger LOGGER = LoggerFactory.getLogger(MapSyncer.class);
-
-    public static final Path CACHE_DIR = Path.of(MOD_ID);
 
     private static final ForgeConfigSpec CONFIG_SPEC;
     private static final ServerConfig CONFIG;
@@ -198,7 +197,7 @@ public class MapSyncer {
     public static class ForgeEvents {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
-            XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
+            XaeroWriter.cleanStaleFiles(PathUtils.CACHE_DIR);
             AutoUpdater.performScan(event.getServer());
         }
 
@@ -209,7 +208,7 @@ public class MapSyncer {
 
         @SubscribeEvent
         public static void onRegisterCommands(RegisterCommandsEvent event) {
-            CommandHandler.register(event.getDispatcher(), "mapsyncer");
+            CommandHandler.register(event.getDispatcher());
         }
     }
 
