@@ -59,7 +59,7 @@ public class ChunkDataParser {
             throws IOException {
         byte rootType = stream.readTagType();
         if (rootType != NbtStream.TAG_COMPOUND) {
-            throw new IOException("NBT文档必须以Compound开头，实际类型: " + rootType);
+            throw new IOException("NBT document must start with Compound, actual type: " + rootType);
         }
         stream.readString();
 

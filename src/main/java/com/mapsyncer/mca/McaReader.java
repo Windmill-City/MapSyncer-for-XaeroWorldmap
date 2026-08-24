@@ -78,7 +78,7 @@ public class McaReader implements AutoCloseable {
         RandomAccessFile raf = new RandomAccessFile(path, "r");
         try {
             if (raf.length() < SECTOR_SIZE * 2) {
-                throw new IOException("MCA文件太小: " + raf.length() + " bytes");
+                throw new IOException("MCA file too small: " + raf.length() + " bytes");
             }
             int[] locations = readLocationTable(raf);
             return new McaReader(raf, locations);
@@ -171,7 +171,7 @@ public class McaReader implements AutoCloseable {
                 return data;
 
             default:
-                throw new IOException("未知压缩类型: " + compressionType);
+                throw new IOException("Unknown compression type: " + compressionType);
         }
     }
 

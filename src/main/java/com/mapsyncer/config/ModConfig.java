@@ -107,28 +107,23 @@ public class ModConfig {
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("general");
-            builder.comment("通用设置 / General settings");
+            builder.comment("General settings");
 
             builder.pop();
 
             builder.push("automatic_update");
-            builder.comment("自动更新设置 / Automatic update settings");
+            builder.comment("Automatic update settings");
 
             automaticUpdateEnabled = builder.comment(
-                    "启用自动更新：无人在线时更新",
                     "Enable automatic updates: run when no players are online")
                     .define("automaticUpdateEnabled", false);
 
             builder.pop();
 
             builder.push("dimension_scan");
-            builder.comment("维度扫描设置 / Dimension scan settings");
+            builder.comment("Dimension scan settings");
 
             dimensionConfigs = builder.comment(
-                    "维度扫描配置列表（每个维度一条字符串）",
-                    "推荐：\"dimension = layerPlan\"",
-                    "layerPlan：SURFACE、显式 Y（如 63）或组合（如 SURFACE,63）",
-                    "示例：\"minecraft:the_nether = SURFACE,63\"",
                     "Per-dimension scan configuration list (one string per dimension)",
                     "Preferred: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",

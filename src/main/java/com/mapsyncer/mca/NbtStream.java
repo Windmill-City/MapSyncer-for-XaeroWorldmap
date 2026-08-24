@@ -162,7 +162,7 @@ final class NbtStream implements AutoCloseable {
                 break;
             }
             default:
-                throw new IOException("未知NBT类型: " + type);
+                throw new IOException("Unknown NBT type: " + type);
         }
     }
 
