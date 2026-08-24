@@ -9,6 +9,8 @@
   "mapsyncer.help.server.generate_start": "/mapsyncer generate start - Start generating map cache for all dimensions",
   "mapsyncer.help.server.generate_stop": "/mapsyncer generate stop - Stop the currently running generation task",
   "mapsyncer.help.server.generate_status": "/mapsyncer generate status - Show generation task status",
+  "mapsyncer.help.server.cache_status": "/mapsyncer cache status - Show map cache stats",
+  "mapsyncer.help.server.cache_purge": "/mapsyncer cache purge - Delete all map cache data",
   "mapsyncer.help.server.autoupdate": "/mapsyncer autoupdate - Show current autoupdate status",
   "mapsyncer.help.server.autoupdate_off": "/mapsyncer autoupdate off - Disable autoupdate",
   "mapsyncer.help.server.autoupdate_on": "/mapsyncer autoupdate on - Enable autoupdate (run when no players are online)",
@@ -26,5 +28,8 @@
   "mapsyncer.generate.no_progress": "No generation in progress",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
-  "mapsyncer.status.cache_detail": "Cache stats: %d dimensions, %d regions, %s MB\n%s"
+  "mapsyncer.status.cache_detail": "Cache stats: %d dimensions, %d regions, %s MB\n%s",
+  "mapsyncer.status.cache_empty": "No cached map data found.",
+  "mapsyncer.cache.purge_start": "Purging map cache...",
+  "mapsyncer.cache.purged": "Map cache purged, %d files deleted"
 }

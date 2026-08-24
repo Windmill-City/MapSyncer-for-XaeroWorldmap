@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.server.MapConverter.DimensionCacheStats;
+import com.mapsyncer.server.MapCacheManager.MapCacheStats;
 import com.mapsyncer.util.ChatUtils;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
@@ -29,6 +29,9 @@ public class CommandHandler {
                         .then(Commands.literal("start").executes(CommandHandler::generateStart))
                         .then(Commands.literal("stop").executes(CommandHandler::generateStop))
                         .then(Commands.literal("status").executes(CommandHandler::generateStatus)))
+                .then(Commands.literal("cache")
+                        .then(Commands.literal("status").executes(CommandHandler::cacheStatus))
+                        .then(Commands.literal("purge").executes(CommandHandler::cachePurge)))
                 .then(Commands.literal("autoupdate")
                         .executes(CommandHandler::showAutoUpdateStatus)
                         .then(Commands.literal("off").executes(CommandHandler::setAutoUpdateOff))
@@ -43,6 +46,8 @@ public class CommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start"));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop"));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.cache_status"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.cache_purge"));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate"));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off"));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on"));
@@ -116,34 +121,47 @@ public class CommandHandler {
                         },
                         false);
 
-        List<DimensionCacheStats> cacheStats = MapConverter.getCacheStats();
-        if (!cacheStats.isEmpty()) {
-            int totalDims = cacheStats.size();
-            int totalRegions = cacheStats.stream()
-                    .mapToInt(DimensionCacheStats::regionCount)
-                    .sum();
-            long totalSize = cacheStats.stream()
-                    .mapToLong(DimensionCacheStats::sizeBytes)
-                    .sum();
+        return Command.SINGLE_SUCCESS;
+    }
 
-            StringBuilder dims = new StringBuilder();
-            for (DimensionCacheStats stat : cacheStats) {
-                if (dims.length() > 0) dims.append("\n");
-                dims.append(String.format(
-                        "  %s: %d regions, %.2f MB", stat.dimension(), stat.regionCount(), stat.sizeMB()));
-            }
-
-            ctx.getSource()
-                    .sendSuccess(
-                            () -> ChatUtils.message(
-                                    "mapsyncer.status.cache_detail",
-                                    totalDims,
-                                    totalRegions,
-                                    String.format("%.2f", totalSize / (1024.0 * 1024.0)),
-                                    dims.toString()),
-                            false);
+    private static int cacheStatus(CommandContext<CommandSourceStack> ctx) {
+        List<MapCacheStats> cacheStats = MapCacheManager.getCacheStats();
+        if (cacheStats.isEmpty()) {
+            ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.status.cache_empty"), false);
+            return Command.SINGLE_SUCCESS;
         }
 
+        int totalDims = cacheStats.size();
+        int totalRegions =
+                cacheStats.stream().mapToInt(MapCacheStats::regionCount).sum();
+        long totalSize = cacheStats.stream().mapToLong(MapCacheStats::sizeBytes).sum();
+
+        StringBuilder dims = new StringBuilder();
+        for (MapCacheStats stat : cacheStats) {
+            if (dims.length() > 0) dims.append("\n");
+            dims.append(
+                    String.format("  %s: %d regions, %.2f MB", stat.dimension(), stat.regionCount(), stat.sizeMB()));
+        }
+
+        ctx.getSource()
+                .sendSuccess(
+                        () -> ChatUtils.message(
+                                "mapsyncer.status.cache_detail",
+                                totalDims,
+                                totalRegions,
+                                String.format("%.2f", totalSize / (1024.0 * 1024.0)),
+                                dims.toString()),
+                        false);
+
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int cachePurge(CommandContext<CommandSourceStack> ctx) {
+        Util.ioPool().execute(() -> {
+            int deleted = MapCacheManager.purgeCache();
+            ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.cache.purged", deleted), false);
+        });
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.cache.purge_start"), false);
         return Command.SINGLE_SUCCESS;
     }
 

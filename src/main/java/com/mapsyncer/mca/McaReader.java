@@ -1,8 +1,13 @@
 package com.mapsyncer.mca;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 import org.slf4j.Logger;
@@ -40,8 +45,8 @@ public class McaReader implements AutoCloseable {
             return false;
         }
 
-        try (RandomAccessFile raf = new RandomAccessFile(mcaPath.toFile(), "r")) {
-            int[] locations = readLocationTable(raf);
+        try (FileChannel channel = FileChannel.open(mcaPath, StandardOpenOption.READ)) {
+            int[] locations = readLocationTable(channel);
             for (int packed : locations) {
                 if ((packed >>> 8) > 0 && (packed & 0xFF) > 0) {
                     return true;
@@ -65,38 +70,45 @@ public class McaReader implements AutoCloseable {
         }
     }
 
-    private final RandomAccessFile raf;
+    private final FileChannel channel;
 
     private final int[] locations;
 
-    private McaReader(RandomAccessFile raf, int[] locations) {
-        this.raf = raf;
+    private McaReader(FileChannel channel, int[] locations) {
+        this.channel = channel;
         this.locations = locations;
     }
 
     public static McaReader open(String path) throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(path, "r");
+        FileChannel channel = FileChannel.open(Path.of(path), StandardOpenOption.READ);
         try {
-            if (raf.length() < SECTOR_SIZE * 2) {
-                throw new IOException("MCA file too small: " + raf.length() + " bytes");
+            if (channel.size() < SECTOR_SIZE * 2) {
+                throw new IOException("MCA file too small: " + channel.size() + " bytes");
             }
-            int[] locations = readLocationTable(raf);
-            return new McaReader(raf, locations);
+            int[] locations = readLocationTable(channel);
+            return new McaReader(channel, locations);
         } catch (IOException e) {
-            raf.close();
+            channel.close();
             throw e;
         }
     }
 
-    private static int[] readLocationTable(RandomAccessFile raf) throws IOException {
-        raf.seek(0);
-        byte[] raw = new byte[SECTOR_SIZE];
-        raf.readFully(raw);
+    private static int[] readLocationTable(FileChannel channel) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(SECTOR_SIZE);
+        while (buffer.hasRemaining()) {
+            if (channel.read(buffer) == -1) {
+                break;
+            }
+        }
+        buffer.flip();
         int[] locations = new int[LOCATION_COUNT];
         for (int i = 0; i < LOCATION_COUNT; i++) {
-            int idx = i * 4;
-            int offset = ((raw[idx] & 0xFF) << 16) | ((raw[idx + 1] & 0xFF) << 8) | (raw[idx + 2] & 0xFF);
-            locations[i] = (offset << 8) | (raw[idx + 3] & 0xFF);
+            int b0 = buffer.get() & 0xFF;
+            int b1 = buffer.get() & 0xFF;
+            int b2 = buffer.get() & 0xFF;
+            int b3 = buffer.get() & 0xFF;
+            int offset = (b0 << 16) | (b1 << 8) | b2;
+            locations[i] = (offset << 8) | b3;
         }
         return locations;
     }
@@ -114,32 +126,38 @@ public class McaReader implements AutoCloseable {
         }
 
         long dataOffset = loc.dataOffset();
-        if (dataOffset + 5 > raf.length()) {
+        if (dataOffset + 5 > channel.size()) {
             return null;
         }
 
-        raf.seek(dataOffset);
+        ByteBuffer header = ByteBuffer.allocate(5);
+        channel.position(dataOffset);
+        while (header.hasRemaining()) {
+            if (channel.read(header) == -1) {
+                break;
+            }
+        }
+        header.flip();
 
-        int totalLength = raf.readInt();
+        int totalLength = header.getInt();
         if (totalLength <= 1) {
             return null;
         }
 
-        int compressionType = raf.readUnsignedByte();
+        int compressionType = header.get() & 0xFF;
 
         int dataLength = totalLength - 1;
-        byte[] compressedData = new byte[dataLength];
-        int read = 0;
-        while (read < dataLength) {
-            int r = raf.read(compressedData, read, dataLength - read);
-            if (r == -1) break;
-            read += r;
+        ByteBuffer compressed = ByteBuffer.allocate(dataLength);
+        while (compressed.hasRemaining()) {
+            if (channel.read(compressed) == -1) {
+                break;
+            }
         }
-        if (read != dataLength) {
+        if (compressed.hasRemaining()) {
             return null;
         }
 
-        return decompress(compressedData, compressionType);
+        return decompress(compressed.array(), compressionType);
     }
 
     private byte[] decompress(byte[] data, int compressionType) throws IOException {
@@ -177,6 +195,6 @@ public class McaReader implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        raf.close();
+        channel.close();
     }
 }
