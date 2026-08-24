@@ -7,8 +7,6 @@ import java.util.Map;
 
 import org.slf4j.LoggerFactory;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 
