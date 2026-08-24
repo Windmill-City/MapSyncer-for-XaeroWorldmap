@@ -45,14 +45,20 @@ public final class ManifestServer {
             }
 
             try (Stream<Path> stream = Files.walk(dimDir)) {
-                stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
-                    Path relative = dimDir.relativize(zipPath);
-                    int caveLayer = PathUtils.getCaveByDir(relative);
-                    int[] coords = PathUtils.getCoordByZip(zipPath);
-                    RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
-                    long timestamp = readMtimeMillis(zipPath);
-                    rebuilt.put(ref, timestamp);
-                });
+                for (Path zipPath :
+                        (Iterable<Path>) stream.filter(p -> p.toString().endsWith(".zip"))::iterator) {
+                    try {
+                        Path relative = dimDir.relativize(zipPath);
+                        int caveLayer = PathUtils.getCaveByDir(relative);
+                        int[] coords = PathUtils.getCoordByZip(zipPath);
+                        RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
+                        long timestamp = readMtimeMillis(zipPath);
+                        rebuilt.put(ref, timestamp);
+                    } catch (Exception e) {
+                        LOGGER.warn(
+                                "Skipping malformed region file {} while building manifest for {}", zipPath, dimId, e);
+                    }
+                }
             } catch (IOException e) {
                 LOGGER.error("Failed to walk cache directory while building manifest for {}", dimId, e);
             }
