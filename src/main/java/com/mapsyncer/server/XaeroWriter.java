@@ -54,10 +54,6 @@ public class XaeroWriter {
             zos.closeEntry();
         }
 
-        if (Files.exists(finalFile) && Files.mismatch(tempFile, finalFile) == -1) {
-            Files.deleteIfExists(tempFile);
-            return;
-        }
         Files.move(tempFile, finalFile, StandardCopyOption.REPLACE_EXISTING);
     }
 
