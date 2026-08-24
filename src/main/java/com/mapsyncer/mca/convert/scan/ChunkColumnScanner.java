@@ -1,8 +1,9 @@
 package com.mapsyncer.mca.convert.scan;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
-import com.mapsyncer.mca.ChunkDataParser;
-import com.mapsyncer.mca.ChunkSectionParser;
+import com.mapsyncer.mca.ChunkParser;
+import com.mapsyncer.mca.ChunkParser.BlockState;
+import com.mapsyncer.mca.ChunkParser.SectionData;
 import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
@@ -11,8 +12,7 @@ import java.util.ArrayList;
 
 public final class ChunkColumnScanner {
 
-    private static final ChunkSectionParser.BlockState FALLBACK_SINGLE_STATE =
-            new ChunkSectionParser.BlockState(Constants.BLOCK_AIR, java.util.Map.of());
+    private static final BlockState FALLBACK_SINGLE_STATE = new BlockState(Constants.BLOCK_AIR, java.util.Map.of());
 
     public static final class ColumnScanContext {
 
@@ -49,7 +49,7 @@ public final class ChunkColumnScanner {
             return !isCaveMode || underair[pos];
         }
 
-        static boolean hasFluid(ChunkSectionParser.BlockState state, BlockPropertyLookup lookup) {
+        static boolean hasFluid(BlockState state, BlockPropertyLookup lookup) {
             if (state.isFluid() || state.isWaterlogged()) {
                 return true;
             }
@@ -63,7 +63,7 @@ public final class ChunkColumnScanner {
 
     public static void scan(
             MapRegionData data,
-            ChunkDataParser.ChunkInfo chunk,
+            ChunkParser.ChunkInfo chunk,
             int minBuildHeight,
             int worldTopY,
             LightMode lightMode,
@@ -85,7 +85,7 @@ public final class ChunkColumnScanner {
         ColumnScanContext ctx = new ColumnScanContext(fullCave);
 
         int sectionIndex = 0;
-        for (ChunkSectionParser.SectionData section : chunk.sections()) {
+        for (SectionData section : chunk.sections()) {
             if (section.blockPalette().isEmpty()) {
                 continue;
             }
@@ -100,8 +100,7 @@ public final class ChunkColumnScanner {
             }
 
             boolean singlePalette = section.blockPalette().size() == 1 && section.blockData() == null;
-            ChunkSectionParser.BlockState singleState =
-                    singlePalette ? section.blockPalette().get(0) : FALLBACK_SINGLE_STATE;
+            BlockState singleState = singlePalette ? section.blockPalette().get(0) : FALLBACK_SINGLE_STATE;
 
             for (int lx = 0; lx < Constants.CHUNK_SIZE; lx++) {
                 for (int lz = 0; lz < Constants.CHUNK_SIZE; lz++) {
@@ -124,7 +123,7 @@ public final class ChunkColumnScanner {
                         startY = caveStart;
                         scanBottomY = Math.max(caveStart - caveDepth, minBuildHeight);
                     } else {
-                        startY = ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
+                        startY = ChunkParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
                         scanBottomY = minBuildHeight;
                     }
 

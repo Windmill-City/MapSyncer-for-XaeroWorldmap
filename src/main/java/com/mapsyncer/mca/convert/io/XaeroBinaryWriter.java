@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert.io;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
-import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.ChunkParser.BlockState;
 import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;

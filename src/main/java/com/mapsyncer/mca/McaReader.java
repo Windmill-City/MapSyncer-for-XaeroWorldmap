@@ -5,17 +5,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class McaReader implements AutoCloseable {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(McaReader.class);
+final class McaReader implements AutoCloseable {
 
     private static final int COMPRESS_GZIP = 1;
 
@@ -25,43 +20,13 @@ public class McaReader implements AutoCloseable {
 
     private static final int LOCATION_COUNT = Constants.CHUNKS_PER_REGION * Constants.CHUNKS_PER_REGION;
 
-    private static final long HEADER_ONLY_SIZE = (long) Constants.SECTOR_SIZE * 2;
+    private record ChunkLocation(int offsetSectors, int sectorCount) {
 
-    public static boolean hasAnyChunk(Path mcaPath) {
-        if (mcaPath == null || !Files.exists(mcaPath)) {
-            return false;
-        }
-        try {
-            long size = Files.size(mcaPath);
-            if (size == 0 || size <= HEADER_ONLY_SIZE) {
-                return false;
-            }
-        } catch (IOException e) {
-            LOGGER.debug("Cannot stat MCA {}: {}", mcaPath, e.getMessage());
-            return false;
-        }
-
-        try (FileChannel channel = FileChannel.open(mcaPath, StandardOpenOption.READ)) {
-            int[] locations = readLocationTable(channel);
-            for (int packed : locations) {
-                if ((packed >>> 8) > 0 && (packed & 0xFF) > 0) {
-                    return true;
-                }
-            }
-            return false;
-        } catch (IOException e) {
-            LOGGER.debug("MCA chunk probe failed for {}: {}", mcaPath, e.getMessage());
-            return false;
-        }
-    }
-
-    public record ChunkLocation(int offsetSectors, int sectorCount) {
-
-        public boolean exists() {
+        boolean exists() {
             return offsetSectors > 0 && sectorCount > 0;
         }
 
-        public long dataOffset() {
+        long dataOffset() {
             return (long) offsetSectors * Constants.SECTOR_SIZE;
         }
     }
@@ -75,7 +40,7 @@ public class McaReader implements AutoCloseable {
         this.locations = locations;
     }
 
-    public static McaReader open(String path) throws IOException {
+    static McaReader open(String path) throws IOException {
         FileChannel channel = FileChannel.open(Path.of(path), StandardOpenOption.READ);
         try {
             if (channel.size() < Constants.SECTOR_SIZE * 2) {
@@ -109,13 +74,13 @@ public class McaReader implements AutoCloseable {
         return locations;
     }
 
-    public ChunkLocation getChunkLocation(int localX, int localZ) {
+    private ChunkLocation getChunkLocation(int localX, int localZ) {
         int index = localX + localZ * Constants.CHUNKS_PER_REGION;
         int packed = locations[index];
         return new ChunkLocation(packed >>> 8, packed & 0xFF);
     }
 
-    public byte[] readChunkData(int localX, int localZ) throws IOException {
+    byte[] readChunkData(int localX, int localZ) throws IOException {
         ChunkLocation loc = getChunkLocation(localX, localZ);
         if (!loc.exists()) {
             return null;

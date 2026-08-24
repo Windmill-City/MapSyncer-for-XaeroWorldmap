@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -21,7 +20,7 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record Region(int regionX, int regionZ, long timestamp, String dimId, Path regionDir, Bounds bounds) {}
+    public record Region(int regionX, int regionZ, String dimId, Path regionDir, Bounds bounds) {}
 
     public record Bounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
 
@@ -92,13 +91,11 @@ public class RegionScanner {
                     continue;
                 }
                 try {
-                    BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new Region(
-                            regionX, regionZ, attrs.lastModifiedTime().toMillis(), dimId, regionDir, bounds));
-                } catch (IOException e) {
-                    LOGGER.warn("Failed to read attributes for {}", fileName, e);
+                    entries.add(new Region(regionX, regionZ, dimId, regionDir, bounds));
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("Invalid region coordinates for {}", fileName, e);
                 }
             }
         } catch (IOException e) {

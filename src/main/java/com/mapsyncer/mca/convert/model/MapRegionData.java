@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert.model;
 
-import com.mapsyncer.mca.ChunkDataParser;
-import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.ChunkParser;
+import com.mapsyncer.mca.ChunkParser.BlockState;
 import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import java.util.Arrays;
@@ -37,7 +37,9 @@ public class MapRegionData {
     public final Map<Integer, List<OverlayEntry>> overlays;
     public final LightMode lightMode;
     public final int cave;
-    public final ChunkDataParser.ChunkInfo[][] chunkGrid;
+    public final ChunkParser.ChunkInfo[][] chunkGrid;
+
+    private int dataCount = 0;
 
     public MapRegionData(int minBuildHeight, LightMode lightMode, int cave) {
         this.lightMode = lightMode;
@@ -56,17 +58,17 @@ public class MapRegionData {
         hasData = new boolean[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
         chunkExists = new boolean[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
         overlays = new HashMap<>();
-        chunkGrid = new ChunkDataParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
+        chunkGrid = new ChunkParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
+    }
+
+    public void markData(int x, int z) {
+        if (!hasData[x][z]) {
+            hasData[x][z] = true;
+            dataCount++;
+        }
     }
 
     public boolean hasAnyMapData() {
-        for (int x = 0; x < Constants.REGION_SIZE_BLOCKS; x++) {
-            for (int z = 0; z < Constants.REGION_SIZE_BLOCKS; z++) {
-                if (hasData[x][z]) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return dataCount > 0;
     }
 }
