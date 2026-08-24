@@ -11,12 +11,12 @@ import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class XaeroMapWriter {
+public final class XaeroWriter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroMapWriter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWriter.class);
 
     public static boolean writeChunkData(RegionData chunk) {
-        String xaeroDim = XaeroWorldMapBridge.getDimensionName(chunk.ref.dimId());
+        String xaeroDim = XaeroBridge.getDimensionName(chunk.ref.dimId());
         if (xaeroDim == null) {
             LOGGER.error(
                     "Unable to resolve Xaero dimension name for {}, skipping region ({}, {})",
@@ -26,7 +26,7 @@ public final class XaeroMapWriter {
             return false;
         }
 
-        Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
+        Path serverDir = XaeroBridge.getCurrentServerDirectory();
         if (serverDir == null) {
             LOGGER.error(
                     "Unable to resolve server directory, skipping region ({}, {}) dim={}",
@@ -36,7 +36,7 @@ public final class XaeroMapWriter {
             return false;
         }
 
-        String worldId = XaeroWorldMapBridge.getCurrentWorldId();
+        String worldId = XaeroBridge.getCurrentWorldId();
         if (worldId == null || worldId.isEmpty()) {
             LOGGER.error(
                     "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
@@ -77,7 +77,7 @@ public final class XaeroMapWriter {
         }
 
         Minecraft.getInstance().execute(
-                () -> XaeroWorldMapBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
+                () -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
 
         return true;
     }

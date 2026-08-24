@@ -13,20 +13,20 @@ public class PlayerEventHandler {
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
-        MapPacketHandler.pushManifest(player);
+        PacketHandler.pushManifest(player);
 
-        MapUpdater.get().stop();
+        IdleUpdater.get().stop();
     }
 
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
 
-        MapUpdater.get().onPlayerLoggedOut(player);
+        IdleUpdater.get().onPlayerLoggedOut(player);
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
-        MapUpdater.get().stop();
+        IdleUpdater.get().stop();
     }
 }

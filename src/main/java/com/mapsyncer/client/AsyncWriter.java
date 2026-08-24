@@ -26,7 +26,7 @@ public final class AsyncWriter {
         Runnable task = () -> {
             boolean success = false;
             try {
-                success = XaeroMapWriter.writeChunkData(chunk);
+                success = XaeroWriter.writeChunkData(chunk);
             } catch (Exception e) {
                 LOGGER.error("Async region write failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
             } finally {

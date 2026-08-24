@@ -10,17 +10,17 @@ import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MapUpdater {
+public class IdleUpdater {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MapUpdater.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdleUpdater.class);
 
-    private static final MapUpdater INSTANCE = new MapUpdater();
+    private static final IdleUpdater INSTANCE = new IdleUpdater();
 
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     private volatile ExecutorService updateExecutor = null;
 
-    public static MapUpdater get() {
+    public static IdleUpdater get() {
         return INSTANCE;
     }
 

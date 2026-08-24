@@ -44,14 +44,14 @@ public class ManifestClient {
     private static Map<RegionRef, Long> getManifest(Set<String> dimIds) {
         Map<RegionRef, Long> manifest = new HashMap<>();
 
-        Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
+        Path serverDir = XaeroBridge.getCurrentServerDirectory();
         if (serverDir == null || !Files.exists(serverDir)) {
             LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
             return manifest;
         }
 
         for (String dimId : dimIds) {
-            String xaeroDim = XaeroWorldMapBridge.getDimensionName(dimId);
+            String xaeroDim = XaeroBridge.getDimensionName(dimId);
             if (xaeroDim == null) {
                 LOGGER.debug("No Xaero dimension name for {}, skipping", dimId);
                 continue;

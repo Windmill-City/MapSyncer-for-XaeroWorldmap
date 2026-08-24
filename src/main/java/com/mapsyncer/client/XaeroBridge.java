@@ -13,9 +13,9 @@ import xaero.map.file.MapSaveLoad;
 import xaero.map.region.LeveledRegion;
 import xaero.map.region.MapRegion;
 
-public final class XaeroWorldMapBridge {
+public final class XaeroBridge {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWorldMapBridge.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroBridge.class);
 
     private static final byte LOAD_STATE_CLEARED = 4;
 
@@ -155,6 +155,6 @@ public final class XaeroWorldMapBridge {
     }
 
     public static void onWorldIdChanged() {
-        MapPacketHandler.onXaeroWorldContextReady();
+        PacketHandler.onXaeroWorldContextReady();
     }
 }

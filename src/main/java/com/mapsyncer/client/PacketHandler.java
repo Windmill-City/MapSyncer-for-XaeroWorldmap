@@ -24,9 +24,9 @@ import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MapPacketHandler {
+public class PacketHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MapPacketHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
     private static final long PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
 
@@ -164,7 +164,7 @@ public class MapPacketHandler {
     }
 
     private static boolean isWorldContextReady() {
-        String worldId = XaeroWorldMapBridge.getCurrentWorldId();
+        String worldId = XaeroBridge.getCurrentWorldId();
         return worldId != null && !worldId.isEmpty();
     }
 
@@ -204,9 +204,9 @@ public class MapPacketHandler {
             }
 
             Minecraft mc = Minecraft.getInstance();
-            Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
+            Path serverDir = XaeroBridge.getCurrentServerDirectory();
 
-            String worldId = XaeroWorldMapBridge.getCurrentWorldId();
+            String worldId = XaeroBridge.getCurrentWorldId();
             if (worldId == null || worldId.isEmpty()) {
                 LOGGER.error(
                         "Unable to resolve current world id from Xaero, skipping {} received chunks",

@@ -19,9 +19,9 @@ import net.minecraftforge.network.NetworkEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MapPacketHandler {
+public class PacketHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MapPacketHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
     private static final int MAX_RESPONSE_PACKET_BYTES = 256 * 1024;
 
