@@ -115,7 +115,7 @@ public class ModConfig {
             Plans = builder.comment(
                     "Per-dimension scan configuration list (one line per dimension)",
                     "Format per entry: \"dimension = layerPlan\"",
-                    "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
+                    "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
                     "Example: \"minecraft:overworld = SURFACE\"")
                     .defineList("plans", getDefaultPlans(), obj -> obj instanceof String);
 
