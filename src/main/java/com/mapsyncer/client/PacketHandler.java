@@ -28,11 +28,9 @@ public class PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
-    private static final long PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
-
     private static final Set<RegionRef> updatedRegionCoords = ConcurrentHashMap.newKeySet();
 
-    private record PartEntry(RegionData[] parts, long firstArrivedMs) {}
+    private record PartEntry(RegionData[] parts) {}
 
     private static final ConcurrentHashMap<String, PartEntry> partBuffer = new ConcurrentHashMap<>();
 
@@ -380,12 +378,11 @@ public class PacketHandler {
         }
 
         String key = partKey(chunk);
-        long now = System.currentTimeMillis();
         PartEntry entry = partBuffer.compute(key, (k, existing) -> {
             if (existing == null) {
                 RegionData[] arr = new RegionData[chunk.totalParts];
                 arr[chunk.partIndex] = chunk;
-                return new PartEntry(arr, now);
+                return new PartEntry(arr);
             }
             existing.parts()[chunk.partIndex] = chunk;
             return existing;
@@ -398,16 +395,6 @@ public class PacketHandler {
                 chunk.totalParts,
                 countNonNull(parts),
                 chunk.totalParts);
-
-        if (now - entry.firstArrivedMs() > PART_STALE_TIMEOUT_MS) {
-            partBuffer.remove(key);
-            LOGGER.warn(
-                    "Chunk part assembly timed out for {} ({}ms), discarding {} received parts",
-                    key,
-                    now - entry.firstArrivedMs(),
-                    countNonNull(parts));
-            return null;
-        }
 
         for (RegionData p : parts) {
             if (p == null) return null;
