@@ -41,23 +41,17 @@ public final class ClientSyncWriteQueue {
         return pendingWrites.get() > 0;
     }
 
-    public static void submit(RegionData chunk, Consumer<XaeroMapWriter.RegionWriteResult> callback) {
+    public static void submit(RegionData chunk, Consumer<Boolean> callback) {
         pendingWrites.incrementAndGet();
         Runnable task = () -> {
-            XaeroMapWriter.RegionWriteResult result = null;
+            boolean success = false;
             try {
-                result = XaeroMapWriter.writeChunkData(chunk);
-                if (result != null) {
-                    XaeroMapWriter.clearRegionCacheFiles(
-                            result.mwDir(),
-                            new XaeroMapWriter.RegionCoord(
-                                    chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
-                }
+                success = XaeroMapWriter.writeChunkData(chunk);
             } catch (Exception e) {
                 LOGGER.error("Async region write failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
             } finally {
                 pendingWrites.decrementAndGet();
-                invokeCallback(chunk, callback, result);
+                invokeCallback(chunk, callback, success);
             }
         };
 
@@ -74,12 +68,9 @@ public final class ClientSyncWriteQueue {
         }
     }
 
-    private static void invokeCallback(
-            RegionData chunk,
-            Consumer<XaeroMapWriter.RegionWriteResult> callback,
-            XaeroMapWriter.RegionWriteResult result) {
+    private static void invokeCallback(RegionData chunk, Consumer<Boolean> callback, boolean success) {
         try {
-            callback.accept(result);
+            callback.accept(success);
         } catch (Exception e) {
             LOGGER.error("Sync write callback failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
         }

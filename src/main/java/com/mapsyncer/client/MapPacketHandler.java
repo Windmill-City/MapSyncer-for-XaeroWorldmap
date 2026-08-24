@@ -30,7 +30,7 @@ public class MapPacketHandler {
 
     private static final long PART_STALE_TIMEOUT_MS = 5 * 60 * 1000L;
 
-    private static final Set<XaeroMapWriter.RegionCoord> updatedRegionCoords = ConcurrentHashMap.newKeySet();
+    private static final Set<RegionRef> updatedRegionCoords = ConcurrentHashMap.newKeySet();
 
     private record PartEntry(RegionData[] parts, long firstArrivedMs) {}
 
@@ -246,16 +246,14 @@ public class MapPacketHandler {
                     continue;
                 }
 
-                XaeroMapWriter.RegionCoord coord = new XaeroMapWriter.RegionCoord(
-                        assembled.ref.regionX(), assembled.ref.regionZ(), assembled.ref.caveLayer());
-                updatedRegionCoords.add(coord);
+                updatedRegionCoords.add(assembled.ref);
 
                 syncPendingWrites.incrementAndGet();
 
-                ClientSyncWriteQueue.submit(assembled, writeResult -> {
+                ClientSyncWriteQueue.submit(assembled, success -> {
                     mc.execute(() -> {
                         try {
-                            if (writeResult == null) {
+                            if (!success) {
                                 LOGGER.error(
                                         "Region ({}, {}) write failed ({} bytes)",
                                         assembled.ref.regionX(),
@@ -268,7 +266,7 @@ public class MapPacketHandler {
                                     assembled.ref.regionX(),
                                     assembled.ref.regionZ(),
                                     assembled.ref.caveLayer(),
-                                    writeResult == null ? "FAILED" : "ok",
+                                    success ? "ok" : "FAILED",
                                     syncPendingWrites.get());
                         } finally {
                             syncPendingWrites.decrementAndGet();
