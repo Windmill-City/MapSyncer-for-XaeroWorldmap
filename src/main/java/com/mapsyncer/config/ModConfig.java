@@ -14,17 +14,17 @@ import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 
 public class ModConfig {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ModConfig.class);
+
     public record ForgeConfig(ServerConfig config, ForgeConfigSpec spec) {
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ModConfig.class);
+    public static final ForgeConfig Config;
 
-    private static Map<String, LayerPlan> plans = Map.of();
-
-    public static final ForgeConfig SERVER;
+    private static final Map<String, LayerPlan> Plans = Map.of();
 
     public static LayerPlan getPlan(String dimId) {
-        return plans.getOrDefault(dimId, new LayerPlan());
+        return Plans.getOrDefault(dimId, new LayerPlan());
     }
 
     private static List<String> getDefaultDimensionConfigStrings() {
@@ -39,19 +39,19 @@ public class ModConfig {
 
     static {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
-        SERVER = new ForgeConfig(pair.getLeft(), pair.getRight());
-        rebuildLayerPlans();
+        Config = new ForgeConfig(pair.getLeft(), pair.getRight());
+        rebuildPlans();
     }
 
-    private static void rebuildLayerPlans() {
-        plans.clear();
-        for (var entryStr : SERVER.config().dimensionConfigs.get()) {
+    private static void rebuildPlans() {
+        Plans.clear();
+        for (var entryStr : Config.config().dimensionConfigs.get()) {
             if (entryStr == null || entryStr.isBlank()) {
                 continue;
             }
             var entry = parsePlanEntry(entryStr);
             if (entry != null) {
-                plans.put(entry.getKey(), entry.getValue());
+                Plans.put(entry.getKey(), entry.getValue());
             }
         }
     }
@@ -75,9 +75,7 @@ public class ModConfig {
     }
 
     public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
-        if (config.getType() == net.minecraftforge.fml.config.ModConfig.Type.SERVER) {
-            modConfig = config;
-        }
+        modConfig = config;
     }
 
     public static void reloadFromDisk() {
@@ -86,8 +84,8 @@ public class ModConfig {
                 Path path = modConfig.getFullPath();
                 CommentedFileConfig file = CommentedFileConfig.of(path);
                 file.load();
-                SERVER.spec().acceptConfig(file);
-                rebuildLayerPlans();
+                Config.spec().acceptConfig(file);
+                rebuildPlans();
             } finally {
                 file.close();
             }
@@ -98,9 +96,9 @@ public class ModConfig {
 
     public static class ServerConfig {
 
-        public final ConfigValue<Boolean> automaticUpdateEnabled;
+        public final ConfigValue<Boolean> AutoUpdate;
 
-        public final ConfigValue<List<? extends String>> plans;
+        public final ConfigValue<List<? extends String>> Plans;
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("automatic_update");

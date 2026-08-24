@@ -52,7 +52,7 @@ public class MapSyncer {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
-        ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER.spec());
+        ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.Config.spec());
 
         CHANNEL.registerMessage(
                 0,

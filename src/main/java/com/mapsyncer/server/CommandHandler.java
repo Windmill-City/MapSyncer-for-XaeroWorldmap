@@ -1,7 +1,6 @@
 package com.mapsyncer.server;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.server.MapConverter.DimensionCacheStats;
-import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
@@ -21,17 +20,17 @@ public class CommandHandler {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, String prefix) {
         dispatcher.register(Commands.literal(prefix)
-                .requires(ApiHelper.admin())
+                .requires(source -> source.hasPermission(4))
                 .executes(ctx -> showHelp(ctx, prefix))
                 .then(Commands.literal("generate")
                         .executes(ctx -> showHelp(ctx, prefix))
-                        .then(Commands.literal("start").executes(CommandHandler::generateAll))
-                        .then(Commands.literal("stop").executes(CommandHandler::stopConversion))
-                        .then(Commands.literal("status").executes(CommandHandler::showStatus)))
+                        .then(Commands.literal("start").executes(CommandHandler::generateStart))
+                        .then(Commands.literal("stop").executes(CommandHandler::generateStop))
+                        .then(Commands.literal("status").executes(CommandHandler::generateStatus)))
                 .then(Commands.literal("automatic")
-                        .executes(CommandHandler::showAutomaticMode)
-                        .then(Commands.literal("off").executes(CommandHandler::setAutomaticOff))
-                        .then(Commands.literal("on").executes(CommandHandler::setAutomaticOn)))
+                        .executes(CommandHandler::showAutoUpdateStatus)
+                        .then(Commands.literal("off").executes(CommandHandler::setAutoUpdateOff))
+                        .then(Commands.literal("on").executes(CommandHandler::setAutoUpdateOn)))
                 .then(Commands.literal("reloadconfig").executes(CommandHandler::reloadConfig))
                 .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
     }
@@ -41,8 +40,8 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int showAutomaticMode(CommandContext<CommandSourceStack> ctx) {
-        showAutomaticMode(component -> ctx.getSource().sendSuccess(() -> component, false));
+    private static int showAutoUpdateStatus(CommandContext<CommandSourceStack> ctx) {
+        showAutoUpdateStatus(component -> ctx.getSource().sendSuccess(() -> component, false));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -55,7 +54,7 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int generateAll(CommandContext<CommandSourceStack> ctx) {
+    private static int generateStart(CommandContext<CommandSourceStack> ctx) {
         MinecraftServer server = ctx.getSource().getServer();
         if (!generateAll(server, () -> {
             String dimList = String.join(", ", getCompletedDimensions());
@@ -76,7 +75,7 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int stopConversion(CommandContext<CommandSourceStack> ctx) {
+    private static int generateStop(CommandContext<CommandSourceStack> ctx) {
         if (MapConverter.requestCancel()) {
             ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
         } else {
@@ -85,7 +84,7 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int showStatus(CommandContext<CommandSourceStack> ctx) {
+    private static int generateStatus(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
 
         List<DimensionCacheStats> cacheStats = getCacheStats();
@@ -119,24 +118,20 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setAutomaticOff(CommandContext<CommandSourceStack> ctx) {
+    private static int setAutoUpdateOff(CommandContext<CommandSourceStack> ctx) {
         disableAutomatic();
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_off"), false);
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setAutomaticOn(CommandContext<CommandSourceStack> ctx) {
+    private static int setAutoUpdateOn(CommandContext<CommandSourceStack> ctx) {
         setAutomaticOn();
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on"), false);
         return Command.SINGLE_SUCCESS;
     }
 
-    public static String serverCommandPrefix() {
-        return "mapsyncer";
-    }
-
     public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender) {
-        showHelp(sender, serverCommandPrefix());
+        showHelp(sender, "mapsyncer");
     }
 
     public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
@@ -152,7 +147,7 @@ public class CommandHandler {
 
     public static void showAutomaticMode(Consumer<net.minecraft.network.chat.Component> sender) {
         sender.accept(automaticStatusMessage());
-        sender.accept(ChatUtils.desc("mapsyncer.command.automatic_status_hint", serverCommandPrefix()));
+        sender.accept(ChatUtils.desc("mapsyncer.command.automatic_status_hint", "mapsyncer"));
     }
 
     public static MutableComponent generationStatusMessage() {
@@ -164,7 +159,7 @@ public class CommandHandler {
     }
 
     public static MutableComponent automaticStatusMessage() {
-        boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
+        boolean enabled = ModConfig.Config.config().AutoUpdate.get();
 
         if (enabled) {
             return ChatUtils.message("mapsyncer.command.automatic_on");
@@ -206,14 +201,14 @@ public class CommandHandler {
     }
 
     public static void disableAutomatic() {
-        ModConfig.SERVER.config().automaticUpdateEnabled.set(false);
-        ModConfig.SERVER.spec().save();
+        ModConfig.Config.config().automaticUpdateEnabled.set(false);
+        ModConfig.Config.spec().save();
         AutoUpdater.stop();
     }
 
     public static void setAutomaticOn() {
-        ModConfig.SERVER.config().automaticUpdateEnabled.set(true);
-        ModConfig.SERVER.spec().save();
+        ModConfig.Config.config().automaticUpdateEnabled.set(true);
+        ModConfig.Config.spec().save();
     }
 
     public static boolean reloadConfig() {

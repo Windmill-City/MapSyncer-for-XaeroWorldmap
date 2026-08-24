@@ -21,7 +21,7 @@ public final class AutoUpdater {
             return;
         }
 
-        boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
+        boolean enabled = ModConfig.Config.config().AutoUpdate.get();
         if (!enabled) {
             LOGGER.debug("Skipping: automatic update is disabled");
             return;
