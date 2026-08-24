@@ -53,7 +53,7 @@ public class MapConverter {
                     if (!isRunning.get()) break;
 
                     try {
-                        RegionConverter.convert(entry, level, BlockPropertyResolver.INSTANCE);
+                        RegionConverter.convert(entry, level);
                     } catch (IOException e) {
                         LOGGER.warn("Failed to convert region ({}, {})", entry.regionX(), entry.regionZ(), e);
                     }

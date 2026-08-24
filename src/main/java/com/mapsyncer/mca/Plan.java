@@ -81,9 +81,9 @@ public record Plan(boolean surface, Set<Integer> caves) {
 
     public static List<String> getDefaultPlans() {
         var defaults = new LinkedHashMap<String, Plan>();
-        defaults.put(Constants.DIM_OVERWORLD, new Plan(true, Set.of()));
-        defaults.put(Constants.DIM_THE_NETHER, new Plan(true, Set.of(64)));
-        defaults.put(Constants.DIM_THE_END, new Plan(true, Set.of()));
+        defaults.put("minecraft:overworld", new Plan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new Plan(true, Set.of(64)));
+        defaults.put("minecraft:the_end", new Plan(true, Set.of()));
         return defaults.entrySet().stream().map(Map.Entry::toString).toList();
     }
 

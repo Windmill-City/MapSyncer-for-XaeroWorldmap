@@ -54,13 +54,13 @@ public class RegionScanner {
         Path root = level.getServer().getWorldPath(LevelResource.ROOT);
         Path path = null;
         switch (dimId) {
-            case Constants.DIM_OVERWORLD -> {
+            case "minecraft:overworld" -> {
                 path = root.resolve("region");
             }
-            case Constants.DIM_THE_NETHER -> {
+            case "minecraft:the_nether" -> {
                 path = root.resolve("DIM-1").resolve("region");
             }
-            case Constants.DIM_THE_END -> {
+            case "minecraft:the_end" -> {
                 path = root.resolve("DIM1").resolve("region");
             }
             default -> {
