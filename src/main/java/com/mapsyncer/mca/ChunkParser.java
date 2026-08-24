@@ -15,12 +15,7 @@ public final class ChunkParser {
             "minecraft:light",
             "minecraft:spawn",
             "minecraft:heightmaps",
-            "minecraft:full",
-            "features",
-            "light",
-            "spawn",
-            "heightmaps",
-            "full");
+            "minecraft:full");
 
     public record BlockState(String name, Map<String, String> properties) {
 
