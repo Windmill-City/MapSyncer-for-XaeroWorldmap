@@ -42,10 +42,10 @@ public final class AutoUpdater {
             return;
         }
 
-        performUpdate(server);
+        performScan(server);
     }
 
-    public static void performUpdate(MinecraftServer server) {
+    public static void performScan(MinecraftServer server) {
         if (!running.compareAndSet(false, true)) {
             LOGGER.debug("Skipping: automatic update is already in progress");
             return;
@@ -55,7 +55,7 @@ public final class AutoUpdater {
 
         Util.ioPool().execute(() -> {
             try {
-                MapConverter.performAutomaticScan(server);
+                MapConverter.performScan(server);
             } catch (RuntimeException e) {
                 LOGGER.error("Automatic map update failed", e);
             } finally {

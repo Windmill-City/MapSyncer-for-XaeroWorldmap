@@ -200,7 +200,7 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
             XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
-            AutoUpdater.performUpdate(event.getServer());
+            AutoUpdater.performScan(event.getServer());
         }
 
         @SubscribeEvent

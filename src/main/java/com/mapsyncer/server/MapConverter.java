@@ -466,7 +466,7 @@ public class MapConverter {
         return snapshots;
     }
 
-    public static void performAutomaticScan(MinecraftServer server) {
+    public static void performScan(MinecraftServer server) {
         List<AutomaticScanSnapshot> snapshots;
         try {
             snapshots =
@@ -482,10 +482,10 @@ public class MapConverter {
             LOGGER.error("Failed to build automatic scan snapshot on server thread", e.getCause());
             return;
         }
-        performAutomaticScan(snapshots);
+        performScan(snapshots);
     }
 
-    public static void performAutomaticScan(List<AutomaticScanSnapshot> snapshots) {
+    public static void performScan(List<AutomaticScanSnapshot> snapshots) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.debug("Conversion already in progress, skipping automatic scan");
             return;
