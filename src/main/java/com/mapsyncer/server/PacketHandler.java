@@ -6,6 +6,7 @@ import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,7 +51,7 @@ public class PacketHandler {
     }
 
     private static void serveRequestedRegion(ServerPlayer player, RegionRef region) {
-        Path zipPath = ManifestServer.resolveZipPath(region);
+        Path zipPath = PathUtils.resolveZipPath(region);
         Long timestamp = ManifestServer.getTimestamp(region);
         if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
             LOGGER.warn("Requested region not found or invalid: {}", region);

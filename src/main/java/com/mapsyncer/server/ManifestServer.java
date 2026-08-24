@@ -73,14 +73,6 @@ public final class ManifestServer {
         }
     }
 
-    public static Path resolveZipPath(RegionRef ref) {
-        Path baseOutputDir = PathUtils.CACHE_DIR.resolve(PathUtils.getDimFolderServer(ref.dimId()));
-        int caveLayer = ref.cave();
-        Path outputDir =
-                ref.isSurface() ? baseOutputDir : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));
-        return outputDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
-    }
-
     public static Long getTimestamp(RegionRef ref) {
         return manifest.get(ref);
     }

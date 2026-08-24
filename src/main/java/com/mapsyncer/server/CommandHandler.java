@@ -12,7 +12,6 @@ import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +38,26 @@ public class CommandHandler {
     }
 
     private static int showHelp(CommandContext<CommandSourceStack> ctx) {
-        showHelp(component -> ctx.getSource().sendSuccess(() -> component, false));
+        Consumer<Component> sender = component -> ctx.getSource().sendSuccess(() -> component, false);
+        sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on"));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig"));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int showAutoUpdateStatus(CommandContext<CommandSourceStack> ctx) {
-        showAutoUpdateStatus(component -> ctx.getSource().sendSuccess(() -> component, false));
+        Consumer<Component> sender = component -> ctx.getSource().sendSuccess(() -> component, false);
+        if (MapSyncer.isAutoUpdate()) {
+            sender.accept(ChatUtils.message("mapsyncer.command.autoupdate_on"));
+        } else {
+            sender.accept(ChatUtils.message("mapsyncer.command.autoupdate_off"));
+        }
+        sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint"));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -87,7 +100,13 @@ public class CommandHandler {
     }
 
     private static int generateStatus(CommandContext<CommandSourceStack> ctx) {
-        ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
+        ctx.getSource().sendSuccess(() -> {
+            if (MapConverter.isRunning()) {
+                return ChatUtils.message(
+                        "mapsyncer.generate.in_progress", MapConverter.getProcessedCount(), MapConverter.getTotalCount());
+            }
+            return ChatUtils.message("mapsyncer.generate.no_progress");
+        }, false);
 
         List<DimensionCacheStats> cacheStats = MapConverter.getCacheStats();
         if (!cacheStats.isEmpty()) {
@@ -130,37 +149,6 @@ public class CommandHandler {
         MapSyncer.setAutoUpdate(true);
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_on"), false);
         return Command.SINGLE_SUCCESS;
-    }
-
-    private static void showHelp(Consumer<Component> sender) {
-        sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on"));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig"));
-    }
-
-    private static void showAutoUpdateStatus(Consumer<Component> sender) {
-        sender.accept(autoUpdateStatusMessage());
-        sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint"));
-    }
-
-    private static MutableComponent generationStatusMessage() {
-        if (MapConverter.isRunning()) {
-            return ChatUtils.message(
-                    "mapsyncer.generate.in_progress", MapConverter.getProcessedCount(), MapConverter.getTotalCount());
-        }
-        return ChatUtils.message("mapsyncer.generate.no_progress");
-    }
-
-    private static MutableComponent autoUpdateStatusMessage() {
-        if (MapSyncer.isAutoUpdate()) {
-            return ChatUtils.message("mapsyncer.command.autoupdate_on");
-        }
-        return ChatUtils.message("mapsyncer.command.autoupdate_off");
     }
 
     private static boolean reloadConfig() {
