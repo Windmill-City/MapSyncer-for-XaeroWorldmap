@@ -132,16 +132,14 @@ public class CommandHandler {
         }
 
         int totalDims = cacheStats.size();
-        int totalRegions =
-                cacheStats.stream().mapToInt(MapCacheStats::regions).sum();
+        int totalRegions = cacheStats.stream().mapToInt(MapCacheStats::regions).sum();
         long totalSize = cacheStats.stream().mapToLong(MapCacheStats::size).sum();
 
         StringBuilder dims = new StringBuilder();
         for (MapCacheStats stat : cacheStats) {
             if (dims.length() > 0) dims.append("\n");
             dims.append(String.format(
-                    "  %s: %d regions, %.2f MB",
-                    stat.folder(), stat.regions(), stat.size() / (1024.0 * 1024.0)));
+                    "  %s: %d regions, %.2f MB", stat.folder(), stat.regions(), stat.size() / (1024.0 * 1024.0)));
         }
 
         ctx.getSource()
