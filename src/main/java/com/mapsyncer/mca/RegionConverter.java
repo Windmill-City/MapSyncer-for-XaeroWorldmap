@@ -1,10 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.convert.biome.BiomeResolver;
-import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
-import com.mapsyncer.mca.convert.io.XaeroWriter;
-import com.mapsyncer.mca.convert.model.MapRegionData;
-import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
 import java.io.IOException;

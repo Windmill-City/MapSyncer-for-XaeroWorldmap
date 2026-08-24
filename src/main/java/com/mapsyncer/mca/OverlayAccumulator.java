@@ -1,10 +1,8 @@
-package com.mapsyncer.mca.convert.overlay;
+package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkParser.BlockState;
-import com.mapsyncer.mca.Constants;
-import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
-import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
+import com.mapsyncer.mca.MapRegionData.OverlayEntry;
+
 import java.util.ArrayList;
 
 public final class OverlayAccumulator {

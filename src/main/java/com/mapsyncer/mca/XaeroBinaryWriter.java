@@ -1,11 +1,8 @@
-package com.mapsyncer.mca.convert.io;
+package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkParser.BlockState;
-import com.mapsyncer.mca.Constants;
-import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.convert.model.MapRegionData;
-import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
+import com.mapsyncer.mca.MapRegionData.OverlayEntry;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;

@@ -1,9 +1,7 @@
-package com.mapsyncer.mca.convert.model;
+package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.ChunkParser;
 import com.mapsyncer.mca.ChunkParser.BlockState;
-import com.mapsyncer.mca.Constants;
-import com.mapsyncer.mca.LightMode;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;

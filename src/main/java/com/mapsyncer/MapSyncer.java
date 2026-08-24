@@ -3,7 +3,7 @@ package com.mapsyncer;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
 import com.mapsyncer.mca.Plan;
-import com.mapsyncer.mca.convert.io.XaeroWriter;
+import com.mapsyncer.mca.XaeroWriter;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;

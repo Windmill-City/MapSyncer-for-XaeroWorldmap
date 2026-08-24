@@ -1,6 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.convert.biome.BiomeResolver;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;

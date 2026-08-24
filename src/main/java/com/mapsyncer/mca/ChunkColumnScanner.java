@@ -1,13 +1,9 @@
-package com.mapsyncer.mca.convert.scan;
+package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.BlockPropertyLookup;
-import com.mapsyncer.mca.ChunkParser;
 import com.mapsyncer.mca.ChunkParser.BlockState;
 import com.mapsyncer.mca.ChunkParser.SectionData;
-import com.mapsyncer.mca.Constants;
-import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.convert.model.MapRegionData;
-import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
+import com.mapsyncer.mca.MapRegionData.OverlayEntry;
+
 import java.util.ArrayList;
 
 public final class ChunkColumnScanner {

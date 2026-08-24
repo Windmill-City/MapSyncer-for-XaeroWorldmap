@@ -1,4 +1,4 @@
-package com.mapsyncer.mca.convert.io;
+package com.mapsyncer.mca;
 
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.util.PathUtils;
