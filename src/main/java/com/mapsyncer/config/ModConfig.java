@@ -116,7 +116,7 @@ public class ModConfig {
 
             automaticUpdateEnabled = builder.comment(
                     "Enable automatic updates: run when no players are online")
-                    .define("automaticUpdateEnabled", false);
+                    .define("automaticUpdateEnabled", true);
 
             builder.pop();
 
