@@ -73,10 +73,6 @@ public final class ManifestServer {
         }
     }
 
-    public static Long getTimestamp(RegionRef ref) {
-        return manifest.get(ref);
-    }
-
     public static void invalidate() {
         isValid = false;
         manifest = Map.of();
