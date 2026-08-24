@@ -88,7 +88,7 @@ public class CommandHandler {
     private static int generateStatus(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
 
-        List<DimensionCacheStats> cacheStats = getCacheStats();
+        List<DimensionCacheStats> cacheStats = MapConverter.getCacheStats();
         if (!cacheStats.isEmpty()) {
             int totalDims = cacheStats.size();
             int totalRegions = cacheStats.stream()
@@ -120,13 +120,13 @@ public class CommandHandler {
     }
 
     private static int setAutoUpdateOff(CommandContext<CommandSourceStack> ctx) {
-        setAutoUpdateOff();
+        MapSyncer.setAutoUpdate(false);
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_off"), false);
         return Command.SINGLE_SUCCESS;
     }
 
     private static int setAutoUpdateOn(CommandContext<CommandSourceStack> ctx) {
-        setAutoUpdateOn();
+        MapSyncer.setAutoUpdate(true);
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_on"), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -160,9 +160,7 @@ public class CommandHandler {
     }
 
     private static MutableComponent autoUpdateStatusMessage() {
-        boolean enabled = MapSyncer.isAutoUpdate();
-
-        if (enabled) {
+        if (MapSyncer.isAutoUpdate()) {
             return ChatUtils.message("mapsyncer.command.autoupdate_on");
         }
         return ChatUtils.message("mapsyncer.command.autoupdate_off");
@@ -180,30 +178,6 @@ public class CommandHandler {
             }
         });
         return true;
-    }
-
-    private static List<DimensionCacheStats> getCacheStats() {
-        return MapConverter.getCacheStats();
-    }
-
-    private static List<String> getCompletedDimensions() {
-        return MapConverter.getCompletedDimensions();
-    }
-
-    private static int getProcessedCount() {
-        return MapConverter.getProcessedCount();
-    }
-
-    private static int getTotalCount() {
-        return MapConverter.getTotalCount();
-    }
-
-    private static void setAutoUpdateOff() {
-        MapSyncer.setAutoUpdate(false);
-    }
-
-    private static void setAutoUpdateOn() {
-        MapSyncer.setAutoUpdate(true);
     }
 
     private static boolean reloadConfig() {
