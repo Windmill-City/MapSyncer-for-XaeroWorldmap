@@ -42,9 +42,8 @@ public final class XaeroWriter {
 
     public static void writeRegionFile(RegionData region) throws IOException {
         Path dimDir = PathUtils.getDimDirServer(region.ref.dimId());
-        Path outputDir = region.ref.isSurface()
-                ? dimDir
-                : dimDir.resolve("caves").resolve(String.valueOf(region.ref.cave()));
+        Path outputDir =
+                region.ref.isSurface() ? dimDir : dimDir.resolve("caves").resolve(String.valueOf(region.ref.cave()));
         Files.createDirectories(outputDir);
 
         String fileName = region.ref.regionX() + "_" + region.ref.regionZ();

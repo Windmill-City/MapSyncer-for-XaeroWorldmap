@@ -1,5 +1,6 @@
 package com.mapsyncer.mca;
 
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -9,14 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.util.PathUtils;
-
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.storage.LevelResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RegionScanner {
 
@@ -24,8 +21,7 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record Region(int regionX, int regionZ, long timestamp, String dimId, Path regionDir, Bounds bounds) {
-    }
+    public record Region(int regionX, int regionZ, long timestamp, String dimId, Path regionDir, Bounds bounds) {}
 
     public record Bounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
 
@@ -100,12 +96,7 @@ public class RegionScanner {
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
                     entries.add(new Region(
-                            regionX,
-                            regionZ,
-                            attrs.lastModifiedTime().toMillis(),
-                            dimId,
-                            regionDir,
-                            bounds));
+                            regionX, regionZ, attrs.lastModifiedTime().toMillis(), dimId, regionDir, bounds));
                 } catch (IOException e) {
                     LOGGER.warn("Failed to read attributes for {}", fileName, e);
                 }

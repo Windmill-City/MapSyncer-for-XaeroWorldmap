@@ -31,8 +31,8 @@ public final class Pipeline {
             return;
         }
 
-        List<PassMapData> loaded = McaRegionLoader.load(
-                mcaPath, bounds.minY(), bounds.maxY(), bounds.hasSkylight(), blockLookup, plan);
+        List<PassMapData> loaded =
+                McaRegionLoader.load(mcaPath, bounds.minY(), bounds.maxY(), bounds.hasSkylight(), blockLookup, plan);
 
         for (PassMapData passData : loaded) {
             MapRegionData regionData = passData.data();
@@ -40,9 +40,8 @@ public final class Pipeline {
                 continue;
             }
             byte[] xaeroData = XaeroBinaryWriter.serialize(regionData, bounds.minY(), blockLookup);
-            XaeroWriter.writeRegionFile(new RegionData(
-                    new RegionRef(dimId, Plan.caveLayer(passData.cave()), regionX, regionZ),
-                    xaeroData));
+            XaeroWriter.writeRegionFile(
+                    new RegionData(new RegionRef(dimId, Plan.caveLayer(passData.cave()), regionX, regionZ), xaeroData));
         }
     }
 }

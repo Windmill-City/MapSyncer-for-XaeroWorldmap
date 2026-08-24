@@ -14,14 +14,12 @@ public class RegionConverter {
             return;
         }
 
-        Path mcaPath = resolveRegionPath(
-                entry.regionDir(), entry.regionX(), entry.regionZ());
+        Path mcaPath = resolveRegionPath(entry.regionDir(), entry.regionX(), entry.regionZ());
         if (mcaPath == null) {
             return;
         }
 
-        Pipeline.convert(
-                entry.dimId(), mcaPath, entry.regionX(), entry.regionZ(), bounds, plan, blockLookup);
+        Pipeline.convert(entry.dimId(), mcaPath, entry.regionX(), entry.regionZ(), bounds, plan, blockLookup);
     }
 
     private static Path resolveRegionPath(Path regionDir, int regionX, int regionZ) {

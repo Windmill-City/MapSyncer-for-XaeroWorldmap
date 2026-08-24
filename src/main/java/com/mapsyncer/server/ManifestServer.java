@@ -54,12 +54,12 @@ public final class ManifestServer {
                         RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
                         long timestamp = readMtimeMillis(zipPath);
                         rebuilt.put(ref, timestamp);
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         LOGGER.warn(
                                 "Skipping malformed region file {} while building manifest for {}", zipPath, dimId, e);
                     }
                 }
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 LOGGER.error("Failed to walk cache directory while building manifest for {}", dimId, e);
             }
         }

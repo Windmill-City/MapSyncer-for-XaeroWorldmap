@@ -1,22 +1,19 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.mca.RegionConverter;
+import com.mapsyncer.mca.RegionScanner;
+import com.mapsyncer.mca.RegionScanner.Region;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.mca.RegionConverter;
-import com.mapsyncer.mca.RegionScanner;
-import com.mapsyncer.mca.RegionScanner.Region;
-import com.mapsyncer.util.PathUtils;
-
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MapConverter {
 
@@ -42,33 +39,23 @@ public class MapConverter {
 
         try {
             for (ServerLevel level : server.getAllLevels()) {
-                if (!isRunning.get())
-                    break;
+                if (!isRunning.get()) break;
 
                 List<Region> entries = RegionScanner.scan(level);
-                if (entries.isEmpty())
-                    continue;
+                if (entries.isEmpty()) continue;
 
                 var dimId = PathUtils.getDimId(level);
 
                 total += entries.size();
-                LOGGER.info(
-                        "Converting dimension {} ({} regions)",
-                        dimId,
-                        entries.size());
+                LOGGER.info("Converting dimension {} ({} regions)", dimId, entries.size());
 
                 for (Region entry : entries) {
-                    if (!isRunning.get())
-                        break;
+                    if (!isRunning.get()) break;
 
                     try {
                         RegionConverter.convert(entry, BlockPropertyResolver.INSTANCE);
                     } catch (IOException e) {
-                        LOGGER.warn(
-                                "Failed to convert region ({}, {})",
-                                entry.regionX(),
-                                entry.regionZ(),
-                                e);
+                        LOGGER.warn("Failed to convert region ({}, {})", entry.regionX(), entry.regionZ(), e);
                     }
                     processed++;
                 }

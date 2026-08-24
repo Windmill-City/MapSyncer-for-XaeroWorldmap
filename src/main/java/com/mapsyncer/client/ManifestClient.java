@@ -73,7 +73,7 @@ public class ManifestClient {
                     long timestampMillis = getFileModificationTime(zipPath);
                     LOGGER.debug("Region {}: ts={}ms (mtime)", ref, timestampMillis);
                     manifest.put(ref, timestampMillis);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     LOGGER.error("Failed to scan region file: {}", zipPath, e);
                     continue;
                 }
