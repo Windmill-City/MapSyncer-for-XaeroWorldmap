@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.mca.McaReader;
-import com.mapsyncer.util.PathHelper;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,7 +40,7 @@ public class RegionScanner {
     public static List<Regions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = PathHelper.getDimId(level.dimension());
+            String dimId = PathUtils.getDimId(level.dimension());
             final String finalDimId = dimId;
             if (!dimNames.stream().anyMatch(d -> d.name().equals(finalDimId))) {
                 dimNames.add(new DimensionNames(dimId));
@@ -62,7 +62,7 @@ public class RegionScanner {
             if (!Files.exists(worldRoot)) return null;
             worldRoot = worldRoot.toRealPath();
 
-            String dimId = PathHelper.getDimId(level.dimension());
+            String dimId = PathUtils.getDimId(level.dimension());
 
             Path regionDir = detectRegionDir(worldRoot, dimId);
 
@@ -79,7 +79,7 @@ public class RegionScanner {
     }
 
     private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
-        String dimId = PathHelper.getDimId(dimensionKey);
+        String dimId = PathUtils.getDimId(dimensionKey);
 
         Path regionDir = detectRegionDir(worldRoot, dimId);
 

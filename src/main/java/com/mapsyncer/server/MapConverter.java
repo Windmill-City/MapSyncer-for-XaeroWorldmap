@@ -12,7 +12,7 @@ import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.PathHelper;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -107,7 +108,7 @@ public class MapConverter {
 
         LayerPlan plan = PlanConfig.getPlan(dimPath);
 
-        String dimFolderName = PathHelper.toServerFolderName(fullDimId);
+        String dimFolderName = PathUtils.toServerFolderName(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
 
@@ -449,7 +450,7 @@ public class MapConverter {
             String dimPath = dimRegions.dimension().location().getPath();
 
             LayerPlan plan = PlanConfig.getPlan(dimPath);
-            String dimFolderName = PathHelper.toServerFolderName(fullDimId);
+            String dimFolderName = PathUtils.toServerFolderName(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {
@@ -476,7 +477,7 @@ public class MapConverter {
             Thread.currentThread().interrupt();
             LOGGER.warn("AutoUpdate scan snapshot interrupted");
             return;
-        } catch (java.util.concurrent.TimeoutException e) {
+        } catch (TimeoutException e) {
             LOGGER.error("Timed out building AutoUpdate scan snapshot on server thread");
             return;
         } catch (ExecutionException e) {

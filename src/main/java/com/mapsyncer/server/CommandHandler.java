@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -131,7 +132,7 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
+    private static void showHelp(Consumer<Component> sender, String prefix) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
@@ -142,7 +143,7 @@ public class CommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
-    private static void showAutoUpdateStatus(Consumer<net.minecraft.network.chat.Component> sender) {
+    private static void showAutoUpdateStatus(Consumer<Component> sender) {
         sender.accept(autoUpdateStatusMessage());
         sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint", "mapsyncer"));
     }

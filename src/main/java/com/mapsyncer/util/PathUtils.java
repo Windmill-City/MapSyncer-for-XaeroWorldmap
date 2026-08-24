@@ -3,7 +3,7 @@ package com.mapsyncer.util;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
-public final class PathHelper {
+public final class PathUtils {
 
     public static String toServerFolderName(String dimId) {
         return dimId.replace(':', '$').replace('/', '%');
