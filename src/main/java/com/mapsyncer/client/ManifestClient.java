@@ -9,78 +9,45 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+import net.minecraft.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ManifestClient {
 
-    public record MetaScanResult(Map<RegionRef, Long> meta, boolean success, String failureReason) {
-
-        public static MetaScanResult ok(Map<RegionRef, Long> meta) {
-            return new MetaScanResult(meta != null ? meta : Collections.emptyMap(), true, null);
-        }
-
-        public static MetaScanResult failure(String reason) {
-            return new MetaScanResult(Collections.emptyMap(), false, reason);
-        }
-
-        public boolean isSuccess() {
-            return success;
-        }
-    }
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
 
-    private static volatile ExecutorService executor;
+    private static final ExecutorService executor = Util.ioPool();
 
-    private static final AtomicInteger poolUsers = new AtomicInteger(0);
-
-    private static ExecutorService getExecutor() {
-        ExecutorService exec = executor;
-        if (exec == null || exec.isShutdown()) {
-            synchronized (ManifestClient.class) {
-                exec = executor;
-                if (exec == null || exec.isShutdown()) {
-                    exec = Executors.newSingleThreadExecutor(r -> {
-                        Thread t = new Thread(r, "mapsyncer-scan");
-                        t.setDaemon(true);
-                        return t;
-                    });
-                    executor = exec;
+    public static void getManifestAsync(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
+        try {
+            executor.execute(() -> {
+                try {
+                    callback.accept(getManifest(dimIds));
+                } catch (Exception e) {
+                    LOGGER.error("Exception occured while processing client manifest", e);
                 }
-            }
+            });
+        } catch (RejectedExecutionException e) {
+            LOGGER.error("Scan executor rejected task, executor shutdown?", e);
+            callback.accept(Collections.emptyMap());
         }
-        return exec;
     }
 
-    public static void getManifestAsync(Set<String> dimIds, Consumer<MetaScanResult> onComplete) {
-        poolUsers.incrementAndGet();
-        getExecutor().submit(() -> {
-            try {
-                onComplete.accept(computeMetaForSyncWorker(dimIds));
-            } catch (Exception e) {
-                LOGGER.error("Failed to scan map asynchronously", e);
-                onComplete.accept(MetaScanResult.failure("async_error"));
-            } finally {
-                poolUsers.decrementAndGet();
-            }
-        });
-    }
-
-    private static MetaScanResult computeMetaForSyncWorker(Set<String> dimIds) {
-        Map<RegionRef, Long> metaMap = new HashMap<>();
+    private static Map<RegionRef, Long> getManifest(Set<String> dimIds) {
+        Map<RegionRef, Long> manifest = new HashMap<>();
 
         Path serverDir = XaeroWorldMapBridge.getCurrentServerDirectory();
         if (serverDir == null || !Files.exists(serverDir)) {
             LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
-            return MetaScanResult.ok(metaMap);
+            return manifest;
         }
 
         for (String dimId : dimIds) {
@@ -95,12 +62,12 @@ public class ManifestClient {
                 continue;
             }
 
-            java.util.List<Path> zipFiles;
+            List<Path> zipFiles;
             try (Stream<Path> walk = Files.walk(dimDir)) {
                 zipFiles = walk.filter(p -> p.toString().endsWith(".zip")).toList();
             } catch (IOException e) {
                 LOGGER.error("Failed to walk map directory {}", dimDir, e);
-                return MetaScanResult.failure("walk_error");
+                continue;
             }
 
             for (Path zipPath : zipFiles) {
@@ -108,17 +75,17 @@ public class ManifestClient {
                     RegionRef ref = buildKey(dimId, dimDir, zipPath);
                     long timestampMillis = getFileModificationTime(zipPath);
                     LOGGER.debug("Region {}: ts={}ms (mtime)", ref, timestampMillis);
-                    metaMap.put(ref, timestampMillis);
+                    manifest.put(ref, timestampMillis);
                 } catch (Exception e) {
                     LOGGER.error("Failed to scan region file: {}", zipPath, e);
-                    return MetaScanResult.failure("file_error");
+                    continue;
                 }
             }
         }
 
-        LOGGER.info("Found {} regions with metadata", metaMap.size());
+        LOGGER.info("Found {} regions with metadata", manifest.size());
 
-        return MetaScanResult.ok(metaMap);
+        return manifest;
     }
 
     private static long getFileModificationTime(Path path) {
@@ -137,20 +104,5 @@ public class ManifestClient {
         int caveLayer = RegionKey.caveLayerFromRelative(relative);
         int[] coords = RegionKey.coordsFromZipFileName(zipPath);
         return new RegionRef(dimId, caveLayer, coords[0], coords[1]);
-    }
-
-    public static void shutdown() {
-        synchronized (ManifestClient.class) {
-            if (poolUsers.get() > 0) {
-                LOGGER.debug("Deferring scan executor shutdown, {} active scans", poolUsers.get());
-                return;
-            }
-            ExecutorService exec = executor;
-            if (exec != null && !exec.isShutdown()) {
-                exec.shutdown();
-                executor = null;
-                LOGGER.debug("ClientMetaScanner scan executor shut down");
-            }
-        }
     }
 }

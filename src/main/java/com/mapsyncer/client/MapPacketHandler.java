@@ -53,7 +53,6 @@ public class MapPacketHandler {
 
     public static void onDisconnect() {
         stop();
-        ManifestClient.shutdown();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
@@ -81,19 +80,13 @@ public class MapPacketHandler {
             return;
         }
 
-        ManifestClient.getManifestAsync(extractDimIds(serverTimestamps.keySet()), result -> {
+        ManifestClient.getManifestAsync(extractDimIds(serverTimestamps.keySet()), localMeta -> {
             Minecraft mc = Minecraft.getInstance();
             mc.execute(() -> {
                 if (mc.player == null) {
                     return;
                 }
-                if (!result.isSuccess()) {
-                    mc.player.displayClientMessage(ChatUtils.error("mapsyncer.sync.scan_failed"), false);
-                    stop();
-                    return;
-                }
 
-                Map<RegionRef, Long> localMeta = result.meta();
                 Map<RegionRef, Long> diff = new HashMap<>();
                 int upToDateCount = 0;
                 for (Map.Entry<RegionRef, Long> entry : serverTimestamps.entrySet()) {
