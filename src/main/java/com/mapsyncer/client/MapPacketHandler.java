@@ -241,7 +241,7 @@ public class MapPacketHandler {
 
                 syncPendingWrites.incrementAndGet();
 
-                AsyncWrite.submit(assembled, success -> {
+                AsyncWriter.submit(assembled, success -> {
                     mc.execute(() -> {
                         try {
                             if (!success) {

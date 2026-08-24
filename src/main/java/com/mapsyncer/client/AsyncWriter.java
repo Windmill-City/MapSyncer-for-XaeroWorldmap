@@ -9,9 +9,9 @@ import net.minecraft.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class AsyncWrite {
+public final class AsyncWriter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncWrite.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncWriter.class);
 
     private static final ExecutorService executor = Util.ioPool();
 
