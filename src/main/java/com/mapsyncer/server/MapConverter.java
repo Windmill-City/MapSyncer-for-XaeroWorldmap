@@ -8,7 +8,7 @@ import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-import com.mapsyncer.server.RegionScanner.DimensionRegions;
+import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathMapping;
@@ -65,10 +65,10 @@ public class MapConverter {
         skippedEmptyContentCount.set(0);
         completedDimensions.clear();
 
-        List<DimensionRegions> allRegions = RegionScanner.scanAllDimensions(server);
+        List<Regions> allRegions = RegionScanner.scanAllDimensions(server);
         totalCount = countTotalWork(server, allRegions);
         int totalSkippedEmpty = allRegions.stream()
-                .mapToInt(DimensionRegions::skippedEmptyCount)
+                .mapToInt(Regions::skippedEmptyCount)
                 .sum();
         if (totalCount == 0) {
             LOGGER.info("No regions found to convert");
@@ -77,7 +77,7 @@ public class MapConverter {
         }
         LOGGER.info("Starting conversion of {} regions across {} dimensions", totalCount, allRegions.size());
         try {
-            for (DimensionRegions dimRegions : allRegions) {
+            for (Regions dimRegions : allRegions) {
                 if (isCancelRequested()) {
                     LOGGER.info("Conversion cancelled, skipping remaining dimensions");
                     break;
@@ -95,7 +95,7 @@ public class MapConverter {
         return true;
     }
 
-    private static void convertDimension(MinecraftServer server, DimensionRegions dimRegions, boolean force) {
+    private static void convertDimension(MinecraftServer server, Regions dimRegions, boolean force) {
         ServerLevel level = server.getLevel(dimRegions.dimension());
         if (level == null) {
             LOGGER.error("Level not loaded");
@@ -204,9 +204,9 @@ public class MapConverter {
         completedDimensions.add(friendlyName);
     }
 
-    private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
+    private static int countTotalWork(MinecraftServer server, List<Regions> allRegions) {
         int total = 0;
-        for (DimensionRegions dimRegions : allRegions) {
+        for (Regions dimRegions : allRegions) {
             ServerLevel level = server.getLevel(dimRegions.dimension());
             if (level == null) {
                 continue;
@@ -435,10 +435,10 @@ public class MapConverter {
             List<RegionScanPass> passes) {}
 
     public static List<AutomaticScanSnapshot> buildAutomaticScanSnapshots(MinecraftServer server) {
-        List<DimensionRegions> allRegions = RegionScanner.scanAllDimensions(server);
+        List<Regions> allRegions = RegionScanner.scanAllDimensions(server);
         List<AutomaticScanSnapshot> snapshots = new ArrayList<>();
 
-        for (DimensionRegions dimRegions : allRegions) {
+        for (Regions dimRegions : allRegions) {
             ServerLevel level = server.getLevel(dimRegions.dimension());
             if (level == null) {
                 continue;

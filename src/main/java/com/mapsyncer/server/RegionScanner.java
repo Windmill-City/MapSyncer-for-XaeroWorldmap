@@ -31,13 +31,13 @@ public class RegionScanner {
     public record RegionScanResult(
             List<RegionCoords> regions, int skippedEmptyCount, List<RegionFileEntry> fileEntries) {}
 
-    public record DimensionRegions(
+    public record Regions(
             ResourceKey<Level> dimension,
             List<RegionCoords> regions,
             int skippedEmptyCount,
             List<RegionFileEntry> fileEntries) {}
 
-    public static List<DimensionRegions> scanAllDimensions(MinecraftServer server) {
+    public static List<Regions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
             String dimId = ApiHelper.getDimId(level.dimId());
@@ -47,10 +47,10 @@ public class RegionScanner {
             }
         }
 
-        List<DimensionRegions> result = new ArrayList<>();
+        List<Regions> result = new ArrayList<>();
         for (DimensionNames dn : dimNames) {
             RegionScanResult scanResult = scanRegionDir(server.getWorldPath(LevelResource.ROOT), dn.key());
-            result.add(new DimensionRegions(
+            result.add(new Regions(
                     dn.key(), scanResult.regions(), scanResult.skippedEmptyCount(), scanResult.fileEntries()));
         }
         return result;
