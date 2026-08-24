@@ -28,7 +28,7 @@ public class CommandHandler {
                         .then(Commands.literal("start").executes(CommandHandler::generateStart))
                         .then(Commands.literal("stop").executes(CommandHandler::generateStop))
                         .then(Commands.literal("status").executes(CommandHandler::generateStatus)))
-                .then(Commands.literal("automatic")
+                .then(Commands.literal("autoupdate")
                         .executes(CommandHandler::showAutoUpdateStatus)
                         .then(Commands.literal("off").executes(CommandHandler::setAutoUpdateOff))
                         .then(Commands.literal("on").executes(CommandHandler::setAutoUpdateOn)))
@@ -120,14 +120,14 @@ public class CommandHandler {
     }
 
     private static int setAutoUpdateOff(CommandContext<CommandSourceStack> ctx) {
-        disableAutomatic();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_off"), false);
+        disableAutoUpdate();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_off"), false);
         return Command.SINGLE_SUCCESS;
     }
 
     private static int setAutoUpdateOn(CommandContext<CommandSourceStack> ctx) {
-        setAutomaticOn();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on"), false);
+        setAutoUpdateOn();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_on"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -140,15 +140,15 @@ public class CommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_on", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_off", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.autoupdate_on", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
-    private static void showAutomaticMode(Consumer<net.minecraft.network.chat.Component> sender) {
-        sender.accept(automaticStatusMessage());
-        sender.accept(ChatUtils.desc("mapsyncer.command.automatic_status_hint", "mapsyncer"));
+    private static void showAutoUpdateStatus(Consumer<net.minecraft.network.chat.Component> sender) {
+        sender.accept(autoUpdateStatusMessage());
+        sender.accept(ChatUtils.desc("mapsyncer.command.autoupdate_status_hint", "mapsyncer"));
     }
 
     private static MutableComponent generationStatusMessage() {
@@ -159,13 +159,13 @@ public class CommandHandler {
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }
 
-    private static MutableComponent automaticStatusMessage() {
+    private static MutableComponent autoUpdateStatusMessage() {
         boolean enabled = MapSyncer.isAutoUpdate();
 
         if (enabled) {
-            return ChatUtils.message("mapsyncer.command.automatic_on");
+            return ChatUtils.message("mapsyncer.command.autoupdate_on");
         }
-        return ChatUtils.message("mapsyncer.command.automatic_off");
+        return ChatUtils.message("mapsyncer.command.autoupdate_off");
     }
 
     private static boolean generate(MinecraftServer server, Runnable onSuccess) {
@@ -198,12 +198,11 @@ public class CommandHandler {
         return MapConverter.getTotalCount();
     }
 
-    private static void disableAutomatic() {
+    private static void disableAutoUpdate() {
         MapSyncer.setAutoUpdate(false);
-        AutoUpdater.stop();
     }
 
-    private static void setAutomaticOn() {
+    private static void setAutoUpdateOn() {
         MapSyncer.setAutoUpdate(true);
     }
 

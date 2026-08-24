@@ -426,7 +426,7 @@ public class MapConverter {
         }
     }
 
-    public record AutomaticScanSnapshot(
+    public record AutoUpdateScanSnapshot(
             String dimPath,
             String dimFolderName,
             Path regionDir,
@@ -434,9 +434,9 @@ public class MapConverter {
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes) {}
 
-    public static List<AutomaticScanSnapshot> buildAutomaticScanSnapshots(MinecraftServer server) {
+    public static List<AutoUpdateScanSnapshot> buildAutoUpdateScanSnapshots(MinecraftServer server) {
         List<Regions> allRegions = RegionScanner.scanAllDimensions(server);
-        List<AutomaticScanSnapshot> snapshots = new ArrayList<>();
+        List<AutoUpdateScanSnapshot> snapshots = new ArrayList<>();
 
         for (Regions dimRegions : allRegions) {
             ServerLevel level = server.getLevel(dimRegions.dimension());
@@ -460,34 +460,34 @@ public class MapConverter {
             List<RegionScanPass> passes = ScanPlanner.plan(plan, dimTypeInfo);
 
             snapshots.add(
-                    new AutomaticScanSnapshot(dimPath, dimFolderName, regionDir, baseOutputDir, dimTypeInfo, passes));
+                    new AutoUpdateScanSnapshot(dimPath, dimFolderName, regionDir, baseOutputDir, dimTypeInfo, passes));
         }
 
         return snapshots;
     }
 
     public static void performScan(MinecraftServer server) {
-        List<AutomaticScanSnapshot> snapshots;
+        List<AutoUpdateScanSnapshot> snapshots;
         try {
             snapshots =
-                    server.submit(() -> buildAutomaticScanSnapshots(server)).get(5, TimeUnit.MINUTES);
+                    server.submit(() -> buildAutoUpdateScanSnapshots(server)).get(5, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.warn("Automatic scan snapshot interrupted");
+            LOGGER.warn("AutoUpdate scan snapshot interrupted");
             return;
         } catch (java.util.concurrent.TimeoutException e) {
-            LOGGER.error("Timed out building automatic scan snapshot on server thread");
+            LOGGER.error("Timed out building AutoUpdate scan snapshot on server thread");
             return;
         } catch (ExecutionException e) {
-            LOGGER.error("Failed to build automatic scan snapshot on server thread", e.getCause());
+            LOGGER.error("Failed to build AutoUpdate scan snapshot on server thread", e.getCause());
             return;
         }
         performScan(snapshots);
     }
 
-    public static void performScan(List<AutomaticScanSnapshot> snapshots) {
+    public static void performScan(List<AutoUpdateScanSnapshot> snapshots) {
         if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.debug("Conversion already in progress, skipping automatic scan");
+            LOGGER.debug("Conversion already in progress, skipping AutoUpdate scan");
             return;
         }
         cancelRequested.set(false);
@@ -498,9 +498,9 @@ public class MapConverter {
             processedCountAtomic.set(0);
             ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
 
-            for (AutomaticScanSnapshot snapshot : snapshots) {
+            for (AutoUpdateScanSnapshot snapshot : snapshots) {
                 if (isCancelRequested()) {
-                    LOGGER.info("Automatic scan cancelled, skipping remaining dimensions");
+                    LOGGER.info("AutoUpdate scan cancelled, skipping remaining dimensions");
                     break;
                 }
                 String dimPath = snapshot.dimPath();
@@ -519,7 +519,7 @@ public class MapConverter {
                 }
 
                 LOGGER.info(
-                        "Dimension {}: {} regions need automatic update (passes={})",
+                        "Dimension {}: {} regions need AutoUpdate (passes={})",
                         dimPath,
                         needsUpdate.size(),
                         passes.size());
@@ -551,7 +551,7 @@ public class MapConverter {
             }
 
             if (totalUpdated > 0) {
-                LOGGER.info("Automatic scan completed: {} regions updated", totalUpdated);
+                LOGGER.info("AutoUpdate scan completed: {} regions updated", totalUpdated);
             }
         } finally {
             isRunning.set(false);

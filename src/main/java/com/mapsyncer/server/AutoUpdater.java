@@ -23,7 +23,7 @@ public final class AutoUpdater {
 
         boolean enabled = MapSyncer.isAutoUpdate();
         if (!enabled) {
-            LOGGER.debug("Skipping: automatic update is disabled");
+            LOGGER.debug("Skipping: autoupdate is disabled");
             return;
         }
 
@@ -32,7 +32,7 @@ public final class AutoUpdater {
 
     private static void checkAndScan(MinecraftServer server) {
         if (running.get()) {
-            LOGGER.debug("Skipping: an automatic update is already in progress");
+            LOGGER.debug("Skipping: an autoupdate is already in progress");
             return;
         }
 
@@ -47,17 +47,17 @@ public final class AutoUpdater {
 
     public static void performScan(MinecraftServer server) {
         if (!running.compareAndSet(false, true)) {
-            LOGGER.debug("Skipping: automatic update is already in progress");
+            LOGGER.debug("Skipping: autoupdate is already in progress");
             return;
         }
 
-        LOGGER.info("Starting automatic map update (no players online)");
+        LOGGER.info("Starting map autoupdate (no players online)");
 
         Util.ioPool().execute(() -> {
             try {
                 MapConverter.performScan(server);
             } catch (RuntimeException e) {
-                LOGGER.error("Automatic map update failed", e);
+                LOGGER.error("Map autoupdate failed", e);
             } finally {
                 running.set(false);
             }
@@ -67,6 +67,6 @@ public final class AutoUpdater {
     public static void stop() {
         MapConverter.requestCancel();
         running.set(false);
-        LOGGER.info("Automatic updater stopped");
+        LOGGER.info("AutoUpdater stopped");
     }
 }
