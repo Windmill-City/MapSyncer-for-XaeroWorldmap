@@ -38,9 +38,6 @@ public class RegionScanner {
     private static Regions scan(ServerLevel level) {
         String dimId = PathUtils.getDimId(level);
         Path regionDir = getRegionDir(level);
-        if (regionDir == null) {
-            return new Regions(dimId, null, List.of());
-        }
         return new Regions(dimId, regionDir, scan(regionDir));
     }
 
@@ -73,11 +70,11 @@ public class RegionScanner {
     }
 
     private static List<RegionEntry> scan(Path regionDir) {
-        List<RegionEntry> entries = new ArrayList<>();
-        if (!Files.exists(regionDir)) {
-            return entries;
+        if (regionDir == null || !Files.exists(regionDir)) {
+            return List.of();
         }
 
+        List<RegionEntry> entries = new ArrayList<>();
         try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
             for (Path file : stream) {
                 String fileName = file.getFileName().toString();
@@ -99,6 +96,6 @@ public class RegionScanner {
         } catch (IOException e) {
             LOGGER.error("Failed to scan region directory: {}", regionDir, e);
         }
-        return entries;
+        return List.copyOf(entries);
     }
 }
