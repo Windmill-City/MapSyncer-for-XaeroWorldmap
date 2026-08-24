@@ -47,6 +47,6 @@ public final class AutoUpdater {
 
     public static void stop() {
         MapConverter.requestCancel();
-        LOGGER.info("AutoUpdater stopped");
+        LOGGER.info("Stopping map autoupdate");
     }
 }
