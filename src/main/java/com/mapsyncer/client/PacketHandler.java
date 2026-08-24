@@ -13,8 +13,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.network.NetworkEvent;
@@ -25,19 +23,21 @@ public class PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
-    private static final ConcurrentHashMap<String, RegionData[]> partBuffer = new ConcurrentHashMap<>();
+    private static final HashMap<String, RegionData[]> partBuffer = new HashMap<>();
+    private static final LinkedQueue<RegionRef> pendingRegions = new LinkedQueue<>();
 
-    private static final ConcurrentLinkedQueue<RegionRef> pendingRegions = new ConcurrentLinkedQueue<>();
+    private static int syncTotal = 0;
+    private static int syncProcessed = 0;
+    private static int syncFailed = 0;
+    private static long syncStartMs = 0;
 
-    private static volatile int syncTotal = 0;
-    private static volatile int syncProcessed = 0;
-    private static volatile int syncFailed = 0;
+    private static boolean running = false;
 
-    private static volatile long syncStartMs = 0;
+    private static ManifestPayload deferredManifest = null;
 
-    private static volatile boolean running = false;
-
-    private static volatile ManifestPayload deferredManifest = null;
+    public static void onDisconnect() {
+        stop();
+    }
 
     public static void onXaeroWorldContextReady() {
         Minecraft.getInstance().execute(() -> {
@@ -47,13 +47,37 @@ public class PacketHandler {
         });
     }
 
-    public static void onDisconnect() {
-        stop();
-    }
-
     public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         LOGGER.debug("[SYNC] <- manifest: entries={}", payload.timestamps().size());
         Minecraft.getInstance().execute(() -> handleManifestReceived(payload));
+        context.get().setPacketHandled(true);
+    }
+
+    public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
+        Minecraft.getInstance().execute(() -> {
+            for (RegionData chunk : payload.chunks()) {
+                RegionData assembled = assemblePart(chunk);
+                if (assembled == null) {
+                    continue;
+                }
+
+                AsyncWriter.submit(assembled, success -> () -> Minecraft.getInstance().execute(() -> {
+                    if (!success) {
+                        LOGGER.error(
+                                "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",
+                                assembled.ref.regionX(),
+                                assembled.ref.regionZ(),
+                                assembled.data.length);
+                        syncFailed++;
+                    }
+                    maybeCompleteSync();
+                }));
+            }
+
+            syncProcessed++;
+            LOGGER.debug("[SYNC] region part assembled: syncProcessed={}/{}", syncProcessed, syncTotal);
+            requestNextRegion();
+        });
         context.get().setPacketHandled(true);
     }
 
@@ -141,62 +165,9 @@ public class PacketHandler {
         return dimIds;
     }
 
-    public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
-        MapSyncer.enqueueWork(context, () -> {
-            if (!running) {
-                LOGGER.warn("[SYNC] ignoring response: not running");
-                return;
-            }
-
-            Minecraft mc = Minecraft.getInstance();
-            if (!isWorldContextReady()) {
-                LOGGER.error(
-                        "[SYNC] unable to resolve current world id from Xaero, skipping {} received chunks",
-                        payload.chunks().size());
-                syncFailed += payload.chunks().size();
-                if (payload.isComplete()) {
-                    syncProcessed++;
-                    requestNextRegion();
-                }
-                return;
-            }
-
-            for (RegionData chunk : payload.chunks()) {
-                RegionData assembled = assemblePart(chunk);
-                if (assembled == null) {
-                    continue;
-                }
-
-                AsyncWriter.submit(assembled, success -> mc.execute(() -> {
-                    if (!success) {
-                        LOGGER.error(
-                                "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",
-                                assembled.ref.regionX(),
-                                assembled.ref.regionZ(),
-                                assembled.data.length);
-                        syncFailed++;
-                    }
-                    maybeCompleteSync();
-                }));
-            }
-
-            if (payload.isComplete()) {
-                syncProcessed++;
-                LOGGER.debug("[SYNC] complete signal: syncProcessed={}/{}", syncProcessed, syncTotal);
-                requestNextRegion();
-            }
-        });
-        context.get().setPacketHandled(true);
-    }
-
     private static void requestNextRegion() {
-        if (!running) {
-            return;
-        }
-
         RegionRef ref = pendingRegions.poll();
         if (ref == null) {
-            maybeCompleteSync();
             return;
         }
 
@@ -210,9 +181,6 @@ public class PacketHandler {
     }
 
     private static void maybeCompleteSync() {
-        if (!running) {
-            return;
-        }
         if (syncProcessed < syncTotal || AsyncWriter.hasPendingWrites()) {
             LOGGER.debug(
                     "[SYNC-GUARD] holding completion: syncProcessed={}/{} (pending={}), pendingWrites={}",
@@ -226,21 +194,12 @@ public class PacketHandler {
     }
 
     private static void completeSync() {
-        int totalReceived = syncProcessed;
         LOGGER.debug("[SYNC] sync complete: {} regions processed, {} failed", syncProcessed, syncFailed);
 
         if (Minecraft.getInstance().player != null) {
-            if (totalReceived > 0) {
-                if (syncFailed > 0) {
-                    Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"),
-                            false);
-                }
-                long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
-                Minecraft.getInstance().player.displayClientMessage(
-                        ChatUtils.success("mapsyncer.sync.completed", totalReceived, elapsed), false);
-            } else {
-                Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"), false);
-            }
+            long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
+            Minecraft.getInstance().player.displayClientMessage(
+                    ChatUtils.success("mapsyncer.sync.completed", syncProcessed, syncFailed, elapsed), false);
         }
 
         stop();
@@ -250,7 +209,6 @@ public class PacketHandler {
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
         }
-        stop();
     }
 
     private static String partKey(RegionData chunk) {

@@ -98,32 +98,31 @@ public class PacketHandler {
 
     private static void sendRegionResponse(ServerPlayer player, List<RegionData> parts) {
         if (parts.isEmpty()) {
-            MapSyncer.sendToPlayer(player, new MapResponsePayload(List.of(), true));
+            MapSyncer.sendToPlayer(player, new MapResponsePayload(List.of()));
             return;
         }
         List<RegionData> batch = new ArrayList<>();
         int batchBytes = 0;
         for (RegionData part : parts) {
             if (!batch.isEmpty() && batchBytes + part.data.length > MAX_RESPONSE_PACKET_BYTES) {
-                sendRegionBatch(player, batch, false);
+                sendRegionBatch(player, batch);
                 batch = new ArrayList<>();
                 batchBytes = 0;
             }
             batch.add(part);
             batchBytes += part.data.length;
         }
-        sendRegionBatch(player, batch, true);
+        sendRegionBatch(player, batch);
     }
 
-    private static void sendRegionBatch(ServerPlayer player, List<RegionData> batch, boolean complete) {
+    private static void sendRegionBatch(ServerPlayer player, List<RegionData> batch) {
         int bytes = 0;
         for (RegionData part : batch) bytes += part.data.length;
         LOGGER.debug(
-                "[SYNC-SRV] send to {}: {} parts, {} bytes, complete={}",
+                "[SYNC-SRV] send to {}: {} parts, {} bytes",
                 player.getName().getString(),
                 batch.size(),
-                bytes,
-                complete);
-        MapSyncer.sendToPlayer(player, new MapResponsePayload(batch, complete));
+                bytes);
+        MapSyncer.sendToPlayer(player, new MapResponsePayload(batch));
     }
 }
