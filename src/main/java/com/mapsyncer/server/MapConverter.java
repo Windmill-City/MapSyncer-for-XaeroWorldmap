@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionScanner;
 import com.mapsyncer.mca.RegionScanner.Region;
+import com.mapsyncer.util.PathUtils;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -69,8 +70,9 @@ public class MapConverter {
                     }
                     processed++;
                 }
-                completed.add(entries.get(0).dimId());
-                LOGGER.info("Dimension {} conversion complete", entries.get(0).dimId());
+                var dimId = PathUtils.getDimId(level);
+                completed.add(dimId);
+                LOGGER.info("Dimension {} conversion complete", dimId);
             }
         } catch (Throwable e) {
             LOGGER.error("Conversion failed", e);
