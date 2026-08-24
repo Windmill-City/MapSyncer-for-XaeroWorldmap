@@ -125,7 +125,7 @@ public class ModConfig {
 
             dimensionConfigs = builder.comment(
                     "Per-dimension scan configuration list (one string per dimension)",
-                    "Preferred: \"dimension = layerPlan\"",
+                    "Preferred format: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
                     "Example: \"minecraft:the_nether = SURFACE,63\"")
                     .defineList("dimension_configs", getDefaultDimensionConfigStrings(), obj -> obj instanceof String);

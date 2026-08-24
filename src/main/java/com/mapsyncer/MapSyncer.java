@@ -1,13 +1,13 @@
 package com.mapsyncer;
 
-import com.mapsyncer.client.XaeroWorldMapBridge;
+import com.mapsyncer.client.XaeroBridge;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
-import com.mapsyncer.server.IdleUpdater;
+import com.mapsyncer.server.AutoUpdater;
 import java.nio.file.Path;
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
@@ -74,10 +74,10 @@ public class MapSyncer {
                 com.mapsyncer.client.MapPacketHandler::handleSyncManifest);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             LOGGER.info("Initializing Xaero WorldMap bridge...");
-            if (XaeroWorldMapBridge.initialize()) {
-                LOGGER.info("XaeroWorldMapBridge initialized successfully");
+            if (XaeroBridge.initialize()) {
+                LOGGER.info("Xaero WorldMap bridge initialized successfully");
             } else {
-                LOGGER.error("XaeroWorldMapBridge initialization failed, Xaero WorldMap unavailable");
+                LOGGER.error("Xaero WorldMap bridge initialization failed, Xaero WorldMap unavailable");
             }
         }
         LOGGER.info("MapSyncer initialized");
@@ -124,12 +124,12 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
             MapConverter.cleanupCacheDir();
-            IdleUpdater.performUpdate(event.getServer());
+            AutoUpdater.performUpdate(event.getServer());
         }
 
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
-            IdleUpdater.stop();
+            AutoUpdater.stop();
         }
 
         @SubscribeEvent

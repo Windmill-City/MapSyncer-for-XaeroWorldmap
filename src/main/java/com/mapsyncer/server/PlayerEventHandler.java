@@ -15,18 +15,18 @@ public class PlayerEventHandler {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         PacketHandler.pushManifest(player);
 
-        IdleUpdater.stop();
+        AutoUpdater.stop();
     }
 
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
 
-        IdleUpdater.onPlayerLoggedOut(player);
+        AutoUpdater.onPlayerLoggedOut(player);
     }
 
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event) {
-        IdleUpdater.stop();
+        AutoUpdater.stop();
     }
 }

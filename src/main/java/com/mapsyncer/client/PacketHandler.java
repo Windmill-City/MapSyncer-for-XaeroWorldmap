@@ -93,7 +93,7 @@ public class PacketHandler {
         }
 
         if (running) {
-            LOGGER.debug("[SYNC] sync alreay started, skipping...");
+            LOGGER.debug("[SYNC] sync already started, skipping...");
             return;
         }
 

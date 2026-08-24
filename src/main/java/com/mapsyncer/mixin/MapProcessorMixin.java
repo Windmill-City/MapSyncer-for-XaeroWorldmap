@@ -1,6 +1,6 @@
 package com.mapsyncer.mixin;
 
-import com.mapsyncer.client.XaeroWorldMapBridge;
+import com.mapsyncer.client.XaeroBridge;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -23,6 +23,6 @@ public abstract class MapProcessorMixin {
                             shift = At.Shift.AFTER),
             require = 1)
     private void mapsyncer$onWorldIdAssigned(CallbackInfo ci) {
-        XaeroWorldMapBridge.onWorldIdChanged();
+        XaeroBridge.onWorldIdChanged();
     }
 }

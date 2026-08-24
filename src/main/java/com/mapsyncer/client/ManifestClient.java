@@ -29,7 +29,7 @@ public class ManifestClient {
                 try {
                     callback.accept(getManifest(dimIds));
                 } catch (Exception e) {
-                    LOGGER.error("Exception occured while processing client manifest", e);
+                    LOGGER.error("Exception occurred while processing client manifest", e);
                 }
             });
         } catch (RejectedExecutionException e) {

@@ -8,9 +8,9 @@ import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class IdleUpdater {
+public final class AutoUpdater {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(IdleUpdater.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AutoUpdater.class);
 
     private static final AtomicBoolean running = new AtomicBoolean(false);
 
@@ -51,7 +51,7 @@ public final class IdleUpdater {
             return;
         }
 
-        LOGGER.info("Starting automatic map update (ON_EMPTY mode)");
+        LOGGER.info("Starting automatic map update (no players online)");
 
         Util.ioPool().execute(() -> {
             try {

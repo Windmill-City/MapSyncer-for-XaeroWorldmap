@@ -1,35 +1,33 @@
 {
-  "mapsyncer.sync.completed": "Sync complete: %d regions updated, %d failed (%ds)",
+  "mapsyncer.sync.completed": "Sync complete: %d regions updated, %d failed (took %ds)",
   "mapsyncer.sync.started": "Sync started, %d regions to update",
-  "mapsyncer.sync.scan_failed": "Local map scan failed; sync cancelled. Please try again later.",
   "mapsyncer.command.no_regions": "Local map is up-to-date, nothing to sync",
 
   "mapsyncer.prefix": "[MapSyncer]",
 
   "mapsyncer.help.server.header": "Server Commands Help:",
-  "mapsyncer.help.server.generate": "/%s generate - Generate map cache for all dimensions",
   "mapsyncer.help.server.generate_start": "/%s generate start - Start generating map cache for all dimensions",
   "mapsyncer.help.server.generate_stop": "/%s generate stop - Stop the currently running generation task",
   "mapsyncer.help.server.generate_status": "/%s generate status - Show generation task and automatic update status",
-  "mapsyncer.help.server.automatic": "/%s automatic - Show current automatic update mode",
+  "mapsyncer.help.server.automatic": "/%s automatic - Show current automatic update status",
   "mapsyncer.help.server.automatic_off": "/%s automatic off - Disable automatic updates",
-  "mapsyncer.help.server.automatic_onempty": "/%s automatic onempty - Run updates when no players are online",
+  "mapsyncer.help.server.automatic_on": "/%s automatic on - Enable automatic updates (run when no players are online)",
   "mapsyncer.help.server.reloadconfig": "/%s reloadconfig - Reload server configuration from disk",
   "mapsyncer.command.config_reloaded": "Server configuration reloaded successfully",
   "mapsyncer.command.config_reload_failed": "Failed to reload server configuration, check server log for details",
 
   "mapsyncer.command.automatic_disabled": "Automatic updates disabled",
-  "mapsyncer.command.automatic_on_empty_set": "Automatic updates set to ON_EMPTY mode (runs when no players are online)",
-  "mapsyncer.command.automatic_status_disabled": "Current automatic update mode: DISABLED",
-  "mapsyncer.command.automatic_status_on_empty": "Current automatic update mode: ON_EMPTY (runs when no players are online)",
-  "mapsyncer.command.automatic_status_hint": "Subcommands: /%s automatic off | onempty",
+  "mapsyncer.command.automatic_on_set": "Automatic updates enabled (will run when no players are online)",
+  "mapsyncer.command.automatic_status_disabled": "Automatic updates: OFF",
+  "mapsyncer.command.automatic_status_on": "Automatic updates: ON (runs when no players are online)",
+  "mapsyncer.command.automatic_status_hint": "Subcommands: /%s automatic off | on",
 
   "mapsyncer.generate.start_full": "Starting full map generation...",
-  "mapsyncer.generate.full_complete": "Map generation completed: %d/%d regions, %d dimensions completed: %s",
-  "mapsyncer.generate.in_progress": "Conversion in progress: %d/%d regions",
-  "mapsyncer.generate.no_progress": "No conversion in progress",
+  "mapsyncer.generate.full_complete": "Map generation complete: %d/%d regions across %d dimensions: %s",
+  "mapsyncer.generate.in_progress": "Generation in progress: %d/%d regions",
+  "mapsyncer.generate.no_progress": "No generation in progress",
   "mapsyncer.command.conversion_busy": "A map generation task is already in progress. Please wait for it to complete before starting a new one.",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",
-  "mapsyncer.status.cache_detail": "Cache stats: %s dimensions, %s regions, %s MB\n%s"
+  "mapsyncer.status.cache_detail": "Cache stats: %d dimensions, %d regions, %s MB\n%s"
 }

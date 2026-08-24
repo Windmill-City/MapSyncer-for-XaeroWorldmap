@@ -48,7 +48,7 @@ public record DimensionInfo(boolean hasSkylight, boolean hasCeiling, int minY, i
     @Override
     public String toString() {
         return String.format(
-                "DimensionTypeInfo[hasSkylight=%s, hasCeiling=%s, minY=%d, height=%d, maxY=%d]",
+                "DimensionInfo[hasSkylight=%s, hasCeiling=%s, minY=%d, height=%d, maxY=%d]",
                 hasSkylight, hasCeiling, minY, height, maxY());
     }
 }

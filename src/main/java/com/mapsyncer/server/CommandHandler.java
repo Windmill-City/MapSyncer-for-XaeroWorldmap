@@ -31,7 +31,7 @@ public class CommandHandler {
                 .then(Commands.literal("automatic")
                         .executes(CommandHandler::showAutomaticMode)
                         .then(Commands.literal("off").executes(CommandHandler::setAutomaticOff))
-                        .then(Commands.literal("onempty").executes(CommandHandler::setAutomaticOnEmpty)))
+                        .then(Commands.literal("on").executes(CommandHandler::setAutomaticOn)))
                 .then(Commands.literal("reloadconfig").executes(CommandHandler::reloadConfig))
                 .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
     }
@@ -126,9 +126,9 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setAutomaticOnEmpty(CommandContext<CommandSourceStack> ctx) {
-        setAutomaticOnEmpty();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on_empty_set"), false);
+    private static int setAutomaticOn(CommandContext<CommandSourceStack> ctx) {
+        setAutomaticOn();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on_set"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -142,13 +142,12 @@ public class CommandHandler {
 
     public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.generate", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_onempty", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_on", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
@@ -169,7 +168,7 @@ public class CommandHandler {
         boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
 
         if (enabled) {
-            return ChatUtils.message("mapsyncer.command.automatic_status_on_empty");
+            return ChatUtils.message("mapsyncer.command.automatic_status_on");
         }
         return ChatUtils.message("mapsyncer.command.automatic_status_disabled");
     }
@@ -210,10 +209,10 @@ public class CommandHandler {
     public static void disableAutomatic() {
         ModConfig.SERVER.config().automaticUpdateEnabled.set(false);
         ModConfig.SERVER.spec().save();
-        IdleUpdater.stop();
+        AutoUpdater.stop();
     }
 
-    public static void setAutomaticOnEmpty() {
+    public static void setAutomaticOn() {
         ModConfig.SERVER.config().automaticUpdateEnabled.set(true);
         ModConfig.SERVER.spec().save();
     }
@@ -222,7 +221,7 @@ public class CommandHandler {
         try {
             ModConfig.reloadServerFromDisk();
 
-            IdleUpdater.stop();
+            AutoUpdater.stop();
 
             LOGGER.info("Server configuration reloaded");
             return true;
