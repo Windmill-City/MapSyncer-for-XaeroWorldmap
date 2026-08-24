@@ -2,7 +2,6 @@ package com.mapsyncer;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
-import com.mapsyncer.config.LayerPlan;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
@@ -11,10 +10,7 @@ import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.AutoUpdater;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -86,20 +82,10 @@ public class MapSyncer {
                     "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
                     "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("plans", getDefaultPlans(), obj -> obj instanceof String);
+                    .defineList("plans", ModConfig.getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();
         }
-    }
-
-    private static List<String> getDefaultPlans() {
-        var defaults = new LinkedHashMap<>();
-        defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
-        defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
-        defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
-        return defaults.entrySet().stream()
-                .map(Map.Entry::toString)
-                .toList();
     }
 
     public static boolean isAutoUpdate() {

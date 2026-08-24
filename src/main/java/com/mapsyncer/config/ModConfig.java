@@ -31,6 +31,16 @@ public class ModConfig {
         Plans = rebuilt;
     }
 
+    public static List<String> getDefaultPlans() {
+        var defaults = new LinkedHashMap<String, LayerPlan>();
+        defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
+        defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
+        return defaults.entrySet().stream()
+                .map(Map.Entry::toString)
+                .toList();
+    }
+
     private static Map.Entry<String, LayerPlan> parsePlanEntry(String configStr) {
         if (configStr == null || configStr.isBlank()) {
             return null;
