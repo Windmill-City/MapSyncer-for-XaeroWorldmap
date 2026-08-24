@@ -131,11 +131,11 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender) {
+    private static void showHelp(Consumer<net.minecraft.network.chat.Component> sender) {
         showHelp(sender, "mapsyncer");
     }
 
-    public static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
+    private static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
@@ -146,12 +146,12 @@ public class CommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
-    public static void showAutomaticMode(Consumer<net.minecraft.network.chat.Component> sender) {
+    private static void showAutomaticMode(Consumer<net.minecraft.network.chat.Component> sender) {
         sender.accept(automaticStatusMessage());
         sender.accept(ChatUtils.desc("mapsyncer.command.automatic_status_hint", "mapsyncer"));
     }
 
-    public static MutableComponent generationStatusMessage() {
+    private static MutableComponent generationStatusMessage() {
         if (MapConverter.isRunning()) {
             return ChatUtils.message(
                     "mapsyncer.generate.in_progress", MapConverter.getProcessedCount(), MapConverter.getTotalCount());
@@ -159,7 +159,7 @@ public class CommandHandler {
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }
 
-    public static MutableComponent automaticStatusMessage() {
+    private static MutableComponent automaticStatusMessage() {
         boolean enabled = MapSyncer.isAutoUpdate();
 
         if (enabled) {
@@ -168,7 +168,7 @@ public class CommandHandler {
         return ChatUtils.message("mapsyncer.command.automatic_off");
     }
 
-    public static boolean generate(MinecraftServer server, Runnable onSuccess) {
+    private static boolean generate(MinecraftServer server, Runnable onSuccess) {
         if (MapConverter.isRunning()) {
             LOGGER.warn("Conversion already in progress, rejecting generateAll command");
             return false;
@@ -182,37 +182,34 @@ public class CommandHandler {
         return true;
     }
 
-    public static List<DimensionCacheStats> getCacheStats() {
+    private static List<DimensionCacheStats> getCacheStats() {
         return MapConverter.getCacheStats();
     }
 
-    public static List<String> getCompletedDimensions() {
+    private static List<String> getCompletedDimensions() {
         return MapConverter.getCompletedDimensions();
     }
 
-    public static int getProcessedCount() {
+    private static int getProcessedCount() {
         return MapConverter.getProcessedCount();
     }
 
-    public static int getTotalCount() {
+    private static int getTotalCount() {
         return MapConverter.getTotalCount();
     }
 
-    public static void disableAutomatic() {
+    private static void disableAutomatic() {
         MapSyncer.setAutoUpdate(false);
         AutoUpdater.stop();
     }
 
-    public static void setAutomaticOn() {
+    private static void setAutomaticOn() {
         MapSyncer.setAutoUpdate(true);
     }
 
-    public static boolean reloadConfig() {
+    private static boolean reloadConfig() {
         try {
             MapSyncer.reloadFromDisk();
-
-            AutoUpdater.stop();
-
             LOGGER.info("Server configuration reloaded");
             return true;
         } catch (Exception e) {
