@@ -27,7 +27,7 @@ public class ModConfig {
         return Plans.getOrDefault(dimId, new LayerPlan());
     }
 
-    private static List<String> getDefaultDimensionConfig() {
+    private static List<String> getDefaultPlans() {
         var defaults = new LinkedHashMap<>();
         defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
         defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(64)));
@@ -104,7 +104,7 @@ public class ModConfig {
             builder.push("automatic_update");
             builder.comment("Automatic update settings");
 
-            automaticUpdateEnabled = builder.comment(
+            AutoUpdate = builder.comment(
                     "Enable automatic updates: run when no players are online")
                     .define("automaticUpdateEnabled", true);
 
@@ -113,12 +113,12 @@ public class ModConfig {
             builder.push("dimension_scan");
             builder.comment("Dimension scan settings");
 
-            dimensionConfigs = builder.comment(
+            Plans = builder.comment(
                     "Per-dimension scan configuration list (one string per dimension)",
                     "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
                     "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("dimension_configs", getDefaultDimensionConfig(), obj -> obj instanceof String);
+                    .defineList("dimension_configs", getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();
         }
