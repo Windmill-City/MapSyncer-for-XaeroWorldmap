@@ -6,32 +6,6 @@ import java.io.InputStream;
 
 final class NbtStream implements AutoCloseable {
 
-    static final byte TAG_END = 0;
-
-    static final byte TAG_BYTE = 1;
-
-    static final byte TAG_SHORT = 2;
-
-    static final byte TAG_INT = 3;
-
-    static final byte TAG_LONG = 4;
-
-    static final byte TAG_FLOAT = 5;
-
-    static final byte TAG_DOUBLE = 6;
-
-    static final byte TAG_BYTE_ARRAY = 7;
-
-    static final byte TAG_STRING = 8;
-
-    static final byte TAG_LIST = 9;
-
-    static final byte TAG_COMPOUND = 10;
-
-    static final byte TAG_INT_ARRAY = 11;
-
-    static final byte TAG_LONG_ARRAY = 12;
-
     private static final int MAX_ARRAY_SIZE = 125_000;
 
     private static final int MAX_LIST_SIZE = 100_000;
@@ -92,35 +66,35 @@ final class NbtStream implements AutoCloseable {
 
     void skip(byte type) throws IOException {
         switch (type) {
-            case TAG_BYTE:
+            case Constants.TAG_BYTE:
                 in.readByte();
                 break;
-            case TAG_SHORT:
+            case Constants.TAG_SHORT:
                 in.readShort();
                 break;
-            case TAG_INT:
+            case Constants.TAG_INT:
                 in.readInt();
                 break;
-            case TAG_LONG:
+            case Constants.TAG_LONG:
                 in.readLong();
                 break;
-            case TAG_FLOAT:
+            case Constants.TAG_FLOAT:
                 in.readFloat();
                 break;
-            case TAG_DOUBLE:
+            case Constants.TAG_DOUBLE:
                 in.readDouble();
                 break;
-            case TAG_BYTE_ARRAY: {
+            case Constants.TAG_BYTE_ARRAY: {
                 int length = in.readInt();
                 if (length > 0) {
                     in.skipNBytes(length);
                 }
                 break;
             }
-            case TAG_STRING:
+            case Constants.TAG_STRING:
                 in.readUTF();
                 break;
-            case TAG_LIST: {
+            case Constants.TAG_LIST: {
                 byte elementType = in.readByte();
                 int length = in.readInt();
                 if (length > 0) {
@@ -130,7 +104,7 @@ final class NbtStream implements AutoCloseable {
                 }
                 break;
             }
-            case TAG_COMPOUND: {
+            case Constants.TAG_COMPOUND: {
                 skipDepth++;
                 if (skipDepth > MAX_SKIP_DEPTH) {
                     skipDepth--;
@@ -138,7 +112,7 @@ final class NbtStream implements AutoCloseable {
                 }
                 try {
                     byte innerType;
-                    while ((innerType = in.readByte()) != TAG_END) {
+                    while ((innerType = in.readByte()) != Constants.TAG_END) {
                         in.readUTF();
                         skip(innerType);
                     }
@@ -147,14 +121,14 @@ final class NbtStream implements AutoCloseable {
                 }
                 break;
             }
-            case TAG_INT_ARRAY: {
+            case Constants.TAG_INT_ARRAY: {
                 int length = in.readInt();
                 if (length > 0) {
                     in.skipNBytes((long) length * 4);
                 }
                 break;
             }
-            case TAG_LONG_ARRAY: {
+            case Constants.TAG_LONG_ARRAY: {
                 int length = in.readInt();
                 if (length > 0) {
                     in.skipNBytes((long) length * 8);

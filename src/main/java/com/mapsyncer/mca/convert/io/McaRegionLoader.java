@@ -2,9 +2,9 @@ package com.mapsyncer.mca.convert.io;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.McaReader;
 import com.mapsyncer.mca.Plan;
-import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
@@ -44,8 +44,8 @@ public final class McaRegionLoader {
             int worldHeightRange = worldTopY - minBuildHeight;
             ChunkDataParser.ChunkInfo[][] chunks = readAllChunks(reader, worldHeightRange);
 
-            for (int localX = 0; localX < RegionConverter.CHUNKS_PER_REGION; localX++) {
-                for (int localZ = 0; localZ < RegionConverter.CHUNKS_PER_REGION; localZ++) {
+            for (int localX = 0; localX < Constants.CHUNKS_PER_REGION; localX++) {
+                for (int localZ = 0; localZ < Constants.CHUNKS_PER_REGION; localZ++) {
                     ChunkDataParser.ChunkInfo chunkInfo = chunks[localX][localZ];
                     if (chunkInfo == null) {
                         continue;
@@ -75,10 +75,10 @@ public final class McaRegionLoader {
     private static ChunkDataParser.ChunkInfo[][] readAllChunks(McaReader reader, int worldHeightRange)
             throws IOException {
         ChunkDataParser.ChunkInfo[][] grid =
-                new ChunkDataParser.ChunkInfo[RegionConverter.CHUNKS_PER_REGION][RegionConverter.CHUNKS_PER_REGION];
+                new ChunkDataParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
 
-        for (int localX = 0; localX < RegionConverter.CHUNKS_PER_REGION; localX++) {
-            for (int localZ = 0; localZ < RegionConverter.CHUNKS_PER_REGION; localZ++) {
+        for (int localX = 0; localX < Constants.CHUNKS_PER_REGION; localX++) {
+            for (int localZ = 0; localZ < Constants.CHUNKS_PER_REGION; localZ++) {
                 ChunkDataParser.ChunkInfo chunkInfo;
                 try {
                     byte[] nbtData = reader.readChunkData(localX, localZ);

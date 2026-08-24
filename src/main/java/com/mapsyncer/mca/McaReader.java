@@ -17,19 +17,15 @@ public class McaReader implements AutoCloseable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(McaReader.class);
 
-    private static final int SECTOR_SIZE = 4096;
-
-    private static final int CHUNKS_PER_REGION = 32;
-
     private static final int COMPRESS_GZIP = 1;
 
     private static final int COMPRESS_ZLIB = 2;
 
     private static final int COMPRESS_NONE = 3;
 
-    private static final int LOCATION_COUNT = CHUNKS_PER_REGION * CHUNKS_PER_REGION;
+    private static final int LOCATION_COUNT = Constants.CHUNKS_PER_REGION * Constants.CHUNKS_PER_REGION;
 
-    private static final long HEADER_ONLY_SIZE = (long) SECTOR_SIZE * 2;
+    private static final long HEADER_ONLY_SIZE = (long) Constants.SECTOR_SIZE * 2;
 
     public static boolean hasAnyChunk(Path mcaPath) {
         if (mcaPath == null || !Files.exists(mcaPath)) {
@@ -66,7 +62,7 @@ public class McaReader implements AutoCloseable {
         }
 
         public long dataOffset() {
-            return (long) offsetSectors * SECTOR_SIZE;
+            return (long) offsetSectors * Constants.SECTOR_SIZE;
         }
     }
 
@@ -82,7 +78,7 @@ public class McaReader implements AutoCloseable {
     public static McaReader open(String path) throws IOException {
         FileChannel channel = FileChannel.open(Path.of(path), StandardOpenOption.READ);
         try {
-            if (channel.size() < SECTOR_SIZE * 2) {
+            if (channel.size() < Constants.SECTOR_SIZE * 2) {
                 throw new IOException("MCA file too small: " + channel.size() + " bytes");
             }
             int[] locations = readLocationTable(channel);
@@ -94,7 +90,7 @@ public class McaReader implements AutoCloseable {
     }
 
     private static int[] readLocationTable(FileChannel channel) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(SECTOR_SIZE);
+        ByteBuffer buffer = ByteBuffer.allocate(Constants.SECTOR_SIZE);
         while (buffer.hasRemaining()) {
             if (channel.read(buffer) == -1) {
                 break;
@@ -114,7 +110,7 @@ public class McaReader implements AutoCloseable {
     }
 
     public ChunkLocation getChunkLocation(int localX, int localZ) {
-        int index = localX + localZ * CHUNKS_PER_REGION;
+        int index = localX + localZ * Constants.CHUNKS_PER_REGION;
         int packed = locations[index];
         return new ChunkLocation(packed >>> 8, packed & 0xFF);
     }

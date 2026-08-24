@@ -1,9 +1,8 @@
 package com.mapsyncer.mca.convert.biome;
 
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.DEFAULT_BIOME;
-
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
+import com.mapsyncer.mca.Constants;
 
 public final class BiomeQuartResolver {
 
@@ -26,8 +25,8 @@ public final class BiomeQuartResolver {
             if (s.biomePalette().isEmpty()) {
                 continue;
             }
-            int fallbackLy = absoluteY - s.sectionY() * 16;
-            if (fallbackLy < 0 || fallbackLy > 15) {
+            int fallbackLy = absoluteY - s.sectionY() * Constants.CHUNK_SIZE;
+            if (fallbackLy < 0 || fallbackLy > Constants.CHUNK_SIZE - 1) {
                 continue;
             }
             biome = ChunkSectionParser.getBiomeAt(s, lx, fallbackLy, lz, smoothBoundary);
@@ -40,7 +39,7 @@ public final class BiomeQuartResolver {
             if (s.biomePalette().isEmpty()) {
                 continue;
             }
-            for (int tryLy = 0; tryLy <= 15; tryLy++) {
+            for (int tryLy = 0; tryLy <= Constants.CHUNK_SIZE - 1; tryLy++) {
                 String candidate = ChunkSectionParser.getBiomeAt(s, lx, tryLy, lz, smoothBoundary);
                 if (isValidBiome(candidate)) {
                     return candidate;
@@ -48,7 +47,7 @@ public final class BiomeQuartResolver {
             }
         }
 
-        return DEFAULT_BIOME;
+        return Constants.BIOME_THE_VOID;
     }
 
     public static String resolve(
@@ -71,8 +70,8 @@ public final class BiomeQuartResolver {
             if (s.biomePalette().isEmpty()) {
                 continue;
             }
-            int fallbackLy = absoluteY - s.sectionY() * 16;
-            if (fallbackLy < 0 || fallbackLy > 15) {
+            int fallbackLy = absoluteY - s.sectionY() * Constants.CHUNK_SIZE;
+            if (fallbackLy < 0 || fallbackLy > Constants.CHUNK_SIZE - 1) {
                 continue;
             }
             biome = ChunkSectionParser.getBiomeAt(s, lx, fallbackLy, lz, smoothBoundary);
@@ -85,7 +84,7 @@ public final class BiomeQuartResolver {
             if (s.biomePalette().isEmpty()) {
                 continue;
             }
-            for (int tryLy = 0; tryLy <= 15; tryLy++) {
+            for (int tryLy = 0; tryLy <= Constants.CHUNK_SIZE - 1; tryLy++) {
                 String candidate = ChunkSectionParser.getBiomeAt(s, lx, tryLy, lz, smoothBoundary);
                 if (isValidBiome(candidate)) {
                     return candidate;
@@ -93,7 +92,7 @@ public final class BiomeQuartResolver {
             }
         }
 
-        return DEFAULT_BIOME;
+        return Constants.BIOME_THE_VOID;
     }
 
     private static String resolveBiomeAtAbsoluteY(
@@ -127,8 +126,8 @@ public final class BiomeQuartResolver {
             if (s.biomePalette().isEmpty()) {
                 continue;
             }
-            int fallbackLy = absoluteY - s.sectionY() * 16;
-            if (fallbackLy < 0 || fallbackLy > 15) {
+            int fallbackLy = absoluteY - s.sectionY() * Constants.CHUNK_SIZE;
+            if (fallbackLy < 0 || fallbackLy > Constants.CHUNK_SIZE - 1) {
                 continue;
             }
             biome = ChunkSectionParser.getBiomeAt(s, lx, fallbackLy, lz, smoothBoundary);
@@ -141,6 +140,6 @@ public final class BiomeQuartResolver {
     }
 
     static boolean isValidBiome(String biome) {
-        return biome != null && !biome.equals(DEFAULT_BIOME);
+        return biome != null && !biome.equals(Constants.BIOME_THE_VOID);
     }
 }

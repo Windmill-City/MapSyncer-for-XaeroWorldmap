@@ -2,7 +2,7 @@ package com.mapsyncer.mca.convert;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.Plan;
-import com.mapsyncer.mca.RegionScanner.WorldBounds;
+import com.mapsyncer.mca.RegionScanner.Bounds;
 import com.mapsyncer.mca.convert.io.McaRegionLoader;
 import com.mapsyncer.mca.convert.io.McaRegionLoader.PassMapData;
 import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
@@ -22,7 +22,7 @@ public final class Pipeline {
             Path mcaPath,
             int regionX,
             int regionZ,
-            WorldBounds bounds,
+            Bounds bounds,
             Plan plan,
             BlockPropertyLookup blockLookup)
             throws IOException {

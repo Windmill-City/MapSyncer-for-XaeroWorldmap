@@ -1,10 +1,8 @@
 package com.mapsyncer.mca.convert.model;
 
-import static com.mapsyncer.mca.RegionConverter.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
-
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,26 +42,26 @@ public class MapRegionData {
     public MapRegionData(int minBuildHeight, LightMode lightMode, int cave) {
         this.lightMode = lightMode;
         this.cave = cave;
-        blockStates = new BlockState[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        topBlockY = new int[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        for (int x = 0; x < REGION_SIZE_BLOCKS; x++) {
+        blockStates = new BlockState[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        topBlockY = new int[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        for (int x = 0; x < Constants.REGION_SIZE_BLOCKS; x++) {
             Arrays.fill(topBlockY[x], -1);
         }
-        biomeNames = new String[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        heightMap = new int[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        for (int x = 0; x < REGION_SIZE_BLOCKS; x++) {
+        biomeNames = new String[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        heightMap = new int[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        for (int x = 0; x < Constants.REGION_SIZE_BLOCKS; x++) {
             Arrays.fill(heightMap[x], minBuildHeight);
         }
-        lightMap = new byte[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        hasData = new boolean[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
-        chunkExists = new boolean[CHUNKS_PER_REGION][CHUNKS_PER_REGION];
+        lightMap = new byte[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        hasData = new boolean[Constants.REGION_SIZE_BLOCKS][Constants.REGION_SIZE_BLOCKS];
+        chunkExists = new boolean[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
         overlays = new HashMap<>();
-        chunkGrid = new ChunkDataParser.ChunkInfo[CHUNKS_PER_REGION][CHUNKS_PER_REGION];
+        chunkGrid = new ChunkDataParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
     }
 
     public boolean hasAnyMapData() {
-        for (int x = 0; x < REGION_SIZE_BLOCKS; x++) {
-            for (int z = 0; z < REGION_SIZE_BLOCKS; z++) {
+        for (int x = 0; x < Constants.REGION_SIZE_BLOCKS; x++) {
+            for (int z = 0; z < Constants.REGION_SIZE_BLOCKS; z++) {
                 if (hasData[x][z]) {
                     return true;
                 }

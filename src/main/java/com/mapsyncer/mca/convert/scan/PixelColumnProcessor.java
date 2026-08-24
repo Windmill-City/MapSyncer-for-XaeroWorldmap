@@ -1,11 +1,10 @@
 package com.mapsyncer.mca.convert.scan;
 
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
-
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
@@ -57,13 +56,13 @@ public final class PixelColumnProcessor {
             }
         }
 
-        int localStartY = 15;
-        if (effectiveStartY >= sectionBaseY && effectiveStartY <= sectionBaseY + 15) {
+        int localStartY = Constants.CHUNK_SIZE - 1;
+        if (effectiveStartY >= sectionBaseY && effectiveStartY <= sectionBaseY + (Constants.CHUNK_SIZE - 1)) {
             localStartY = effectiveStartY - sectionBaseY;
         } else if (singlePalette) {
-            localStartY = Math.min(effectiveStartY - sectionBaseY, 15);
+            localStartY = Math.min(effectiveStartY - sectionBaseY, Constants.CHUNK_SIZE - 1);
             if (localStartY < 0) {
-                localStartY = 15;
+                localStartY = Constants.CHUNK_SIZE - 1;
             }
         }
         int localScanBottomY = Math.max(0, scanBottomY - sectionBaseY);
@@ -149,7 +148,7 @@ public final class PixelColumnProcessor {
 
             if (state.isWaterlogged() && (flags & BlockPropertyLookup.FLAG_SHOULD_OVERLAY) != 0) {
                 int aboveWorldY = worldY + 1;
-                int waterOpacity = blockLookup.getLightBlock("minecraft:water");
+                int waterOpacity = blockLookup.getLightBlock(Constants.BLOCK_WATER);
                 byte waterLight = SectionLightAccess.getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
                 overlays = ensureOverlayList(ctx, pos, overlays);
                 OverlayAccumulator.add(
@@ -233,7 +232,7 @@ public final class PixelColumnProcessor {
             boolean useCalculateLight) {
 
         int pos = ChunkColumnScanner.ColumnScanContext.pos(lx, lz);
-        int opacity = blockLookup.getLightBlock("minecraft:water");
+        int opacity = blockLookup.getLightBlock(Constants.BLOCK_WATER);
         int aboveWorldY = worldY + 1;
         byte light = useCalculateLight
                 ? SectionLightAccess.calculateSurfaceLight(
@@ -298,7 +297,7 @@ public final class PixelColumnProcessor {
             List<OverlayEntry> overlayList,
             int relX,
             int relZ) {
-        if (relX >= REGION_SIZE_BLOCKS || relZ >= REGION_SIZE_BLOCKS) {
+        if (relX >= Constants.REGION_SIZE_BLOCKS || relZ >= Constants.REGION_SIZE_BLOCKS) {
             return;
         }
         data.hasData[relX][relZ] = true;
@@ -308,7 +307,7 @@ public final class PixelColumnProcessor {
         data.heightMap[relX][relZ] = topY;
         data.lightMap[relX][relZ] = surfaceLight;
         if (overlayList != null && !overlayList.isEmpty()) {
-            data.overlays.put(relX * REGION_SIZE_BLOCKS + relZ, overlayList);
+            data.overlays.put(relX * Constants.REGION_SIZE_BLOCKS + relZ, overlayList);
         }
     }
 }

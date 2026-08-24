@@ -2,6 +2,7 @@ package com.mapsyncer.mca.convert.io;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
@@ -16,26 +17,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class XaeroBinaryWriter {
 
-    public static final String DEFAULT_BLOCK = "minecraft:air";
-    public static final String DEFAULT_BIOME = "minecraft:the_void";
+    private static final int BLOCKS_PER_TILE = 16;
+    private static final int TILES_PER_TILE_CHUNK = 4;
+    private static final int TILE_CHUNKS_PER_REGION = 8;
+    private static final int MAJOR_VERSION = 6;
+    private static final int MINOR_VERSION = 8;
 
-    public static final int REGION_SIZE_BLOCKS = 512;
-    public static final int BLOCKS_PER_TILE = 16;
-    public static final int TILES_PER_TILE_CHUNK = 4;
-    public static final int TILE_CHUNKS_PER_REGION = 8;
-    public static final int MAJOR_VERSION = 6;
-    public static final int MINOR_VERSION = 8;
-    public static final int CAVE_DEPTH = 15;
-
-    public static final BlockState AIR = new BlockState("minecraft:air", Map.of());
-    public static final BlockState WATER = new BlockState("minecraft:water", Map.of());
+    public static final BlockState AIR = new BlockState(Constants.BLOCK_AIR, Map.of());
+    public static final BlockState WATER = new BlockState(Constants.BLOCK_WATER, Map.of());
 
     private static final ConcurrentHashMap<BlockState, PaletteKey> PALETTE_KEY_CACHE = new ConcurrentHashMap<>();
     private static final PaletteKey AIR_KEY = PaletteKey.from(AIR);
-
-    private static final int NBT_TAG_END = 0;
-    private static final int NBT_TAG_STRING = 8;
-    private static final int NBT_TAG_COMPOUND = 10;
 
     private static final int FLAG_HAS_BIOME = 0x100000;
     private static final int FLAG_NEW_BLOCK = 0x200000;
@@ -57,26 +49,26 @@ public final class XaeroBinaryWriter {
 
     private static void writeBlockState(BlockState state, DataOutputStream dos) throws IOException {
         BlockState effective = state != null ? state : AIR;
-        dos.writeByte(NBT_TAG_COMPOUND);
+        dos.writeByte(Constants.TAG_COMPOUND);
         dos.writeShort(0);
 
-        dos.writeByte(NBT_TAG_STRING);
-        dos.writeUTF("Name");
+        dos.writeByte(Constants.TAG_STRING);
+        dos.writeUTF(Constants.NBT_KEY_NAME);
         dos.writeUTF(effective.name());
 
         if (!effective.properties().isEmpty()) {
-            dos.writeByte(NBT_TAG_COMPOUND);
-            dos.writeUTF("Properties");
+            dos.writeByte(Constants.TAG_COMPOUND);
+            dos.writeUTF(Constants.NBT_KEY_PROPERTIES);
             TreeMap<String, String> sorted = new TreeMap<>(effective.properties());
             for (Map.Entry<String, String> entry : sorted.entrySet()) {
-                dos.writeByte(NBT_TAG_STRING);
+                dos.writeByte(Constants.TAG_STRING);
                 dos.writeUTF(entry.getKey());
                 dos.writeUTF(entry.getValue());
             }
-            dos.writeByte(NBT_TAG_END);
+            dos.writeByte(Constants.TAG_END);
         }
 
-        dos.writeByte(NBT_TAG_END);
+        dos.writeByte(Constants.TAG_END);
     }
 
     public static byte[] serialize(MapRegionData data, int minBuildHeight, BlockPropertyLookup blockLookup)
@@ -131,7 +123,7 @@ public final class XaeroBinaryWriter {
 
                             dos.writeByte(1);
                             dos.writeInt(data.cave);
-                            dos.writeByte(CAVE_DEPTH & 0xFF);
+                            dos.writeByte(Constants.CAVE_DEPTH & 0xFF);
                         }
                     }
                 }
@@ -154,7 +146,7 @@ public final class XaeroBinaryWriter {
 
         int emptyParams = 1;
         if (!caveMode) {
-            emptyParams |= 15 << 8;
+            emptyParams |= Constants.MAX_LIGHT_LEVEL << 8;
         }
         emptyParams |= encodeHeightToParams(emptyHeight);
         emptyParams |= encodePaletteFlags(true, blockPalette, AIR_KEY, biomeName, biomePalette);
@@ -165,7 +157,7 @@ public final class XaeroBinaryWriter {
     }
 
     private static String normalizeBiome(String biomeName) {
-        return (biomeName == null || biomeName.equals(DEFAULT_BIOME)) ? null : biomeName;
+        return (biomeName == null || biomeName.equals(Constants.BIOME_THE_VOID)) ? null : biomeName;
     }
 
     private static int encodePaletteFlags(
@@ -211,7 +203,7 @@ public final class XaeroBinaryWriter {
             throws IOException {
         BlockState blockState = data.blockStates[rx][rz];
         if (blockState == null) {
-            blockState = new BlockState(DEFAULT_BLOCK, Map.of());
+            blockState = new BlockState(Constants.BLOCK_AIR, Map.of());
         }
         String blockName = blockState.name();
         PaletteKey paletteKey = PaletteKey.from(blockState);
@@ -221,7 +213,7 @@ public final class XaeroBinaryWriter {
         int topHeight = (topY >= 0) ? topY : height;
         String biomeName = normalizeBiome(data.biomeNames[rx][rz]);
         int light = data.lightMap[rx][rz];
-        List<OverlayEntry> overlays = data.overlays.get(rx * REGION_SIZE_BLOCKS + rz);
+        List<OverlayEntry> overlays = data.overlays.get(rx * Constants.REGION_SIZE_BLOCKS + rz);
         boolean hasOverlays = overlays != null && !overlays.isEmpty();
         boolean isGrass = blockLookup.isGrassBlock(blockName);
         boolean topHeightDifferent = (height != topHeight);
@@ -266,10 +258,7 @@ public final class XaeroBinaryWriter {
     }
 
     private static void writeBlockStateRef(
-            DataOutputStream dos,
-            BlockState blockState,
-            PaletteKey paletteKey,
-            Map<PaletteKey, Integer> blockPalette)
+            DataOutputStream dos, BlockState blockState, PaletteKey paletteKey, Map<PaletteKey, Integer> blockPalette)
             throws IOException {
         if (blockPalette.containsKey(paletteKey)) {
             dos.writeInt(blockPalette.get(paletteKey));

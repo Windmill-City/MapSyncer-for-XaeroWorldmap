@@ -1,11 +1,9 @@
 package com.mapsyncer.mca.convert.scan;
 
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.CAVE_DEPTH;
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
-
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
@@ -14,7 +12,7 @@ import java.util.ArrayList;
 public final class ChunkColumnScanner {
 
     private static final ChunkSectionParser.BlockState FALLBACK_SINGLE_STATE =
-            new ChunkSectionParser.BlockState("minecraft:air", java.util.Map.of());
+            new ChunkSectionParser.BlockState(Constants.BLOCK_AIR, java.util.Map.of());
 
     public static final class ColumnScanContext {
 
@@ -78,7 +76,7 @@ public final class ChunkColumnScanner {
         data.chunkExists[chunkX][chunkZ] = true;
         data.chunkGrid[chunkX][chunkZ] = chunk;
 
-        int caveDepth = CAVE_DEPTH;
+        int caveDepth = Constants.CAVE_DEPTH;
         boolean isCaveMode = caveStart != Integer.MAX_VALUE;
         boolean fullCave = caveStart == Integer.MIN_VALUE;
         int[][] heightMap = chunk.heightmap();
@@ -93,8 +91,8 @@ public final class ChunkColumnScanner {
             }
 
             int sectionY = section.sectionY();
-            int sectionBaseY = sectionY * 16;
-            int sectionTopY = sectionBaseY + 15;
+            int sectionBaseY = sectionY * Constants.CHUNK_SIZE;
+            int sectionTopY = sectionBaseY + (Constants.CHUNK_SIZE - 1);
             int sectionBottomY = sectionBaseY;
 
             if (sectionTopY < chunkBottomY) {
@@ -105,11 +103,11 @@ public final class ChunkColumnScanner {
             ChunkSectionParser.BlockState singleState =
                     singlePalette ? section.blockPalette().get(0) : FALLBACK_SINGLE_STATE;
 
-            for (int lx = 0; lx < 16; lx++) {
-                for (int lz = 0; lz < 16; lz++) {
-                    int relX = chunkX * 16 + lx;
-                    int relZ = chunkZ * 16 + lz;
-                    if (relX >= REGION_SIZE_BLOCKS || relZ >= REGION_SIZE_BLOCKS) {
+            for (int lx = 0; lx < Constants.CHUNK_SIZE; lx++) {
+                for (int lz = 0; lz < Constants.CHUNK_SIZE; lz++) {
+                    int relX = chunkX * Constants.CHUNK_SIZE + lx;
+                    int relZ = chunkZ * Constants.CHUNK_SIZE + lz;
+                    if (relX >= Constants.REGION_SIZE_BLOCKS || relZ >= Constants.REGION_SIZE_BLOCKS) {
                         continue;
                     }
 
@@ -142,13 +140,7 @@ public final class ChunkColumnScanner {
                     }
 
                     int effectiveStartY = computeEffectiveStartY(
-                            sectionIndex,
-                            startY,
-                            worldTopY,
-                            isCaveMode,
-                            heightMapValue,
-                            chunkBottomY,
-                            sectionTopY);
+                            sectionIndex, startY, worldTopY, isCaveMode, heightMapValue, chunkBottomY, sectionTopY);
 
                     if (!isCaveMode && effectiveStartY < sectionBottomY) {
                         continue;

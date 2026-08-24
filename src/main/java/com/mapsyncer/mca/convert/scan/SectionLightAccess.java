@@ -3,6 +3,7 @@ package com.mapsyncer.mca.convert.scan;
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.util.List;
@@ -30,14 +31,14 @@ public final class SectionLightAccess {
             int worldY) {
         int sectionY = worldY >> 4;
         if (sectionY == currentSection.sectionY()) {
-            int localY = worldY - (sectionY * 16);
-            if (localY >= 0 && localY <= 15) {
+            int localY = worldY - (sectionY * Constants.CHUNK_SIZE);
+            if (localY >= 0 && localY <= Constants.CHUNK_SIZE - 1) {
                 return ChunkSectionParser.getBlockLight(currentSection, lx, localY, lz);
             }
         }
         ChunkSectionParser.SectionData targetSection = findSectionAt(chunk, worldY);
         if (targetSection != null) {
-            int localY = worldY - (targetSection.sectionY() * 16);
+            int localY = worldY - (targetSection.sectionY() * Constants.CHUNK_SIZE);
             return ChunkSectionParser.getBlockLight(targetSection, lx, localY, lz);
         }
         return 0;
@@ -60,14 +61,14 @@ public final class SectionLightAccess {
         ChunkSectionParser.SectionData stateSection = null;
         int worldYSkySectionY = worldY >> 4;
         if (worldYSkySectionY == currentSection.sectionY()) {
-            int localY = worldY - (worldYSkySectionY * 16);
-            if (localY >= 0 && localY <= 15) {
+            int localY = worldY - (worldYSkySectionY * Constants.CHUNK_SIZE);
+            if (localY >= 0 && localY <= Constants.CHUNK_SIZE - 1) {
                 skyLight = ChunkSectionParser.getSkyLight(currentSection, lx, localY, lz);
             }
         } else {
             stateSection = findSectionAt(chunk, worldY);
             if (stateSection != null) {
-                int localY = worldY - (stateSection.sectionY() * 16);
+                int localY = worldY - (stateSection.sectionY() * Constants.CHUNK_SIZE);
                 skyLight = ChunkSectionParser.getSkyLight(stateSection, lx, localY, lz);
             }
         }
@@ -90,8 +91,8 @@ public final class SectionLightAccess {
         if (stateSection == null) {
             stateSection = currentSection;
         }
-        int stateLocalY = worldY - (stateSection.sectionY() * 16);
-        if (stateLocalY < 0 || stateLocalY > 15) {
+        int stateLocalY = worldY - (stateSection.sectionY() * Constants.CHUNK_SIZE);
+        if (stateLocalY < 0 || stateLocalY > Constants.CHUNK_SIZE - 1) {
             stateLocalY = ly;
         }
         boolean isGlowing = blockLookup.isGlowing(ChunkSectionParser.getBlockStateAt(stateSection, lx, stateLocalY, lz)

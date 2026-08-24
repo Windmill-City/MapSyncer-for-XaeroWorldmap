@@ -1,20 +1,18 @@
 package com.mapsyncer.mca.convert.biome;
 
-import static com.mapsyncer.mca.RegionConverter.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
-
 import com.mapsyncer.mca.ChunkDataParser;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.LightMode;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 
 public final class BiomeFillPass {
 
     public static void fill(MapRegionData data) {
-        for (int rx = 0; rx < REGION_SIZE_BLOCKS; rx++) {
-            for (int rz = 0; rz < REGION_SIZE_BLOCKS; rz++) {
+        for (int rx = 0; rx < Constants.REGION_SIZE_BLOCKS; rx++) {
+            for (int rz = 0; rz < Constants.REGION_SIZE_BLOCKS; rz++) {
                 int chunkX = rx >> 4;
                 int chunkZ = rz >> 4;
-                if (chunkX >= CHUNKS_PER_REGION || chunkZ >= CHUNKS_PER_REGION) {
+                if (chunkX >= Constants.CHUNKS_PER_REGION || chunkZ >= Constants.CHUNKS_PER_REGION) {
                     continue;
                 }
 

@@ -13,7 +13,7 @@ public enum LightMode {
             boolean worldHasSkylight) {
 
         if (isGlowing) {
-            return 15;
+            return Constants.MAX_LIGHT_LEVEL;
         }
 
         switch (this) {
@@ -21,11 +21,11 @@ public enum LightMode {
                 return blockLight;
 
             case CAVE:
-                if (blockLight >= 15) {
+                if (blockLight >= Constants.MAX_LIGHT_LEVEL) {
                     return blockLight;
                 }
 
-                byte effectiveSkyLight = (hasSkyAccess && worldHasSkylight) ? 15 : skyLight;
+                byte effectiveSkyLight = (hasSkyAccess && worldHasSkylight) ? Constants.MAX_LIGHT_LEVEL : skyLight;
 
                 if (!hasOverlay && effectiveSkyLight > blockLight) {
                     return effectiveSkyLight;

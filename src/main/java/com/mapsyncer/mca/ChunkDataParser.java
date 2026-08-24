@@ -58,7 +58,7 @@ public class ChunkDataParser {
     private static ChunkInfo parseChunk(int localX, int localZ, NbtStream stream, int worldHeightRange)
             throws IOException {
         byte rootType = stream.readTagType();
-        if (rootType != NbtStream.TAG_COMPOUND) {
+        if (rootType != Constants.TAG_COMPOUND) {
             throw new IOException("NBT document must start with Compound, actual type: " + rootType);
         }
         stream.readString();
@@ -69,32 +69,32 @@ public class ChunkDataParser {
         HeightmapFields heightmaps = new HeightmapFields();
 
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "Status":
-                    if (type == NbtStream.TAG_STRING) {
+                case Constants.NBT_KEY_STATUS:
+                    if (type == Constants.TAG_STRING) {
                         status = stream.readString();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "yPos":
-                    if (type == NbtStream.TAG_INT) {
+                case Constants.NBT_KEY_Y_POS:
+                    if (type == Constants.TAG_INT) {
                         yPos = stream.readInt();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "sections":
-                    if (type == NbtStream.TAG_LIST) {
+                case Constants.NBT_KEY_SECTIONS:
+                    if (type == Constants.TAG_LIST) {
                         readSections(stream, sections);
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "Heightmaps":
-                    if (type == NbtStream.TAG_COMPOUND) {
+                case Constants.NBT_KEY_HEIGHTMAPS:
+                    if (type == Constants.TAG_COMPOUND) {
                         readHeightmapCompound(stream, heightmaps);
                     } else {
                         stream.skip(type);
@@ -113,7 +113,7 @@ public class ChunkDataParser {
             return null;
         }
 
-        int chunkBottomY = yPos * 16;
+        int chunkBottomY = yPos * Constants.CHUNK_SIZE;
 
         int[][] heightmap = parseHeightmap(heightmaps, chunkBottomY, worldHeightRange);
 
@@ -137,7 +137,7 @@ public class ChunkDataParser {
             throws IOException {
         byte elementType = stream.readListElementType();
         int length = stream.readListLength();
-        if (elementType != NbtStream.TAG_COMPOUND) {
+        if (elementType != Constants.TAG_COMPOUND) {
             for (int i = 0; i < length; i++) {
                 stream.skip(elementType);
             }
@@ -150,18 +150,18 @@ public class ChunkDataParser {
 
     private static void readHeightmapCompound(NbtStream stream, HeightmapFields heightmaps) throws IOException {
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "WORLD_SURFACE":
-                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                case Constants.NBT_KEY_WORLD_SURFACE:
+                    if (type == Constants.TAG_LONG_ARRAY) {
                         heightmaps.worldSurface = stream.readLongArray();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "MOTION_BLOCKING_NO_LEAVES":
-                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                case Constants.NBT_KEY_MOTION_BLOCKING_NO_LEAVES:
+                    if (type == Constants.TAG_LONG_ARRAY) {
                         heightmaps.motionBlocking = stream.readLongArray();
                     } else {
                         stream.skip(type);
@@ -174,7 +174,7 @@ public class ChunkDataParser {
     }
 
     private static int[][] parseHeightmap(HeightmapFields heightmaps, int chunkBottomY, int worldHeightRange) {
-        int[][] heightmap = new int[16][16];
+        int[][] heightmap = new int[Constants.CHUNK_SIZE][Constants.CHUNK_SIZE];
 
         if (heightmaps.worldSurface != null) {
             int bitsPerHeight = calculateBitsPerHeight(heightmaps.worldSurface.length, worldHeightRange);
@@ -214,10 +214,10 @@ public class ChunkDataParser {
 
         int u = 64 / bitsPerHeight;
 
-        for (int z = 0; z < 16; z++) {
-            for (int x = 0; x < 16; x++) {
+        for (int z = 0; z < Constants.CHUNK_SIZE; z++) {
+            for (int x = 0; x < Constants.CHUNK_SIZE; x++) {
 
-                int i = x + 16 * z;
+                int i = x + Constants.CHUNK_SIZE * z;
 
                 int longIndex = i / u;
                 int bitOffset = (i % u) * bitsPerHeight;

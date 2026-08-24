@@ -13,17 +13,17 @@ public class ChunkSectionParser {
         public static final Map<String, String> EMPTY_PROPERTIES = Map.of();
 
         public boolean isAir() {
-            return name.equals("minecraft:air")
-                    || name.equals("minecraft:cave_air")
-                    || name.equals("minecraft:void_air");
+            return name.equals(Constants.BLOCK_AIR)
+                    || name.equals(Constants.BLOCK_CAVE_AIR)
+                    || name.equals(Constants.BLOCK_VOID_AIR);
         }
 
         public boolean isWater() {
-            return name.equals("minecraft:water") || name.equals("minecraft:flowing_water");
+            return name.equals(Constants.BLOCK_WATER) || name.equals(Constants.BLOCK_FLOWING_WATER);
         }
 
         public boolean isLava() {
-            return name.equals("minecraft:lava") || name.equals("minecraft:flowing_lava");
+            return name.equals(Constants.BLOCK_LAVA) || name.equals(Constants.BLOCK_FLOWING_LAVA);
         }
 
         public boolean isFluid() {
@@ -31,7 +31,8 @@ public class ChunkSectionParser {
         }
 
         public boolean isWaterlogged() {
-            return properties.containsKey("waterlogged") && "true".equals(properties.get("waterlogged"));
+            return properties.containsKey(Constants.NBT_KEY_WATERLOGGED)
+                    && "true".equals(properties.get(Constants.NBT_KEY_WATERLOGGED));
         }
     }
 
@@ -62,18 +63,18 @@ public class ChunkSectionParser {
         byte[] rawSkyLight = null;
 
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "Y":
-                    if (type == NbtStream.TAG_BYTE) {
+                case Constants.NBT_KEY_SECTION_Y:
+                    if (type == Constants.TAG_BYTE) {
                         sectionY = stream.readByte();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "block_states":
-                    if (type == NbtStream.TAG_COMPOUND) {
+                case Constants.NBT_KEY_BLOCK_STATES:
+                    if (type == Constants.TAG_COMPOUND) {
                         BlockData blockStates = readBlockStates(stream);
                         blockPalette = blockStates.palette;
                         blockData = blockStates.data;
@@ -81,8 +82,8 @@ public class ChunkSectionParser {
                         stream.skip(type);
                     }
                     break;
-                case "biomes":
-                    if (type == NbtStream.TAG_COMPOUND) {
+                case Constants.NBT_KEY_BIOMES:
+                    if (type == Constants.TAG_COMPOUND) {
                         BiomeData biomes = readBiomes(stream);
                         biomePalette = biomes.palette;
                         biomeData = biomes.data;
@@ -90,15 +91,15 @@ public class ChunkSectionParser {
                         stream.skip(type);
                     }
                     break;
-                case "BlockLight":
-                    if (type == NbtStream.TAG_BYTE_ARRAY) {
+                case Constants.NBT_KEY_BLOCK_LIGHT:
+                    if (type == Constants.TAG_BYTE_ARRAY) {
                         rawBlockLight = stream.readByteArray();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "SkyLight":
-                    if (type == NbtStream.TAG_BYTE_ARRAY) {
+                case Constants.NBT_KEY_SKY_LIGHT:
+                    if (type == Constants.TAG_BYTE_ARRAY) {
                         rawSkyLight = stream.readByteArray();
                     } else {
                         stream.skip(type);
@@ -159,14 +160,14 @@ public class ChunkSectionParser {
         long[] data = null;
 
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "palette":
-                    if (type == NbtStream.TAG_LIST) {
+                case Constants.NBT_KEY_PALETTE:
+                    if (type == Constants.TAG_LIST) {
                         byte elementType = stream.readListElementType();
                         int length = stream.readListLength();
-                        if (elementType == NbtStream.TAG_COMPOUND) {
+                        if (elementType == Constants.TAG_COMPOUND) {
                             for (int i = 0; i < length; i++) {
                                 BlockState blockState = parseBlockState(stream);
                                 palette.add(blockState);
@@ -180,8 +181,8 @@ public class ChunkSectionParser {
                         stream.skip(type);
                     }
                     break;
-                case "data":
-                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                case Constants.NBT_KEY_DATA:
+                    if (type == Constants.TAG_LONG_ARRAY) {
                         data = stream.readLongArray();
                     } else {
                         stream.skip(type);
@@ -199,14 +200,14 @@ public class ChunkSectionParser {
         long[] data = null;
 
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "palette":
-                    if (type == NbtStream.TAG_LIST) {
+                case Constants.NBT_KEY_PALETTE:
+                    if (type == Constants.TAG_LIST) {
                         byte elementType = stream.readListElementType();
                         int length = stream.readListLength();
-                        if (elementType == NbtStream.TAG_STRING) {
+                        if (elementType == Constants.TAG_STRING) {
                             for (int i = 0; i < length; i++) {
                                 palette.add(stream.readString());
                             }
@@ -219,8 +220,8 @@ public class ChunkSectionParser {
                         stream.skip(type);
                     }
                     break;
-                case "data":
-                    if (type == NbtStream.TAG_LONG_ARRAY) {
+                case Constants.NBT_KEY_DATA:
+                    if (type == Constants.TAG_LONG_ARRAY) {
                         data = stream.readLongArray();
                     } else {
                         stream.skip(type);
@@ -238,23 +239,23 @@ public class ChunkSectionParser {
         Map<String, String> properties = null;
 
         byte type;
-        while ((type = stream.readTagType()) != NbtStream.TAG_END) {
+        while ((type = stream.readTagType()) != Constants.TAG_END) {
             String key = stream.readString();
             switch (key) {
-                case "Name":
-                    if (type == NbtStream.TAG_STRING) {
+                case Constants.NBT_KEY_NAME:
+                    if (type == Constants.TAG_STRING) {
                         name = stream.readString();
                     } else {
                         stream.skip(type);
                     }
                     break;
-                case "Properties":
-                    if (type == NbtStream.TAG_COMPOUND) {
+                case Constants.NBT_KEY_PROPERTIES:
+                    if (type == Constants.TAG_COMPOUND) {
                         Map<String, String> props = new LinkedHashMap<>();
                         byte pt;
-                        while ((pt = stream.readTagType()) != NbtStream.TAG_END) {
+                        while ((pt = stream.readTagType()) != Constants.TAG_END) {
                             String propKey = stream.readString();
-                            if (pt == NbtStream.TAG_STRING) {
+                            if (pt == Constants.TAG_STRING) {
                                 props.put(propKey, stream.readString());
                             } else {
                                 stream.skip(pt);
@@ -297,7 +298,7 @@ public class ChunkSectionParser {
 
     public static BlockState getBlockStateAt(SectionData section, int x, int y, int z) {
         if (section.blockPalette.isEmpty()) {
-            return new BlockState("minecraft:air", Map.of());
+            return new BlockState(Constants.BLOCK_AIR, Map.of());
         }
 
         if (section.blockPalette.size() == 1) {
@@ -305,7 +306,7 @@ public class ChunkSectionParser {
         }
 
         if (section.blockData == null || section.blockBitsPerEntry == 0) {
-            return new BlockState("minecraft:air", Map.of());
+            return new BlockState(Constants.BLOCK_AIR, Map.of());
         }
 
         int blockIndex = (y << 8) | (z << 4) | x;
@@ -315,7 +316,7 @@ public class ChunkSectionParser {
         int paletteIndex = readBitsFast(section.blockData, blockIndex, u, section.blockBitsPerEntry(), mask);
 
         if (paletteIndex < 0 || paletteIndex >= section.blockPalette.size()) {
-            return new BlockState("minecraft:air", Map.of());
+            return new BlockState(Constants.BLOCK_AIR, Map.of());
         }
 
         return section.blockPalette.get(paletteIndex);

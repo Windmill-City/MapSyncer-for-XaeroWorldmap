@@ -2,6 +2,7 @@ package com.mapsyncer.mca.convert.overlay;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
+import com.mapsyncer.mca.Constants;
 import com.mapsyncer.mca.convert.io.XaeroBinaryWriter;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.util.ArrayList;
@@ -25,15 +26,15 @@ public final class OverlayAccumulator {
         if (last != null
                 && XaeroBinaryWriter.PaletteKey.from(last.blockState)
                         .equals(XaeroBinaryWriter.PaletteKey.from(blockState))) {
-            last.opacity = Math.min(15, last.opacity + opacityToAdd);
+            last.opacity = Math.min(Constants.MAX_LIGHT_LEVEL, last.opacity + opacityToAdd);
         } else {
             list.add(new OverlayEntry(blockState, opacityToAdd, light));
         }
     }
 
     private static int normalizeOpacity(String blockName, int opacityToAdd, BlockPropertyLookup blockLookup) {
-        if (opacityToAdd > 15) {
-            opacityToAdd = 15;
+        if (opacityToAdd > Constants.MAX_LIGHT_LEVEL) {
+            opacityToAdd = Constants.MAX_LIGHT_LEVEL;
         }
         if (opacityToAdd == 0 && !blockLookup.isWater(blockName)) {
             String lower = blockName.toLowerCase();

@@ -1,6 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -10,11 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.storage.LevelResource;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.util.PathUtils;
+
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.storage.LevelResource;
 
 public class RegionScanner {
 
@@ -22,12 +24,10 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record RegionCoords(int x, int z) {}
+    public record Region(int regionX, int regionZ, long timestamp, String dimId, Path regionDir, Bounds bounds) {
+    }
 
-    public record RegionEntry(
-            RegionCoords coords, long lastModifiedMillis, String dimId, Path regionDir, WorldBounds bounds) {}
-
-    public record WorldBounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
+    public record Bounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
 
         public int maxY() {
             return minY + height;
@@ -42,18 +42,10 @@ public class RegionScanner {
         }
     }
 
-    public static List<RegionEntry> scan(MinecraftServer server) {
-        List<RegionEntry> result = new ArrayList<>();
-        for (ServerLevel level : server.getAllLevels()) {
-            result.addAll(scan(level));
-        }
-        return List.copyOf(result);
-    }
-
-    private static List<RegionEntry> scan(ServerLevel level) {
+    public static List<Region> scan(ServerLevel level) {
         String dimId = PathUtils.getDimId(level);
         Path regionDir = getRegionDir(level);
-        WorldBounds bounds = new WorldBounds(
+        Bounds bounds = new Bounds(
                 level.getMinBuildHeight(),
                 level.getHeight(),
                 level.dimensionType().logicalHeight(),
@@ -67,13 +59,13 @@ public class RegionScanner {
         Path root = level.getServer().getWorldPath(LevelResource.ROOT);
         Path path = null;
         switch (dimId) {
-            case "minecraft:overworld" -> {
+            case Constants.DIM_OVERWORLD -> {
                 path = root.resolve("region");
             }
-            case "minecraft:the_nether" -> {
+            case Constants.DIM_THE_NETHER -> {
                 path = root.resolve("DIM-1").resolve("region");
             }
-            case "minecraft:the_end" -> {
+            case Constants.DIM_THE_END -> {
                 path = root.resolve("DIM1").resolve("region");
             }
             default -> {
@@ -90,12 +82,12 @@ public class RegionScanner {
         }
     }
 
-    private static List<RegionEntry> scanRegionFiles(Path regionDir, String dimId, WorldBounds bounds) {
+    private static List<Region> scanRegionFiles(Path regionDir, String dimId, Bounds bounds) {
         if (regionDir == null || !Files.exists(regionDir)) {
             return List.of();
         }
 
-        List<RegionEntry> entries = new ArrayList<>();
+        List<Region> entries = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
             for (Path file : stream) {
                 String fileName = file.getFileName().toString();
@@ -107,8 +99,9 @@ public class RegionScanner {
                     BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new RegionEntry(
-                            new RegionCoords(regionX, regionZ),
+                    entries.add(new Region(
+                            regionX,
+                            regionZ,
                             attrs.lastModifiedTime().toMillis(),
                             dimId,
                             regionDir,
