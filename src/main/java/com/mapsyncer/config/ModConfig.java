@@ -27,7 +27,7 @@ public class ModConfig {
     private static List<String> getDefaultDimensionConfigStrings() {
         Map<String, LayerPlan> defaults = new LinkedHashMap<>();
         defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
-        defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(LayerPlan.DEFAULT_CAVE_START)));
+        defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(64)));
         defaults.put("minecraft:the_end", new LayerPlan(true, List.of()));
         return List.of(defaults.toString());
     }

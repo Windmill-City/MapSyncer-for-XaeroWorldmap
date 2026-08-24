@@ -5,8 +5,6 @@ import java.util.List;
 
 public record LayerPlan(boolean surface, List<Integer> caves) {
 
-    public static final int DEFAULT_CAVE_START = 63;
-
     @Override
     public String toString() {
         if (!surface && caves.isEmpty()) {
