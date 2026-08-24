@@ -29,7 +29,7 @@ public class ModConfig {
     private static List<String> getDefaultPlans() {
         var defaults = new LinkedHashMap<>();
         defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
-        defaults.put("minecraft:the_nether", new LayerPlan(false, Set.of(64)));
+        defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
         defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
         return defaults.entrySet().stream()
                 .map(Map.Entry::toString)
@@ -101,16 +101,15 @@ public class ModConfig {
         public final ConfigValue<List<? extends String>> Plans;
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
-            builder.push("automatic_update");
-            builder.comment("Automatic update settings");
+            builder.push("AutoUpdate");
 
             AutoUpdate = builder.comment(
-                    "Enable automatic updates: run when no players are online")
-                    .define("automaticUpdateEnabled", true);
+                    "Update map when no players are online")
+                    .define("enabled", true);
 
             builder.pop();
 
-            builder.push("dimension_scan");
+            builder.push("LayerPlans");
             builder.comment("Dimension scan settings");
 
             Plans = builder.comment(
@@ -118,7 +117,7 @@ public class ModConfig {
                     "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
                     "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("dimension_configs", getDefaultPlans(), obj -> obj instanceof String);
+                    .defineList("plans", getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();
         }
