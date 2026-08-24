@@ -39,6 +39,20 @@ public class PacketHandler {
 
     private static volatile ManifestPayload deferredManifest = null;
 
+    public static void onXaeroWorldContextReady() {
+        if (deferredManifest == null) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        mc.execute(() -> {
+            ManifestPayload manifest = deferredManifest;
+            if (manifest != null && isWorldContextReady()) {
+                deferredManifest = null;
+                handleManifestReceived(manifest);
+            }
+        });
+    }
+
     public static void onDisconnect() {
         stop();
     }
@@ -120,20 +134,6 @@ public class PacketHandler {
         syncFailed = 0;
         partBuffer.clear();
         LOGGER.info("[SYNC] sync stopped, resources cleaned up");
-    }
-
-    public static void onXaeroWorldContextReady() {
-        if (deferredManifest == null) {
-            return;
-        }
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> {
-            ManifestPayload manifest = deferredManifest;
-            if (manifest != null && isWorldContextReady()) {
-                deferredManifest = null;
-                handleManifestReceived(manifest);
-            }
-        });
     }
 
     private static boolean isWorldContextReady() {
