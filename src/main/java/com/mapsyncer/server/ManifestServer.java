@@ -40,7 +40,7 @@ public final class ManifestServer {
 
         for (ServerLevel level : server.getAllLevels()) {
             String dimId = PathUtils.getDimId(level.dimension());
-            String dimFolderName = PathUtils.dimToPath(dimId);
+            String dimFolderName = PathUtils.dimToFolder(dimId);
             Path dimDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             if (!Files.isDirectory(dimDir)) {
                 continue;
@@ -76,7 +76,7 @@ public final class ManifestServer {
     }
 
     public static Path resolveZipPath(RegionRef ref) {
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathUtils.dimToPath(ref.dimId()));
+        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathUtils.dimToFolder(ref.dimId()));
         int caveLayer = ref.cave();
         Path outputDir =
                 ref.isSurface() ? baseOutputDir : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));

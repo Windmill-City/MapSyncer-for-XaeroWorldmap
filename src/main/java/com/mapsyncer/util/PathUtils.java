@@ -11,7 +11,7 @@ public final class PathUtils {
         return key.location().toString();
     }
 
-    public static String dimToPath(String dimId) {
+    public static String dimToFolder(String dimId) {
         return dimId.replace(':', '$').replace('/', '%');
     }
 
