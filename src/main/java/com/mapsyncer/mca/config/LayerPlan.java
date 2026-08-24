@@ -1,4 +1,4 @@
-package com.mapsyncer.config;
+package com.mapsyncer.mca.config;
 
 import java.util.ArrayList;
 import java.util.HashSet;

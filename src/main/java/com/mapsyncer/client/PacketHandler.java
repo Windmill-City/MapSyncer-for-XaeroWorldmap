@@ -7,6 +7,7 @@ import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ChatUtils;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -23,7 +24,7 @@ public class PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
-    private static final LinkedQueue<RegionRef> pendingRegions = new LinkedQueue<>();
+    private static final ArrayDeque<RegionRef> pendingRegions = new ArrayDeque<>();
 
     private static int syncTotal = 0;
     private static int syncProcessed = 0;
@@ -56,7 +57,7 @@ public class PacketHandler {
         Minecraft.getInstance().execute(() -> {
             RegionData chunk = payload.chunk();
             if (chunk != null) {
-                AsyncWriter.submit(chunk, success -> () -> Minecraft.getInstance().execute(() -> {
+                AsyncWriter.submit(chunk, success -> Minecraft.getInstance().execute(() -> {
                     if (!success) {
                         LOGGER.error(
                                 "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",

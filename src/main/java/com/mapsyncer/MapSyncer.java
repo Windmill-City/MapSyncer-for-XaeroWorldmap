@@ -1,18 +1,22 @@
 package com.mapsyncer;
 
-import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import com.mapsyncer.client.XaeroBridge;
-import com.mapsyncer.config.PlanConfig;
-import com.mapsyncer.network.ManifestPayload;
-import com.mapsyncer.network.MapRequestPayload;
-import com.mapsyncer.network.MapResponsePayload;
-import com.mapsyncer.server.CommandHandler;
-import com.mapsyncer.server.MapConverter;
-import com.mapsyncer.server.XaeroWriter;
-import com.mapsyncer.server.AutoUpdater;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
+import com.mapsyncer.client.XaeroBridge;
+import com.mapsyncer.mca.config.PlanConfig;
+import com.mapsyncer.network.ManifestPayload;
+import com.mapsyncer.network.MapRequestPayload;
+import com.mapsyncer.network.MapResponsePayload;
+import com.mapsyncer.server.AutoUpdater;
+import com.mapsyncer.server.CommandHandler;
+import com.mapsyncer.server.XaeroWriter;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -29,6 +33,7 @@ import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -36,8 +41,6 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Mod(MapSyncer.MOD_ID)
 public class MapSyncer {
@@ -51,7 +54,7 @@ public class MapSyncer {
     private static final ForgeConfigSpec CONFIG_SPEC;
     private static final ServerConfig CONFIG;
 
-    private static net.minecraftforge.fml.config.PlanConfig serverConfig;
+    private static net.minecraftforge.fml.config.ModConfig serverConfig;
 
     static {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
@@ -98,16 +101,16 @@ public class MapSyncer {
         CONFIG_SPEC.save();
     }
 
-    public static void bindServerConfig(PlanConfig.minecraftforge.fml.config.ModConfig config) {
+    public static void bindServerConfig(ModConfig config) {
         serverConfig = config;
         PlanConfig.rebuildPlans(CONFIG.Plans.get());
     }
 
     public static void reloadFromDisk() {
         if (serverConfig != null) {
+            Path path = serverConfig.getFullPath();
+            CommentedFileConfig file = CommentedFileConfig.of(path);
             try {
-                Path path = serverConfig.getFullPath();
-                CommentedFileConfig file = CommentedFileConfig.of(path);
                 file.load();
                 CONFIG_SPEC.acceptConfig(file);
                 PlanConfig.rebuildPlans(CONFIG.Plans.get());
@@ -135,19 +138,19 @@ public class MapSyncer {
                 MapRequestPayload.class,
                 (msg, buf) -> MapRequestPayload.write(buf, msg),
                 MapRequestPayload::read,
-                com.mapsyncer.server.MapPacketHandler::handleMapRequest);
+                com.mapsyncer.server.PacketHandler::handleMapRequest);
         CHANNEL.registerMessage(
                 1,
                 MapResponsePayload.class,
                 (msg, buf) -> MapResponsePayload.write(buf, msg),
                 MapResponsePayload::read,
-                com.mapsyncer.client.MapPacketHandler::handleSyncResponse);
+                com.mapsyncer.client.PacketHandler::handleSyncResponse);
         CHANNEL.registerMessage(
                 2,
                 ManifestPayload.class,
                 (msg, buf) -> ManifestPayload.write(buf, msg),
                 ManifestPayload::read,
-                com.mapsyncer.client.MapPacketHandler::handleSyncManifest);
+                com.mapsyncer.client.PacketHandler::handleSyncManifest);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             LOGGER.info("Initializing Xaero WorldMap bridge...");
             if (XaeroBridge.initialize()) {
@@ -191,7 +194,7 @@ public class MapSyncer {
     public static class ClientEventHandler {
         @SubscribeEvent
         public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
-            com.mapsyncer.client.MapPacketHandler.onDisconnect();
+            com.mapsyncer.client.PacketHandler.onDisconnect();
         }
     }
 

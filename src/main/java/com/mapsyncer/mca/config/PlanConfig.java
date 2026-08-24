@@ -1,10 +1,11 @@
-package com.mapsyncer.config;
+package com.mapsyncer.mca.config;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PlanConfig {

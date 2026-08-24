@@ -7,7 +7,6 @@ import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.scan.ChunkColumnScanner;
-import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;

@@ -1,7 +1,8 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.mca.McaReader;
-import com.mapsyncer.util.ApiHelper;
+import com.mapsyncer.util.PathHelper;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import net.minecraft.Util;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -40,10 +43,10 @@ public class RegionScanner {
     public static List<Regions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = ApiHelper.getDimId(level.dimId());
+            String dimId = PathHelper.getDimId(level.dimension());
             final String finalDimId = dimId;
             if (!dimNames.stream().anyMatch(d -> d.name().equals(finalDimId))) {
-                dimNames.add(new DimensionNames(dimId, level.dimId()));
+                dimNames.add(new DimensionNames(dimId));
             }
         }
 
@@ -62,7 +65,7 @@ public class RegionScanner {
             if (!Files.exists(worldRoot)) return null;
             worldRoot = worldRoot.toRealPath();
 
-            String dimId = ApiHelper.getDimId(level.dimId());
+            String dimId = PathHelper.getDimId(level.dimension());
 
             Path regionDir = detectRegionDir(worldRoot, dimId);
 
@@ -79,7 +82,7 @@ public class RegionScanner {
     }
 
     private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
-        String dimId = ApiHelper.getDimId(dimensionKey);
+        String dimId = PathHelper.getDimId(dimensionKey);
 
         Path regionDir = detectRegionDir(worldRoot, dimId);
 
@@ -217,5 +220,5 @@ public class RegionScanner {
         return new RegionScanResult(regions, skippedEmpty, fileEntries);
     }
 
-    private record DimensionNames(String name, ResourceKey<Level> key) {}
+    private record DimensionNames(ResourceKey<Level> key) {}
 }

@@ -130,10 +130,6 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static void showHelp(Consumer<net.minecraft.network.chat.Component> sender) {
-        showHelp(sender, "mapsyncer");
-    }
-
     private static void showHelp(Consumer<net.minecraft.network.chat.Component> sender, String prefix) {
         sender.accept(ChatUtils.prefix().append(ChatUtils.header("mapsyncer.help.server.header")));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));

@@ -7,11 +7,12 @@ import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
+import com.mapsyncer.mca.config.LayerPlan;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.PathMapping;
+import com.mapsyncer.util.PathHelper;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -107,7 +108,7 @@ public class MapConverter {
 
         LayerPlan plan = PlanConfig.getPlan(dimPath);
 
-        String dimFolderName = PathMapping.toServerFolderName(fullDimId);
+        String dimFolderName = PathHelper.toServerFolderName(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
 
@@ -448,7 +449,7 @@ public class MapConverter {
             String dimPath = dimRegions.dimension().location().getPath();
 
             LayerPlan plan = PlanConfig.getPlan(dimPath);
-            String dimFolderName = PathMapping.toServerFolderName(fullDimId);
+            String dimFolderName = PathHelper.toServerFolderName(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {

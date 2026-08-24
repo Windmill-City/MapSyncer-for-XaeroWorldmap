@@ -1,10 +1,8 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.config.PlanConfig;
 import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.ApiHelper;
-import com.mapsyncer.util.PathMapping;
+import com.mapsyncer.util.PathHelper;
 import com.mapsyncer.util.RegionKey;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,8 +40,8 @@ public final class ManifestServer {
         Map<RegionRef, Long> rebuilt = new HashMap<>();
 
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = ApiHelper.getDimId(level.dimension());
-            String dimFolderName = PathMapping.toServerFolderName(dimId);
+            String dimId = PathHelper.getDimId(level.dimension());
+            String dimFolderName = PathHelper.toServerFolderName(dimId);
             Path dimDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             if (!Files.isDirectory(dimDir)) {
                 continue;
@@ -79,7 +77,7 @@ public final class ManifestServer {
     }
 
     public static Path resolveZipPath(RegionRef ref) {
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathMapping.toServerFolderName(ref.dimId()));
+        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathHelper.toServerFolderName(ref.dimId()));
         int caveLayer = ref.cave();
         Path outputDir = ref.isSurface()
                 ? baseOutputDir

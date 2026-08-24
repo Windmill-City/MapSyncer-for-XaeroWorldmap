@@ -1,7 +1,6 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.convert.RegionConversionPipeline;
-import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -35,8 +34,6 @@ public class RegionConverter {
             Path mcaPath,
             int regionX,
             int regionZ,
-            DimensionInfo dimTypeInfo,
-            List<RegionScanPass> passes,
             BlockPropertyLookup blockLookup) {
         try {
             return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);
