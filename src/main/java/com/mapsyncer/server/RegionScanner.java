@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
@@ -24,14 +25,23 @@ public class RegionScanner {
 
     public record RegionEntry(RegionCoords coords, long lastModifiedMillis) {}
 
-    public record Regions(Path path, List<RegionEntry> entries) {}
+    public record Regions(String dimId, Path regionDir, List<RegionEntry> entries) {}
 
-    public static Regions scanDimension(ServerLevel level) {
+    public static List<Regions> scan(MinecraftServer server) {
+        List<Regions> result = new ArrayList<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            result.add(scan(level));
+        }
+        return result;
+    }
+
+    private static Regions scan(ServerLevel level) {
+        String dimId = PathUtils.getDimId(level);
         Path regionDir = getRegionDir(level);
         if (regionDir == null) {
-            return new Regions(null, List.of());
+            return new Regions(dimId, null, List.of());
         }
-        return new Regions(regionDir, scanRegionDirectory(regionDir));
+        return new Regions(dimId, regionDir, scanRegionDirectory(regionDir));
     }
 
     private static Path getRegionDir(ServerLevel level) {

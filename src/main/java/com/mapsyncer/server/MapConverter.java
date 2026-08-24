@@ -5,6 +5,7 @@ import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
+import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -48,25 +51,6 @@ public class MapConverter {
 
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
-    private record DimensionRegions(
-            ResourceKey<Level> dimension, Path regionDir, List<RegionScanner.RegionEntry> entries) {}
-
-    private static List<DimensionRegions> scanAllDimensions(MinecraftServer server) {
-        List<DimensionRegions> result = new ArrayList<>();
-        for (ServerLevel level : server.getAllLevels()) {
-            ResourceKey<Level> dimKey = level.dimension();
-            if (result.stream().anyMatch(d -> d.dimension().equals(dimKey))) {
-                continue;
-            }
-            RegionScanner.Regions regions = RegionScanner.scanDimension(level);
-            if (regions.path() == null) {
-                continue;
-            }
-            result.add(new DimensionRegions(dimKey, regions.path(), regions.entries()));
-        }
-        return result;
-    }
-
     private static List<RegionCoords> regionCoords(List<RegionScanner.RegionEntry> entries) {
         List<RegionCoords> coords = new ArrayList<>(entries.size());
         for (RegionScanner.RegionEntry entry : entries) {
@@ -87,7 +71,7 @@ public class MapConverter {
         skippedEmptyContentCount.set(0);
         completedDimensions.clear();
 
-        List<DimensionRegions> allRegions = scanAllDimensions(server);
+        List<Regions> allRegions = RegionScanner.scan(server);
         totalCount = countTotalWork(server, allRegions);
         if (totalCount == 0) {
             LOGGER.info("No regions found to convert");
@@ -96,7 +80,7 @@ public class MapConverter {
         }
         LOGGER.info("Starting conversion of {} regions across {} dimensions", totalCount, allRegions.size());
         try {
-            for (DimensionRegions dimRegions : allRegions) {
+            for (Regions dimRegions : allRegions) {
                 if (isCancelRequested()) {
                     LOGGER.info("Conversion cancelled, skipping remaining dimensions");
                     break;
@@ -110,15 +94,16 @@ public class MapConverter {
         return true;
     }
 
-    private static void convertDimension(MinecraftServer server, DimensionRegions dimRegions, boolean force) {
-        ResourceKey<Level> dimKey = dimRegions.dimension();
+    private static void convertDimension(MinecraftServer server, Regions dimRegions, boolean force) {
+        ResourceKey<Level> dimKey =
+                ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimRegions.dimId()));
         ServerLevel level = server.getLevel(dimKey);
         if (level == null) {
             LOGGER.error("Level not loaded");
             return;
         }
 
-        String fullDimId = dimKey.location().toString();
+        String fullDimId = dimRegions.dimId();
         String dimPath = dimKey.location().getPath();
 
         LayerPlan plan = ScanPlanner.getPlan(dimPath);
@@ -215,17 +200,19 @@ public class MapConverter {
                 skippedEmptyContentCount.get(),
                 failedRegions.size());
 
-        completedDimensions.add(dimKey.location().toString());
+        completedDimensions.add(dimRegions.dimId());
     }
 
-    private static int countTotalWork(MinecraftServer server, List<DimensionRegions> allRegions) {
+    private static int countTotalWork(MinecraftServer server, List<Regions> allRegions) {
         int total = 0;
-        for (DimensionRegions dimRegions : allRegions) {
-            ServerLevel level = server.getLevel(dimRegions.dimension());
+        for (Regions dimRegions : allRegions) {
+            ResourceKey<Level> dimKey =
+                    ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimRegions.dimId()));
+            ServerLevel level = server.getLevel(dimKey);
             if (level == null) {
                 continue;
             }
-            String dimPath = dimRegions.dimension().location().getPath();
+            String dimPath = dimKey.location().getPath();
             LayerPlan plan = ScanPlanner.getPlan(dimPath);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = ScanPlanner.countPasses(plan, dimTypeInfo);
@@ -452,14 +439,15 @@ public class MapConverter {
     public static List<AutoUpdateScanSnapshot> buildAutoUpdateScanSnapshots(MinecraftServer server) {
         List<AutoUpdateScanSnapshot> snapshots = new ArrayList<>();
 
-        for (DimensionRegions dimRegions : scanAllDimensions(server)) {
-            ResourceKey<Level> dimKey = dimRegions.dimension();
+        for (Regions dimRegions : RegionScanner.scan(server)) {
+            ResourceKey<Level> dimKey =
+                    ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimRegions.dimId()));
             ServerLevel level = server.getLevel(dimKey);
             if (level == null) {
                 continue;
             }
 
-            String fullDimId = dimKey.location().toString();
+            String fullDimId = dimRegions.dimId();
             String dimPath = dimKey.location().getPath();
 
             LayerPlan plan = ScanPlanner.getPlan(dimPath);
