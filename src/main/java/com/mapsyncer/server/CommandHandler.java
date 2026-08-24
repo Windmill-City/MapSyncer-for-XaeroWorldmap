@@ -120,7 +120,7 @@ public class CommandHandler {
     }
 
     private static int setAutoUpdateOff(CommandContext<CommandSourceStack> ctx) {
-        disableAutoUpdate();
+        setAutoUpdateOff();
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_off"), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -198,7 +198,7 @@ public class CommandHandler {
         return MapConverter.getTotalCount();
     }
 
-    private static void disableAutoUpdate() {
+    private static void setAutoUpdateOff() {
         MapSyncer.setAutoUpdate(false);
     }
 
