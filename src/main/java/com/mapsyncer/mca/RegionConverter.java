@@ -1,37 +1,38 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.convert.RegionConversionPipeline;
+import com.mapsyncer.mca.convert.Pipeline;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RegionConverter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RegionConverter.class);
-
-    public static final String DEFAULT_BLOCK = "minecraft:air";
-    public static final String DEFAULT_BIOME = "minecraft:the_void";
-
-    public static final int REGION_SIZE_BLOCKS = 512;
     public static final int CHUNKS_PER_REGION = 32;
-    public static final int BLOCKS_PER_TILE = 16;
-    public static final int TILES_PER_TILE_CHUNK = 4;
-    public static final int TILE_CHUNKS_PER_REGION = 8;
-    public static final int MAJOR_VERSION = 6;
-    public static final int MINOR_VERSION = 8;
-    public static final int CAVE_DEPTH = 15;
 
-    public record ConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
-
-    public static List<ConvertedRegion> convertRegionMulti(
-            Path mcaPath, int regionX, int regionZ, BlockPropertyLookup blockLookup) {
-        try {
-            return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, blockLookup);
-        } catch (IOException e) {
-            LOGGER.warn("Failed to convert region ({}, {}) multi-pass", regionX, regionZ, e);
-            return List.of();
+    public static void convert(RegionScanner.RegionEntry entry, BlockPropertyLookup blockLookup)
+            throws IOException {
+        RegionScanner.WorldBounds bounds = entry.bounds();
+        Plan plan = ConvertPlans.getPlan(entry.dimId());
+        if (plan.caveStarts().isEmpty()) {
+            return;
         }
+
+        Path mcaPath = resolveRegionPath(
+                entry.regionDir(), entry.coords().x(), entry.coords().z());
+        if (mcaPath == null) {
+            return;
+        }
+
+        Pipeline.convert(
+                entry.dimId(), mcaPath, entry.coords().x(), entry.coords().z(), bounds, plan, blockLookup);
+    }
+
+    private static Path resolveRegionPath(Path regionDir, int regionX, int regionZ) {
+        Path mcaPath = regionDir.resolve("r." + regionX + "." + regionZ + ".mca");
+        if (Files.exists(mcaPath)) {
+            return mcaPath;
+        }
+        Path mcrPath = regionDir.resolve("r." + regionX + "." + regionZ + ".mcr");
+        return Files.exists(mcrPath) ? mcrPath : null;
     }
 }

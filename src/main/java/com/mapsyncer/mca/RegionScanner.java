@@ -24,22 +24,42 @@ public class RegionScanner {
 
     public record RegionCoords(int x, int z) {}
 
-    public record RegionEntry(RegionCoords coords, long lastModifiedMillis) {}
+    public record RegionEntry(
+            RegionCoords coords, long lastModifiedMillis, String dimId, Path regionDir, WorldBounds bounds) {}
 
-    public record Regions(String dimId, Path regionDir, List<RegionEntry> entries) {}
+    public record WorldBounds(int minY, int height, int logicalHeight, boolean hasCeiling, boolean hasSkylight) {
 
-    public static List<Regions> scan(MinecraftServer server) {
-        List<Regions> result = new ArrayList<>();
-        for (ServerLevel level : server.getAllLevels()) {
-            result.add(scan(level));
+        public int maxY() {
+            return minY + height;
         }
-        return result;
+
+        public int logicalTopY() {
+            return minY + logicalHeight - 1;
+        }
+
+        public boolean hasUpperZone() {
+            return hasCeiling && logicalHeight < height;
+        }
     }
 
-    private static Regions scan(ServerLevel level) {
+    public static List<RegionEntry> scan(MinecraftServer server) {
+        List<RegionEntry> result = new ArrayList<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            result.addAll(scan(level));
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<RegionEntry> scan(ServerLevel level) {
         String dimId = PathUtils.getDimId(level);
         Path regionDir = getRegionDir(level);
-        return new Regions(dimId, regionDir, scan(regionDir));
+        WorldBounds bounds = new WorldBounds(
+                level.getMinBuildHeight(),
+                level.getHeight(),
+                level.dimensionType().logicalHeight(),
+                level.dimensionType().hasCeiling(),
+                level.dimensionType().hasSkyLight());
+        return scanRegionFiles(regionDir, dimId, bounds);
     }
 
     private static Path getRegionDir(ServerLevel level) {
@@ -70,7 +90,7 @@ public class RegionScanner {
         }
     }
 
-    private static List<RegionEntry> scan(Path regionDir) {
+    private static List<RegionEntry> scanRegionFiles(Path regionDir, String dimId, WorldBounds bounds) {
         if (regionDir == null || !Files.exists(regionDir)) {
             return List.of();
         }
@@ -89,7 +109,10 @@ public class RegionScanner {
                     int regionZ = Integer.parseInt(matcher.group(2));
                     entries.add(new RegionEntry(
                             new RegionCoords(regionX, regionZ),
-                            attrs.lastModifiedTime().toMillis()));
+                            attrs.lastModifiedTime().toMillis(),
+                            dimId,
+                            regionDir,
+                            bounds));
                 } catch (IOException e) {
                     LOGGER.warn("Failed to read attributes for {}", fileName, e);
                 }

@@ -1,12 +1,11 @@
 package com.mapsyncer.mca.convert.model;
 
 import static com.mapsyncer.mca.RegionConverter.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser.BlockState;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.RegionConverter.CaveModeParams;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -39,12 +38,12 @@ public class MapRegionData {
     public final boolean[][] chunkExists;
     public final Map<Integer, List<OverlayEntry>> overlays;
     public final LightMode lightMode;
-    public final CaveModeParams caveParams;
+    public final int cave;
     public final ChunkDataParser.ChunkInfo[][] chunkGrid;
 
-    public MapRegionData(int minBuildHeight, LightMode lightMode, CaveModeParams caveParams) {
+    public MapRegionData(int minBuildHeight, LightMode lightMode, int cave) {
         this.lightMode = lightMode;
-        this.caveParams = caveParams != null ? caveParams : CaveModeParams.NONE;
+        this.cave = cave;
         blockStates = new BlockState[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
         topBlockY = new int[REGION_SIZE_BLOCKS][REGION_SIZE_BLOCKS];
         for (int x = 0; x < REGION_SIZE_BLOCKS; x++) {

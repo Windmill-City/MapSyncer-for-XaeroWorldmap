@@ -1,12 +1,12 @@
 package com.mapsyncer.mca.convert.scan;
 
-import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.CAVE_DEPTH;
+import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
 import com.mapsyncer.mca.LightMode;
-import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.model.MapRegionData;
 import com.mapsyncer.mca.convert.model.MapRegionData.OverlayEntry;
 import java.util.ArrayList;
@@ -69,7 +69,7 @@ public final class ChunkColumnScanner {
             int minBuildHeight,
             int worldTopY,
             LightMode lightMode,
-            RegionConverter.CaveModeParams caveParams,
+            int caveStart,
             boolean worldHasSkylight,
             BlockPropertyLookup blockLookup) {
         int chunkX = chunk.chunkX();
@@ -78,11 +78,9 @@ public final class ChunkColumnScanner {
         data.chunkExists[chunkX][chunkZ] = true;
         data.chunkGrid[chunkX][chunkZ] = chunk;
 
-        int caveStart = caveParams.caveStart();
-        int caveDepth = caveParams.caveDepth();
+        int caveDepth = CAVE_DEPTH;
         boolean isCaveMode = caveStart != Integer.MAX_VALUE;
         boolean fullCave = caveStart == Integer.MIN_VALUE;
-        boolean ignoresHeightmap = verticalFloorY > Integer.MIN_VALUE;
         int[][] heightMap = chunk.heightmap();
         int chunkBottomY = chunk.chunkBottomY();
 
@@ -125,14 +123,11 @@ public final class ChunkColumnScanner {
                     int scanBottomY;
                     int startY;
                     if (isCaveMode) {
-                        startY = Math.min(caveStart, verticalCeilingY);
-                        scanBottomY = Math.max(
-                                Math.max(caveStart - caveDepth, minBuildHeight),
-                                Math.max(minBuildHeight, verticalFloorY));
+                        startY = caveStart;
+                        scanBottomY = Math.max(caveStart - caveDepth, minBuildHeight);
                     } else {
-                        int heightmapStartY = ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
-                        startY = ignoresHeightmap ? verticalCeilingY : Math.min(heightmapStartY, verticalCeilingY);
-                        scanBottomY = Math.max(minBuildHeight, Math.max(minBuildHeight, verticalFloorY));
+                        startY = ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
+                        scanBottomY = minBuildHeight;
                     }
 
                     if (startY < scanBottomY) {
@@ -153,8 +148,7 @@ public final class ChunkColumnScanner {
                             isCaveMode,
                             heightMapValue,
                             chunkBottomY,
-                            sectionTopY,
-                            ignoresHeightmap);
+                            sectionTopY);
 
                     if (!isCaveMode && effectiveStartY < sectionBottomY) {
                         continue;
@@ -194,13 +188,12 @@ public final class ChunkColumnScanner {
             boolean isCaveMode,
             int heightMapValue,
             int chunkBottomY,
-            int sectionTopY,
-            boolean ignoresHeightmap) {
+            int sectionTopY) {
         int effectiveStartY = startY;
         if (sectionIndex > 0) {
             effectiveStartY = Math.min(startY + 1, worldTopY - 1);
         }
-        if (!isCaveMode && !ignoresHeightmap && heightMapValue < chunkBottomY) {
+        if (!isCaveMode && heightMapValue < chunkBottomY) {
             effectiveStartY = sectionTopY;
         }
         if (isCaveMode) {

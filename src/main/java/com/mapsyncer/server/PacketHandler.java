@@ -59,8 +59,7 @@ public class PacketHandler {
         Path zipPath = resolveZipPath(region);
         try {
             byte[] data = Files.readAllBytes(zipPath);
-            long timestamp = Files.getLastModifiedTime(zipPath).toMillis();
-            return new RegionData(region, timestamp, data);
+            return new RegionData(region, data);
         } catch (IOException e) {
             LOGGER.error("Failed to read zip file: {}", zipPath, e);
             return null;

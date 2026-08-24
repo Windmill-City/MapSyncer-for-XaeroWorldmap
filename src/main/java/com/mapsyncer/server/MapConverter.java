@@ -1,17 +1,19 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.mca.RegionConverter;
+import com.mapsyncer.mca.RegionScanner;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import java.util.stream.Collectors;
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.mapsyncer.mca.RegionScanner;
-
-import net.minecraft.server.MinecraftServer;
 
 public class MapConverter {
 
@@ -32,15 +34,46 @@ public class MapConverter {
         }
         LOGGER.info("Conversion start...");
         completed.clear();
+        processed = 0;
+        total = 0;
 
         try {
-            var regions = RegionScanner.scan(server);
-            for (RegionScanner.Regions r : regions) {
+            List<RegionScanner.RegionEntry> entries = RegionScanner.scan(server);
+            total = entries.size();
+
+            Map<String, List<RegionScanner.RegionEntry>> byDim = entries.stream()
+                    .collect(Collectors.groupingBy(
+                            RegionScanner.RegionEntry::dimId,
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+
+            for (Map.Entry<String, List<RegionScanner.RegionEntry>> dim : byDim.entrySet()) {
+                if (!isRunning.get()) {
+                    break;
+                }
                 LOGGER.info(
-                        "Dimension: {}, regionDir: {}, regions found: {}",
-                        r.dimId(),
-                        r.regionDir(),
-                        r.entries().size());
+                        "Converting dimension {} ({} regions)",
+                        dim.getKey(),
+                        dim.getValue().size());
+                for (RegionScanner.RegionEntry entry : dim.getValue()) {
+                    if (!isRunning.get()) {
+                        break;
+                    }
+                    try {
+                        RegionConverter.convert(entry, BlockPropertyResolver.INSTANCE);
+                    } catch (IOException e) {
+                        LOGGER.warn(
+                                "Failed to convert region ({}, {})",
+                                entry.coords().x(),
+                                entry.coords().z(),
+                                e);
+                    }
+                    processed++;
+                }
+                if (isRunning.get()) {
+                    completed.add(dim.getKey());
+                    LOGGER.info("Dimension {} conversion complete", dim.getKey());
+                }
             }
         } catch (Throwable e) {
             LOGGER.error("Conversion failed", e);

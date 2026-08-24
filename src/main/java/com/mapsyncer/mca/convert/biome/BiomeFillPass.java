@@ -1,7 +1,7 @@
 package com.mapsyncer.mca.convert.biome;
 
 import static com.mapsyncer.mca.RegionConverter.CHUNKS_PER_REGION;
-import static com.mapsyncer.mca.RegionConverter.REGION_SIZE_BLOCKS;
+import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.REGION_SIZE_BLOCKS;
 
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.LightMode;
@@ -27,13 +27,13 @@ public final class BiomeFillPass {
                 int lz = rz & 0xF;
                 int[][] heightmap = chunk.heightmap();
 
-                boolean caveMode = data.lightMode == LightMode.CAVE && data.caveParams.caveStart() != Integer.MAX_VALUE;
+                boolean caveMode = data.lightMode == LightMode.CAVE && data.cave != Integer.MAX_VALUE;
 
                 int sampleY;
                 if (data.hasData[rx][rz]) {
                     sampleY = data.heightMap[rx][rz];
                 } else if (caveMode) {
-                    sampleY = data.caveParams.caveStart();
+                    sampleY = data.cave;
                 } else if (heightmap != null) {
                     sampleY = heightmap[lx][lz];
                     data.heightMap[rx][rz] = sampleY;

@@ -1,6 +1,7 @@
-package com.mapsyncer.server;
+package com.mapsyncer.mca.convert.io;
 
-import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
+import com.mapsyncer.network.RegionData;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -11,7 +12,7 @@ import java.util.zip.ZipOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class XaeroWriter {
+public final class XaeroWriter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWriter.class);
 
@@ -39,10 +40,14 @@ public class XaeroWriter {
         }
     }
 
-    public static void writeRegionFile(Path outputDir, ConvertedRegion region) throws IOException {
+    public static void writeRegionFile(RegionData region) throws IOException {
+        Path dimDir = PathUtils.getDimDirServer(region.ref.dimId());
+        Path outputDir = region.ref.isSurface()
+                ? dimDir
+                : dimDir.resolve("caves").resolve(String.valueOf(region.ref.cave()));
         Files.createDirectories(outputDir);
 
-        String fileName = region.regionX() + "_" + region.regionZ();
+        String fileName = region.ref.regionX() + "_" + region.ref.regionZ();
         Path tempFile = outputDir.resolve(fileName + ".zip.temp");
         Path finalFile = outputDir.resolve(fileName + ".zip");
 
@@ -50,7 +55,7 @@ public class XaeroWriter {
                 ZipOutputStream zos = new ZipOutputStream(fileOut)) {
             ZipEntry entry = new ZipEntry("region.xaero");
             zos.putNextEntry(entry);
-            zos.write(region.xaeroData());
+            zos.write(region.data);
             zos.closeEntry();
         }
 

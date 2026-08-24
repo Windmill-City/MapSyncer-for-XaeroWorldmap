@@ -3,6 +3,7 @@ package com.mapsyncer.mca.convert.io;
 import com.mapsyncer.mca.BlockPropertyLookup;
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.McaReader;
+import com.mapsyncer.mca.Plan;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.convert.biome.BiomeFillPass;
 import com.mapsyncer.mca.convert.model.MapRegionData;
@@ -18,23 +19,25 @@ public final class McaRegionLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(McaRegionLoader.class);
 
-    public record PassMapData(RegionScanPass pass, MapRegionData data) {}
+    public record PassMapData(int cave, MapRegionData data) {}
 
-    public static List<PassMapData> loadMulti(
+    public static List<PassMapData> load(
             Path mcaPath,
             int minBuildHeight,
             int worldTopY,
             boolean worldHasSkylight,
             BlockPropertyLookup blockLookup,
-            List<RegionScanPass> passes)
+            Plan plan)
             throws IOException {
-        if (passes.isEmpty()) {
+        List<Integer> caveStarts = plan.caveStarts();
+        if (caveStarts.isEmpty()) {
             return List.of();
         }
 
-        List<PassMapData> results = new ArrayList<>(passes.size());
-        for (RegionScanPass pass : passes) {
-            results.add(new PassMapData(pass, new MapRegionData(minBuildHeight, pass.lightMode(), pass.caveParams())));
+        List<PassMapData> results = new ArrayList<>(caveStarts.size());
+        for (int caveStart : caveStarts) {
+            results.add(new PassMapData(
+                    caveStart, new MapRegionData(minBuildHeight, Plan.lightMode(caveStart), caveStart)));
         }
 
         try (McaReader reader = McaReader.open(mcaPath.toString())) {
@@ -48,14 +51,14 @@ public final class McaRegionLoader {
                         continue;
                     }
                     for (PassMapData passData : results) {
-                        RegionScanPass pass = passData.pass();
+                        int caveStart = passData.cave();
                         ChunkColumnScanner.scan(
                                 passData.data(),
                                 chunkInfo,
                                 minBuildHeight,
                                 worldTopY,
-                                pass.lightMode(),
-                                pass.caveParams(),
+                                Plan.lightMode(caveStart),
+                                caveStart,
                                 worldHasSkylight,
                                 blockLookup);
                     }

@@ -7,6 +7,27 @@ import java.util.Set;
 
 public record Plan(boolean surface, Set<Integer> caves) {
 
+    public List<Integer> caveStarts() {
+        List<Integer> starts = new ArrayList<>();
+        if (surface) {
+            starts.add(Integer.MAX_VALUE);
+        }
+        caves.stream().sorted().forEach(starts::add);
+        return List.copyOf(starts);
+    }
+
+    public static boolean isSurface(int caveStart) {
+        return caveStart == Integer.MAX_VALUE;
+    }
+
+    public static int caveLayer(int caveStart) {
+        return isSurface(caveStart) ? Integer.MAX_VALUE : caveStart >> 4;
+    }
+
+    public static LightMode lightMode(int caveStart) {
+        return isSurface(caveStart) ? LightMode.SURFACE : LightMode.CAVE;
+    }
+
     @Override
     public String toString() {
         List<String> parts = new ArrayList<>();

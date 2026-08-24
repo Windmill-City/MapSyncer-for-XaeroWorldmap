@@ -1,6 +1,6 @@
 package com.mapsyncer.mca.convert.biome;
 
-import static com.mapsyncer.mca.RegionConverter.DEFAULT_BIOME;
+import static com.mapsyncer.mca.convert.io.XaeroBinaryWriter.DEFAULT_BIOME;
 
 import com.mapsyncer.mca.ChunkDataParser;
 import com.mapsyncer.mca.ChunkSectionParser;
