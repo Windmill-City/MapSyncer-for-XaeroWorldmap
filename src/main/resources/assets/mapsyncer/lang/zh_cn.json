@@ -8,7 +8,7 @@
   "mapsyncer.help.server.header": "服务端命令帮助：",
   "mapsyncer.help.server.generate_start": "/%s generate start - 开始生成所有维度地图缓存",
   "mapsyncer.help.server.generate_stop": "/%s generate stop - 停止当前正在进行的生成任务",
-  "mapsyncer.help.server.generate_status": "/%s generate status - 查看生成任务和自动更新状态",
+  "mapsyncer.help.server.generate_status": "/%s generate status - 查看生成任务状态",
   "mapsyncer.help.server.automatic": "/%s automatic - 查看当前自动更新状态",
   "mapsyncer.help.server.automatic_off": "/%s automatic off - 禁用自动更新",
   "mapsyncer.help.server.automatic_on": "/%s automatic on - 开启自动更新（无人在线时执行）",
@@ -16,10 +16,8 @@
   "mapsyncer.command.config_reloaded": "服务端配置已重新加载",
   "mapsyncer.command.config_reload_failed": "服务端配置重新加载失败，请查看服务端日志",
 
-  "mapsyncer.command.automatic_disabled": "自动更新已禁用",
-  "mapsyncer.command.automatic_on_set": "自动更新已开启（无人在线时执行）",
-  "mapsyncer.command.automatic_status_disabled": "自动更新：已关闭",
-  "mapsyncer.command.automatic_status_on": "自动更新：已开启（无人在线时执行）",
+  "mapsyncer.command.automatic_off": "自动更新已禁用",
+  "mapsyncer.command.automatic_on": "自动更新已开启（无人在线时执行）",
   "mapsyncer.command.automatic_status_hint": "可用子命令：/%s automatic off | on",
 
   "mapsyncer.generate.start_full": "开始全量地图生成...",

@@ -87,7 +87,6 @@ public class CommandHandler {
 
     private static int showStatus(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
-        ctx.getSource().sendSuccess(CommandHandler::automaticStatusMessage, false);
 
         List<DimensionCacheStats> cacheStats = getCacheStats();
         if (!cacheStats.isEmpty()) {
@@ -122,13 +121,13 @@ public class CommandHandler {
 
     private static int setAutomaticOff(CommandContext<CommandSourceStack> ctx) {
         disableAutomatic();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_disabled"), false);
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_off"), false);
         return Command.SINGLE_SUCCESS;
     }
 
     private static int setAutomaticOn(CommandContext<CommandSourceStack> ctx) {
         setAutomaticOn();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on_set"), false);
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -168,9 +167,9 @@ public class CommandHandler {
         boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
 
         if (enabled) {
-            return ChatUtils.message("mapsyncer.command.automatic_status_on");
+            return ChatUtils.message("mapsyncer.command.automatic_on");
         }
-        return ChatUtils.message("mapsyncer.command.automatic_status_disabled");
+        return ChatUtils.message("mapsyncer.command.automatic_off");
     }
 
     public static boolean generateAll(MinecraftServer server, Runnable onSuccess) {
