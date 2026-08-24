@@ -2,7 +2,7 @@ package com.mapsyncer;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
-import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.PlanConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
@@ -50,13 +50,13 @@ public class MapSyncer {
     public static final ForgeConfigSpec CONFIG_SPEC;
     public static final ServerConfig CONFIG;
 
-    private static net.minecraftforge.fml.config.ModConfig serverConfig;
+    private static net.minecraftforge.fml.config.PlanConfig serverConfig;
 
     static {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
         CONFIG = pair.getLeft();
         CONFIG_SPEC = pair.getRight();
-        ModConfig.rebuildPlans(CONFIG.Plans.get());
+        PlanConfig.rebuildPlans(CONFIG.Plans.get());
     }
 
     public static class ServerConfig {
@@ -82,7 +82,7 @@ public class MapSyncer {
                     "Format per entry: \"dimension = layerPlan\"",
                     "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
                     "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("plans", ModConfig.getDefaultPlans(), obj -> obj instanceof String);
+                    .defineList("plans", PlanConfig.getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();
         }
@@ -97,9 +97,9 @@ public class MapSyncer {
         CONFIG_SPEC.save();
     }
 
-    public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
+    public static void bindServerConfig(PlanConfig.minecraftforge.fml.config.ModConfig config) {
         serverConfig = config;
-        ModConfig.rebuildPlans(CONFIG.Plans.get());
+        PlanConfig.rebuildPlans(CONFIG.Plans.get());
     }
 
     public static void reloadFromDisk() {
@@ -109,7 +109,7 @@ public class MapSyncer {
                 CommentedFileConfig file = CommentedFileConfig.of(path);
                 file.load();
                 CONFIG_SPEC.acceptConfig(file);
-                ModConfig.rebuildPlans(CONFIG.Plans.get());
+                PlanConfig.rebuildPlans(CONFIG.Plans.get());
             } finally {
                 file.close();
             }

@@ -1,7 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.PlanConfig;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathMapping;

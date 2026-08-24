@@ -7,9 +7,9 @@ import java.util.Set;
 
 import org.slf4j.LoggerFactory;
 
-public class ModConfig {
+public class PlanConfig {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ModConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlanConfig.class);
 
     private static volatile Map<String, LayerPlan> Plans = Map.of();
 

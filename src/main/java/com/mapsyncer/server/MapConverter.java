@@ -2,7 +2,7 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.config.ScanPlanner;
-import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.config.PlanConfig;
 import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
@@ -109,7 +109,7 @@ public class MapConverter {
         String fullDimId = dimRegions.dimension().location().toString();
         String dimPath = dimRegions.dimension().location().getPath();
 
-        LayerPlan plan = ModConfig.getPlan(dimPath);
+        LayerPlan plan = PlanConfig.getPlan(dimPath);
 
         String dimFolderName = PathMapping.toServerFolderName(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
@@ -216,7 +216,7 @@ public class MapConverter {
                 continue;
             }
             String dimPath = dimRegions.dimension().location().getPath();
-            LayerPlan plan = ModConfig.getPlan(dimPath);
+            LayerPlan plan = PlanConfig.getPlan(dimPath);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = ScanPlanner.countPasses(plan, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
@@ -451,7 +451,7 @@ public class MapConverter {
             String fullDimId = dimRegions.dimension().location().toString();
             String dimPath = dimRegions.dimension().location().getPath();
 
-            LayerPlan plan = ModConfig.getPlan(dimPath);
+            LayerPlan plan = PlanConfig.getPlan(dimPath);
             String dimFolderName = PathMapping.toServerFolderName(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
