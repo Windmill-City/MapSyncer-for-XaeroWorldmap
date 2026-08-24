@@ -60,7 +60,7 @@ public final class ManifestServer {
 
         manifest = rebuilt;
         isValid = true;
-        LOGGER.info("Manifest cache built for {} with {} entries", PathUtils.CACHE_DIR, rebuilt.size());
+        LOGGER.info("Manifest cache built with {} entries", rebuilt.size());
     }
 
     private static long readMtimeMillis(Path zipPath) {
