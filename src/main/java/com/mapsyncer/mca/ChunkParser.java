@@ -236,7 +236,7 @@ public final class ChunkParser {
     }
 
     private static void decodeHeightmapLongArray(long[] data, int bitsPerHeight, int chunkBottomY, int[][] heightmap) {
-        if (data == null || data.length == 0 || bitsPerHeight <= 0) {
+        if (data.length == 0) {
             return;
         }
 
@@ -316,7 +316,7 @@ public final class ChunkParser {
 
         int blockUVal = 0;
         long blockMask = 0;
-        if (blockData != null && blockData.length > 0 && blockBitsPerEntry > 0) {
+        if (blockData != null && blockData.length > 0) {
             blockUVal = 64 / blockBitsPerEntry;
             blockMask = (1L << blockBitsPerEntry) - 1L;
         }
@@ -487,7 +487,7 @@ public final class ChunkParser {
             return section.blockPalette.get(0);
         }
 
-        if (section.blockData == null || section.blockBitsPerEntry == 0) {
+        if (section.blockData == null) {
             return new BlockState(Constants.BLOCK_AIR, Map.of());
         }
 
@@ -514,7 +514,7 @@ public final class ChunkParser {
             return section.biomePalette.get(0);
         }
 
-        if (section.biomeData == null || section.biomeBitsPerEntry == 0) {
+        if (section.biomeData == null) {
             return null;
         }
 
