@@ -217,23 +217,24 @@ public final class ChunkParser {
     private static int[][] parseHeightmap(HeightmapFields heightmaps, int chunkBottomY, int worldHeightRange) {
         int[][] heightmap = new int[Constants.CHUNK_SIZE][Constants.CHUNK_SIZE];
 
-        if (heightmaps.worldSurface != null) {
-            int bitsPerHeight = calculateBitsPerHeight(heightmaps.worldSurface.length, worldHeightRange);
-            if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
-                decodeHeightmapLongArray(heightmaps.worldSurface, bitsPerHeight, chunkBottomY, heightmap);
-                return heightmap;
-            }
+        if (tryDecodeHeightmap(heightmaps.worldSurface, worldHeightRange, chunkBottomY, heightmap)) {
+            return heightmap;
         }
-
-        if (heightmaps.motionBlocking != null) {
-            int bitsPerHeight = calculateBitsPerHeight(heightmaps.motionBlocking.length, worldHeightRange);
-            if (bitsPerHeight > 0 && bitsPerHeight <= 10) {
-                decodeHeightmapLongArray(heightmaps.motionBlocking, bitsPerHeight, chunkBottomY, heightmap);
-                return heightmap;
-            }
-        }
+        tryDecodeHeightmap(heightmaps.motionBlocking, worldHeightRange, chunkBottomY, heightmap);
 
         return heightmap;
+    }
+
+    private static boolean tryDecodeHeightmap(long[] data, int worldHeightRange, int chunkBottomY, int[][] heightmap) {
+        if (data == null) {
+            return false;
+        }
+        int bitsPerHeight = calculateBitsPerHeight(data.length, worldHeightRange);
+        if (bitsPerHeight <= 0 || bitsPerHeight > 10) {
+            return false;
+        }
+        decodeHeightmapLongArray(data, bitsPerHeight, chunkBottomY, heightmap);
+        return true;
     }
 
     private static int calculateBitsPerHeight(int longArrayLength, int worldHeightRange) {
@@ -254,23 +255,12 @@ public final class ChunkParser {
         }
 
         int u = 64 / bitsPerHeight;
+        long mask = (1L << bitsPerHeight) - 1L;
 
         for (int z = 0; z < Constants.CHUNK_SIZE; z++) {
             for (int x = 0; x < Constants.CHUNK_SIZE; x++) {
-
                 int i = x + Constants.CHUNK_SIZE * z;
-
-                int longIndex = i / u;
-                int bitOffset = (i % u) * bitsPerHeight;
-
-                if (longIndex >= data.length) {
-                    heightmap[x][z] = chunkBottomY;
-                    continue;
-                }
-
-                long rawValue = (data[longIndex] >>> bitOffset) & ((1L << bitsPerHeight) - 1L);
-
-                heightmap[x][z] = chunkBottomY + (int) rawValue;
+                heightmap[x][z] = chunkBottomY + readBitsFast(data, i, u, bitsPerHeight, mask);
             }
         }
     }
@@ -332,29 +322,11 @@ public final class ChunkParser {
             }
         }
 
-        int blockBitsPerEntry = calculateBitsPerEntry(blockPalette.size(), blockData);
-        int biomeBitsPerEntry = calculateBiomeBitsPerEntry(biomePalette.size(), biomeData);
+        int blockBitsPerEntry = Math.max(4, calculateBitsPerEntry(blockPalette.size()));
+        int biomeBitsPerEntry = calculateBitsPerEntry(biomePalette.size());
 
-        byte[] decodedBlockLight = null;
-        byte[] decodedSkyLight = null;
-        if (rawBlockLight != null && rawBlockLight.length == 2048) {
-            decodedBlockLight = new byte[4096];
-            for (int i = 0; i < 2048; i++) {
-                int b = rawBlockLight[i] & 0xFF;
-                int idx = i << 1;
-                decodedBlockLight[idx] = (byte) (b & 0xF);
-                decodedBlockLight[idx + 1] = (byte) ((b >> 4) & 0xF);
-            }
-        }
-        if (rawSkyLight != null && rawSkyLight.length == 2048) {
-            decodedSkyLight = new byte[4096];
-            for (int i = 0; i < 2048; i++) {
-                int b = rawSkyLight[i] & 0xFF;
-                int idx = i << 1;
-                decodedSkyLight[idx] = (byte) (b & 0xF);
-                decodedSkyLight[idx + 1] = (byte) ((b >> 4) & 0xF);
-            }
-        }
+        byte[] decodedBlockLight = decodeLightArray(rawBlockLight);
+        byte[] decodedSkyLight = decodeLightArray(rawSkyLight);
 
         int blockUVal = 0;
         long blockMask = 0;
@@ -375,6 +347,20 @@ public final class ChunkParser {
                 decodedSkyLight,
                 blockUVal,
                 blockMask);
+    }
+
+    private static byte[] decodeLightArray(byte[] raw) {
+        if (raw == null || raw.length != 2048) {
+            return null;
+        }
+        byte[] decoded = new byte[4096];
+        for (int i = 0; i < 2048; i++) {
+            int b = raw[i] & 0xFF;
+            int idx = i << 1;
+            decoded[idx] = (byte) (b & 0xF);
+            decoded[idx + 1] = (byte) ((b >> 4) & 0xF);
+        }
+        return decoded;
     }
 
     private static BlockData readBlockStates(NbtStream stream) throws IOException {
@@ -498,19 +484,7 @@ public final class ChunkParser {
                 properties == null || properties.isEmpty() ? BlockState.EMPTY_PROPERTIES : properties);
     }
 
-    private static int calculateBitsPerEntry(int paletteSize, long[] data) {
-        if (paletteSize <= 1) {
-            return 0;
-        }
-
-        if (paletteSize <= 16) {
-            return 4;
-        }
-
-        return 32 - Integer.numberOfLeadingZeros(paletteSize - 1);
-    }
-
-    private static int calculateBiomeBitsPerEntry(int paletteSize, long[] data) {
+    private static int calculateBitsPerEntry(int paletteSize) {
         if (paletteSize <= 1) {
             return 0;
         }
@@ -603,14 +577,17 @@ public final class ChunkParser {
     }
 
     public static byte getBlockLight(SectionData section, int x, int y, int z) {
-        byte[] d = section.blockLight();
-        if (d != null && d.length == 4096) return d[(y << 8) | (z << 4) | x];
-        return 0;
+        return getLight(section.blockLight(), x, y, z);
     }
 
     public static byte getSkyLight(SectionData section, int x, int y, int z) {
-        byte[] d = section.skyLight();
-        if (d != null && d.length == 4096) return d[(y << 8) | (z << 4) | x];
+        return getLight(section.skyLight(), x, y, z);
+    }
+
+    private static byte getLight(byte[] light, int x, int y, int z) {
+        if (light != null && light.length == 4096) {
+            return light[(y << 8) | (z << 4) | x];
+        }
         return 0;
     }
 
