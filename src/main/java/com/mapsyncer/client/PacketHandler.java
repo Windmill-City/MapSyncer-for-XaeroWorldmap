@@ -116,8 +116,8 @@ public class PacketHandler {
                     return;
                 }
 
-                pending.sort(Comparator.comparingInt(ref -> ref.regionDistance(
-                        mc.player.getBlockX() >> 9, mc.player.getBlockZ() >> 9)));
+                pending.sort(Comparator.comparingInt(
+                        ref -> ref.regionDistance(mc.player.getBlockX() >> 9, mc.player.getBlockZ() >> 9)));
 
                 pendingRegions.addAll(pending);
                 syncTotal = pending.size();
@@ -130,8 +130,8 @@ public class PacketHandler {
         });
     }
 
-    private static List<RegionRef> collectPending(Map<RegionRef, Long> serverTimestamps,
-            Map<RegionRef, Long> localMeta) {
+    private static List<RegionRef> collectPending(
+            Map<RegionRef, Long> serverTimestamps, Map<RegionRef, Long> localMeta) {
         List<RegionRef> pending = new ArrayList<>();
         for (Map.Entry<RegionRef, Long> entry : serverTimestamps.entrySet()) {
             Long local = localMeta.get(entry.getKey());
@@ -195,8 +195,10 @@ public class PacketHandler {
 
         if (Minecraft.getInstance().player != null) {
             long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
-            Minecraft.getInstance().player.displayClientMessage(
-                    ChatUtils.success("mapsyncer.sync.completed", syncProcessed, syncFailed, elapsed), false);
+            Minecraft.getInstance()
+                    .player
+                    .displayClientMessage(
+                            ChatUtils.success("mapsyncer.sync.completed", syncProcessed, syncFailed, elapsed), false);
         }
 
         stop();

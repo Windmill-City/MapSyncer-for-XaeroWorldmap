@@ -1,16 +1,16 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.config.ScanPlanner;
 import com.mapsyncer.config.PlanConfig;
+import com.mapsyncer.config.ScanPlanner;
 import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
 import com.mapsyncer.mca.config.LayerPlan;
 import com.mapsyncer.mca.convert.scan.RegionScanPass;
-import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
+import com.mapsyncer.server.RegionScanner.Regions;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathHelper;
 import java.io.IOException;
@@ -68,9 +68,8 @@ public class MapConverter {
 
         List<Regions> allRegions = RegionScanner.scanAllDimensions(server);
         totalCount = countTotalWork(server, allRegions);
-        int totalSkippedEmpty = allRegions.stream()
-                .mapToInt(Regions::skippedEmptyCount)
-                .sum();
+        int totalSkippedEmpty =
+                allRegions.stream().mapToInt(Regions::skippedEmptyCount).sum();
         if (totalCount == 0) {
             LOGGER.info("No regions found to convert");
             isRunning.set(false);
@@ -122,7 +121,8 @@ public class MapConverter {
 
         try {
             for (RegionScanPass pass : passes) {
-                        Files.createDirectories(pass.isSurface()
+                Files.createDirectories(
+                        pass.isSurface()
                                 ? baseOutputDir
                                 : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
             }
@@ -527,9 +527,10 @@ public class MapConverter {
 
                 try {
                     for (RegionScanPass pass : passes) {
-                Files.createDirectories(pass.isSurface()
-                        ? baseOutputDir
-                        : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
+                        Files.createDirectories(
+                                pass.isSurface()
+                                        ? baseOutputDir
+                                        : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
                     }
                 } catch (IOException e) {
                     LOGGER.error("Failed to create output directories: {}", baseOutputDir, e);

@@ -135,8 +135,7 @@ public final class XaeroBridge {
             }
 
             if (!cancelRefresh(mapRegion) || !setShouldCache(mapRegion, true) || !setHasHadTerrain(mapRegion)) {
-                LOGGER.warn(
-                        "Region ({}, {}) layer={} load preparation failed", regionX, regionZ, caveLayer);
+                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", regionX, regionZ, caveLayer);
                 return;
             }
 

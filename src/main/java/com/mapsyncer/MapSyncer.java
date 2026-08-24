@@ -1,12 +1,5 @@
 package com.mapsyncer;
 
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Supplier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
 import com.mapsyncer.mca.config.PlanConfig;
@@ -16,7 +9,9 @@ import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.XaeroWriter;
-
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -41,6 +36,8 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Mod(MapSyncer.MOD_ID)
 public class MapSyncer {
@@ -72,9 +69,8 @@ public class MapSyncer {
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("AutoUpdate");
 
-            AutoUpdate = builder.comment(
-                    "Update map when no players are online")
-                    .define("enabled", true);
+            AutoUpdate =
+                    builder.comment("Update map when no players are online").define("enabled", true);
 
             builder.pop();
 
@@ -82,10 +78,10 @@ public class MapSyncer {
             builder.comment("Dimension scan settings");
 
             Plans = builder.comment(
-                    "Per-dimension scan configuration list (one line per dimension)",
-                    "Format per entry: \"dimension = layerPlan\"",
-                    "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
-                    "Example: \"minecraft:overworld = SURFACE\"")
+                            "Per-dimension scan configuration list (one line per dimension)",
+                            "Format per entry: \"dimension = layerPlan\"",
+                            "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
+                            "Example: \"minecraft:overworld = SURFACE\"")
                     .defineList("plans", PlanConfig.getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();

@@ -131,9 +131,7 @@ public final class ChunkColumnScanner {
                                 Math.max(minBuildHeight, verticalFloorY));
                     } else {
                         int heightmapStartY = ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
-                        startY = ignoresHeightmap
-                                ? verticalCeilingY
-                                : Math.min(heightmapStartY, verticalCeilingY);
+                        startY = ignoresHeightmap ? verticalCeilingY : Math.min(heightmapStartY, verticalCeilingY);
                         scanBottomY = Math.max(minBuildHeight, Math.max(minBuildHeight, verticalFloorY));
                     }
 

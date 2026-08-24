@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,9 +36,7 @@ public class PlanConfig {
         defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
         defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
         defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
-        return defaults.entrySet().stream()
-                .map(Map.Entry::toString)
-                .toList();
+        return defaults.entrySet().stream().map(Map.Entry::toString).toList();
     }
 
     private static Map.Entry<String, LayerPlan> parsePlanEntry(String configStr) {

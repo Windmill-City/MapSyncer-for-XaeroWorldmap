@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionData;
-import com.mapsyncer.network.RegionRef;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -76,8 +75,8 @@ public final class XaeroWriter {
             return false;
         }
 
-        Minecraft.getInstance().execute(
-                () -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.cave()));
+        Minecraft.getInstance()
+                .execute(() -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.cave()));
 
         return true;
     }

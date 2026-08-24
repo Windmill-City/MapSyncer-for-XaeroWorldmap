@@ -31,10 +31,7 @@ public class RegionConverter {
     }
 
     public static List<LayerConvertedRegion> convertRegionMulti(
-            Path mcaPath,
-            int regionX,
-            int regionZ,
-            BlockPropertyLookup blockLookup) {
+            Path mcaPath, int regionX, int regionZ, BlockPropertyLookup blockLookup) {
         try {
             return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);
         } catch (IOException e) {

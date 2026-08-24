@@ -1,4 +1,5 @@
 package com.mapsyncer.server;
+
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.server.MapConverter.DimensionCacheStats;
 import com.mapsyncer.util.ChatUtils;
@@ -7,9 +8,9 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import java.util.List;
 import java.util.function.Consumer;
+import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.Util;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -100,8 +101,8 @@ public class CommandHandler {
             StringBuilder dims = new StringBuilder();
             for (DimensionCacheStats stat : cacheStats) {
                 if (dims.length() > 0) dims.append("\n");
-                dims.append(String.format(
-                        "  %s: %d regions, %.2f MB", stat.dimId(), stat.regionCount(), stat.sizeMB()));
+                dims.append(
+                        String.format("  %s: %d regions, %.2f MB", stat.dimId(), stat.regionCount(), stat.sizeMB()));
             }
 
             ctx.getSource()

@@ -1,7 +1,6 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionData;
-
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
