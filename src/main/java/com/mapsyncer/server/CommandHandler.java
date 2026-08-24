@@ -62,9 +62,12 @@ public class CommandHandler {
     }
 
     private static int reloadConfig(CommandContext<CommandSourceStack> ctx) {
-        if (reloadConfig()) {
+        try {
+            MapSyncer.reloadFromDisk();
+            LOGGER.info("Server configuration reloaded");
             ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.config_reloaded"), false);
-        } else {
+        } catch (Exception e) {
+            LOGGER.error("Failed to reload server configuration", e);
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.config_reload_failed"));
         }
         return Command.SINGLE_SUCCESS;
@@ -100,13 +103,18 @@ public class CommandHandler {
     }
 
     private static int generateStatus(CommandContext<CommandSourceStack> ctx) {
-        ctx.getSource().sendSuccess(() -> {
-            if (MapConverter.isRunning()) {
-                return ChatUtils.message(
-                        "mapsyncer.generate.in_progress", MapConverter.getProcessedCount(), MapConverter.getTotalCount());
-            }
-            return ChatUtils.message("mapsyncer.generate.no_progress");
-        }, false);
+        ctx.getSource()
+                .sendSuccess(
+                        () -> {
+                            if (MapConverter.isRunning()) {
+                                return ChatUtils.message(
+                                        "mapsyncer.generate.in_progress",
+                                        MapConverter.getProcessedCount(),
+                                        MapConverter.getTotalCount());
+                            }
+                            return ChatUtils.message("mapsyncer.generate.no_progress");
+                        },
+                        false);
 
         List<DimensionCacheStats> cacheStats = MapConverter.getCacheStats();
         if (!cacheStats.isEmpty()) {
@@ -149,16 +157,5 @@ public class CommandHandler {
         MapSyncer.setAutoUpdate(true);
         ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.autoupdate_on"), false);
         return Command.SINGLE_SUCCESS;
-    }
-
-    private static boolean reloadConfig() {
-        try {
-            MapSyncer.reloadFromDisk();
-            LOGGER.info("Server configuration reloaded");
-            return true;
-        } catch (Exception e) {
-            LOGGER.error("Failed to reload server configuration", e);
-            return false;
-        }
     }
 }
