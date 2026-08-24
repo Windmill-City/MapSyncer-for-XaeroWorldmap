@@ -25,7 +25,7 @@ public class ManifestPayload {
 
     public static ManifestPayload read(FriendlyByteBuf buf) {
         int size = buf.readInt();
-        Map<RegionRef, Long> timestamps = new HashMap<>();
+        Map<RegionRef, Long> timestamps = new HashMap<>(size);
         for (int i = 0; i < size; i++) {
             RegionRef ref = RegionRef.read(buf);
             long timestampMillis = buf.readLong();
