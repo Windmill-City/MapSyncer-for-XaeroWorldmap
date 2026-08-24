@@ -42,13 +42,13 @@ public final class XaeroWriter {
 
     public static void writeRegionFile(RegionData region) throws IOException {
         Path dimDir = PathUtils.getDimDirServer(region.ref.dimId());
-        Path outputDir =
+        Path outDir =
                 region.ref.isSurface() ? dimDir : dimDir.resolve("caves").resolve(String.valueOf(region.ref.cave()));
-        Files.createDirectories(outputDir);
+        Files.createDirectories(outDir);
 
         String fileName = region.ref.regionX() + "_" + region.ref.regionZ();
-        Path tempFile = outputDir.resolve(fileName + ".zip.temp");
-        Path finalFile = outputDir.resolve(fileName + ".zip");
+        Path tempFile = outDir.resolve(fileName + ".zip.temp");
+        Path finalFile = outDir.resolve(fileName + ".zip");
 
         try (OutputStream fileOut = Files.newOutputStream(tempFile);
                 ZipOutputStream zos = new ZipOutputStream(fileOut)) {

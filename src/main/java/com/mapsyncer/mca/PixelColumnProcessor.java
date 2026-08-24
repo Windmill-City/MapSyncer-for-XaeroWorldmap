@@ -3,7 +3,6 @@ package com.mapsyncer.mca;
 import com.mapsyncer.mca.ChunkParser.BlockState;
 import com.mapsyncer.mca.ChunkParser.SectionData;
 import com.mapsyncer.mca.MapRegionData.OverlayEntry;
-
 import java.util.ArrayList;
 import java.util.List;
 

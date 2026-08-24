@@ -1,7 +1,6 @@
 package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.ChunkParser.SectionData;
-
 import java.util.List;
 
 public final class BiomeResolver {

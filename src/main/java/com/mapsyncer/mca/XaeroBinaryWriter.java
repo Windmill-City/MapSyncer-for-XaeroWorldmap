@@ -2,7 +2,6 @@ package com.mapsyncer.mca;
 
 import com.mapsyncer.mca.ChunkParser.BlockState;
 import com.mapsyncer.mca.MapRegionData.OverlayEntry;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
