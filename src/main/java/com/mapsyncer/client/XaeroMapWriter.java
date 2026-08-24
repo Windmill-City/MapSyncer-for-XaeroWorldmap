@@ -76,42 +76,9 @@ public final class XaeroMapWriter {
             return false;
         }
 
-        Minecraft.getInstance().execute(() -> loadRegion(chunk.ref.regionX(), chunk.ref.regionZ, chunk.ref.caveLayer()));
+        Minecraft.getInstance().execute(
+                () -> XaeroWorldMapBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
 
         return true;
-    }
-
-    private static void loadRegion(int regionX, int regionZ, int caveLayer) {
-        try {
-            Object mapRegion = XaeroWorldMapBridge.getLeafMapRegion(caveLayer, regionX, regionZ, true);
-            if (mapRegion == null) {
-                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", regionX, regionZ, caveLayer);
-                return;
-            }
-
-            if (!XaeroWorldMapBridge.prepareRegionLoad(mapRegion)) {
-                LOGGER.warn(
-                        "Region ({}, {}) layer={} load preparation failed", regionX, regionZ, caveLayer);
-                return;
-            }
-
-            if (!XaeroWorldMapBridge.setLoadState(mapRegion, XaeroWorldMapBridge.LOAD_STATE_CLEARED)) {
-                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", regionX, regionZ, caveLayer);
-                return;
-            }
-
-            if (!XaeroWorldMapBridge.requestLoad(mapRegion, "sync", false)) {
-                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", regionX, regionZ, caveLayer);
-                return;
-            }
-        } catch (Exception e) {
-            LOGGER.error(
-                    "Failed to load region ({}, {}) layer={}: {}",
-                    regionX,
-                    regionZ,
-                    caveLayer,
-                    e.getMessage(),
-                    e);
-        }
     }
 }

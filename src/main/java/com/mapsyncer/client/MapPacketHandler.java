@@ -55,7 +55,6 @@ public class MapPacketHandler {
         stop();
         ManifestClient.shutdown();
         ClientSyncWriteQueue.shutdown();
-        XaeroWorldMapBridge.reset();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 
