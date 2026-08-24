@@ -71,8 +71,7 @@ public final class ChunkColumnScanner {
             LightMode lightMode,
             RegionConverter.CaveModeParams caveParams,
             boolean worldHasSkylight,
-            BlockPropertyLookup blockLookup,
-            RegionScanPass.ScanVerticalBounds bounds) {
+            BlockPropertyLookup blockLookup) {
         int chunkX = chunk.chunkX();
         int chunkZ = chunk.chunkZ();
 
@@ -83,6 +82,7 @@ public final class ChunkColumnScanner {
         int caveDepth = caveParams.caveDepth();
         boolean isCaveMode = caveStart != Integer.MAX_VALUE;
         boolean fullCave = caveStart == Integer.MIN_VALUE;
+        boolean ignoresHeightmap = verticalFloorY > Integer.MIN_VALUE;
         int[][] heightMap = chunk.heightmap();
         int chunkBottomY = chunk.chunkBottomY();
 
@@ -125,13 +125,16 @@ public final class ChunkColumnScanner {
                     int scanBottomY;
                     int startY;
                     if (isCaveMode) {
-                        startY = bounds.clampStartY(caveStart);
-                        scanBottomY =
-                                bounds.clampBottomY(minBuildHeight, Math.max(caveStart - caveDepth, minBuildHeight));
+                        startY = Math.min(caveStart, verticalCeilingY);
+                        scanBottomY = Math.max(
+                                Math.max(caveStart - caveDepth, minBuildHeight),
+                                Math.max(minBuildHeight, verticalFloorY));
                     } else {
-                        startY = bounds.resolveSurfaceStartY(
-                                ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY));
-                        scanBottomY = bounds.clampBottomY(minBuildHeight, minBuildHeight);
+                        int heightmapStartY = ChunkDataParser.getHeightmapStartY(chunk, lx, lz, worldTopY);
+                        startY = ignoresHeightmap
+                                ? verticalCeilingY
+                                : Math.min(heightmapStartY, verticalCeilingY);
+                        scanBottomY = Math.max(minBuildHeight, Math.max(minBuildHeight, verticalFloorY));
                     }
 
                     if (startY < scanBottomY) {
@@ -153,7 +156,7 @@ public final class ChunkColumnScanner {
                             heightMapValue,
                             chunkBottomY,
                             sectionTopY,
-                            bounds);
+                            ignoresHeightmap);
 
                     if (!isCaveMode && effectiveStartY < sectionBottomY) {
                         continue;
@@ -194,12 +197,12 @@ public final class ChunkColumnScanner {
             int heightMapValue,
             int chunkBottomY,
             int sectionTopY,
-            RegionScanPass.ScanVerticalBounds bounds) {
+            boolean ignoresHeightmap) {
         int effectiveStartY = startY;
         if (sectionIndex > 0) {
             effectiveStartY = Math.min(startY + 1, worldTopY - 1);
         }
-        if (!isCaveMode && !bounds.ignoresHeightmap() && heightMapValue < chunkBottomY) {
+        if (!isCaveMode && !ignoresHeightmap && heightMapValue < chunkBottomY) {
             effectiveStartY = sectionTopY;
         }
         if (isCaveMode) {

@@ -58,8 +58,7 @@ public final class McaRegionLoader {
                                 pass.lightMode(),
                                 pass.caveParams(),
                                 worldHasSkylight,
-                                blockLookup,
-                                pass.verticalBounds());
+                                blockLookup);
                     }
                 }
             }
