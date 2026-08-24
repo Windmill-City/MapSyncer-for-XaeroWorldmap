@@ -1,8 +1,5 @@
 package com.mapsyncer.server;
-
-import com.mapsyncer.config.DimensionConfigParser;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
 import com.mapsyncer.server.MapConverter.DimensionCacheStats;
 import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.ChatUtils;
@@ -31,10 +28,10 @@ public class CommandHandler {
                         .then(Commands.literal("start").executes(CommandHandler::generateAll))
                         .then(Commands.literal("stop").executes(CommandHandler::stopConversion))
                         .then(Commands.literal("status").executes(CommandHandler::showStatus)))
-                .then(Commands.literal("incremental")
-                        .executes(CommandHandler::showIncrementalMode)
-                        .then(Commands.literal("off").executes(CommandHandler::setIncrementalOff))
-                        .then(Commands.literal("onempty").executes(CommandHandler::setIncrementalOnEmpty)))
+                .then(Commands.literal("automatic")
+                        .executes(CommandHandler::showAutomaticMode)
+                        .then(Commands.literal("off").executes(CommandHandler::setAutomaticOff))
+                        .then(Commands.literal("onempty").executes(CommandHandler::setAutomaticOnEmpty)))
                 .then(Commands.literal("reloadconfig").executes(CommandHandler::reloadConfig))
                 .then(Commands.literal("help").executes(ctx -> showHelp(ctx, prefix))));
     }
@@ -44,8 +41,8 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int showIncrementalMode(CommandContext<CommandSourceStack> ctx) {
-        showIncrementalMode(component -> ctx.getSource().sendSuccess(() -> component, false));
+    private static int showAutomaticMode(CommandContext<CommandSourceStack> ctx) {
+        showAutomaticMode(component -> ctx.getSource().sendSuccess(() -> component, false));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -90,7 +87,7 @@ public class CommandHandler {
 
     private static int showStatus(CommandContext<CommandSourceStack> ctx) {
         ctx.getSource().sendSuccess(CommandHandler::generationStatusMessage, false);
-        ctx.getSource().sendSuccess(CommandHandler::incrementalStatusMessage, false);
+        ctx.getSource().sendSuccess(CommandHandler::automaticStatusMessage, false);
 
         List<DimensionCacheStats> cacheStats = getCacheStats();
         if (!cacheStats.isEmpty()) {
@@ -106,7 +103,7 @@ public class CommandHandler {
             for (DimensionCacheStats stat : cacheStats) {
                 if (dims.length() > 0) dims.append("\n");
                 dims.append(String.format(
-                        "  %s: %d regions, %.2f MB", stat.dimension(), stat.regionCount(), stat.sizeMB()));
+                        "  %s: %d regions, %.2f MB", stat.dimId(), stat.regionCount(), stat.sizeMB()));
             }
 
             ctx.getSource()
@@ -123,15 +120,15 @@ public class CommandHandler {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setIncrementalOff(CommandContext<CommandSourceStack> ctx) {
-        disableIncremental();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_disabled"), false);
+    private static int setAutomaticOff(CommandContext<CommandSourceStack> ctx) {
+        disableAutomatic();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_disabled"), false);
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int setIncrementalOnEmpty(CommandContext<CommandSourceStack> ctx) {
-        setIncrementalOnEmpty();
-        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.incremental_on_empty_set"), false);
+    private static int setAutomaticOnEmpty(CommandContext<CommandSourceStack> ctx) {
+        setAutomaticOnEmpty();
+        ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.automatic_on_empty_set"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -149,15 +146,15 @@ public class CommandHandler {
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_start", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_stop", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.generate_status", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_off", prefix));
-        sender.accept(ChatUtils.desc("mapsyncer.help.server.incremental_onempty", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_off", prefix));
+        sender.accept(ChatUtils.desc("mapsyncer.help.server.automatic_onempty", prefix));
         sender.accept(ChatUtils.desc("mapsyncer.help.server.reloadconfig", prefix));
     }
 
-    public static void showIncrementalMode(Consumer<net.minecraft.network.chat.Component> sender) {
-        sender.accept(incrementalStatusMessage());
-        sender.accept(ChatUtils.desc("mapsyncer.command.incremental_status_hint", serverCommandPrefix()));
+    public static void showAutomaticMode(Consumer<net.minecraft.network.chat.Component> sender) {
+        sender.accept(automaticStatusMessage());
+        sender.accept(ChatUtils.desc("mapsyncer.command.automatic_status_hint", serverCommandPrefix()));
     }
 
     public static MutableComponent generationStatusMessage() {
@@ -168,13 +165,13 @@ public class CommandHandler {
         return ChatUtils.message("mapsyncer.generate.no_progress");
     }
 
-    public static MutableComponent incrementalStatusMessage() {
-        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
+    public static MutableComponent automaticStatusMessage() {
+        boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
 
-        if (mode == UpdateMode.ON_EMPTY) {
-            return ChatUtils.message("mapsyncer.command.incremental_status_on_empty");
+        if (enabled) {
+            return ChatUtils.message("mapsyncer.command.automatic_status_on_empty");
         }
-        return ChatUtils.message("mapsyncer.command.incremental_status_disabled");
+        return ChatUtils.message("mapsyncer.command.automatic_status_disabled");
     }
 
     public static boolean generateAll(MinecraftServer server, Runnable onSuccess) {
@@ -210,23 +207,22 @@ public class CommandHandler {
         return MapConverter.getTotalCount();
     }
 
-    public static void disableIncremental() {
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.DISABLED);
-        ModConfig.SERVER_SPEC.save();
-        MapUpdater.get().stop();
+    public static void disableAutomatic() {
+        ModConfig.SERVER.config().automaticUpdateEnabled.set(false);
+        ModConfig.SERVER.spec().save();
+        IdleUpdater.stop();
     }
 
-    public static void setIncrementalOnEmpty() {
-        ModConfig.SERVER.incrementalUpdateMode.set(UpdateMode.ON_EMPTY);
-        ModConfig.SERVER_SPEC.save();
+    public static void setAutomaticOnEmpty() {
+        ModConfig.SERVER.config().automaticUpdateEnabled.set(true);
+        ModConfig.SERVER.spec().save();
     }
 
     public static boolean reloadConfig() {
         try {
             ModConfig.reloadServerFromDisk();
-            DimensionConfigParser.invalidateCache();
 
-            MapUpdater.get().stop();
+            IdleUpdater.stop();
 
             LOGGER.info("Server configuration reloaded");
             return true;

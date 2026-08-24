@@ -9,28 +9,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class RegionGenerationPlanner {
+public final class ScanPlanner {
 
     private static final int CAVE_LAYER_DEPTH = 15;
-
-    public static List<RegionScanPass> plan(DimensionScanConfig config, DimensionInfo info) {
-        return plan(config.layerPlan(), info);
-    }
 
     public static List<RegionScanPass> plan(LayerPlan plan, DimensionInfo info) {
         List<RegionScanPass> passes = new ArrayList<>();
         Set<Integer> seenLayers = new LinkedHashSet<>();
 
-        if (plan.includeSurface()) {
+        if (plan.surface()) {
             addSurfacePass(passes, seenLayers, info);
         }
 
-        if (plan.includeAllCaves()) {
-            addAllCaveLayers(passes, seenLayers, info);
-        }
-
-        for (int caveStart : plan.caveStarts()) {
-            addCaveStartPass(passes, seenLayers, caveStart, info);
+        for (int caveStart : plan.caves()) {
+            addCaveStartPass(passes, seenLayers, caveStart);
         }
 
         if (passes.isEmpty()) {
@@ -40,8 +32,8 @@ public final class RegionGenerationPlanner {
         return List.copyOf(passes);
     }
 
-    public static int countPasses(DimensionScanConfig config, DimensionInfo info) {
-        return plan(config, info).size();
+    public static int countPasses(LayerPlan plan, DimensionInfo info) {
+        return plan(plan, info).size();
     }
 
     private static void addSurfacePass(List<RegionScanPass> passes, Set<Integer> seenLayers, DimensionInfo info) {
@@ -54,46 +46,20 @@ public final class RegionGenerationPlanner {
         passes.add(new RegionScanPass(Integer.MAX_VALUE, LightMode.SURFACE, CaveModeParams.NONE, bounds));
     }
 
-    private static void addAllCaveLayers(List<RegionScanPass> passes, Set<Integer> seenLayers, DimensionInfo info) {
-        int minLayer = floorDiv(info.minY(), 16);
-        int maxLayer = floorDiv(info.maxY() - 1, 16);
-        for (int layer = minLayer; layer <= maxLayer; layer++) {
-            addCaveLayerPass(passes, seenLayers, layer, info);
-        }
-    }
-
-    private static void addCaveLayerPass(
-            List<RegionScanPass> passes, Set<Integer> seenLayers, int layer, DimensionInfo info) {
-        int caveStart = (layer << 4) + 15;
-        addCaveStartPass(passes, seenLayers, caveStart, info);
-    }
-
     private static void addCaveStartPass(
-            List<RegionScanPass> passes, Set<Integer> seenLayers, int caveStart, DimensionInfo info) {
+            List<RegionScanPass> passes, Set<Integer> seenLayers, int caveStart) {
         int layer = caveLayerFromStart(caveStart);
         if (!seenLayers.add(layer)) {
             return;
         }
-        int depth = caveStart == Integer.MIN_VALUE ? Math.max(30, caveStart - info.minY()) : CAVE_LAYER_DEPTH;
         passes.add(new RegionScanPass(
                 layer,
                 LightMode.CAVE,
-                new CaveModeParams(caveStart, depth),
+                new CaveModeParams(caveStart, CAVE_LAYER_DEPTH),
                 RegionScanPass.ScanVerticalBounds.unbounded()));
     }
 
     private static int caveLayerFromStart(int caveStart) {
-        if (caveStart == Integer.MAX_VALUE || caveStart == Integer.MIN_VALUE) {
-            return caveStart;
-        }
         return caveStart >> 4;
-    }
-
-    private static int floorDiv(int y, int divisor) {
-        int r = y / divisor;
-        if ((y ^ divisor) < 0 && r * divisor != y) {
-            r--;
-        }
-        return r;
     }
 }

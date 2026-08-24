@@ -1,6 +1,5 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.mca.BlockPropertyLookup;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,7 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BlockPropertyResolver {
+public final class BlockPropertyResolver {
 
     public static final BlockPropertyLookup INSTANCE = new BlockPropertyLookup() {
         @Override
@@ -129,9 +128,9 @@ public class BlockPropertyResolver {
         }
     }
 
-    private static final ConcurrentHashMap<String, BlockProperties> propertiesCache = new ConcurrentHashMap<>();
+    private static final int MAX_CACHE_SIZE = 10000;
 
-    private static final int MAX_CACHE_SIZE = ModConfig.MAX_BLOCK_PROPERTIES_CACHE;
+    private static final ConcurrentHashMap<String, BlockProperties> propertiesCache = new ConcurrentHashMap<>();
 
     private static final ConcurrentHashMap<String, Boolean> buggedBlocks = new ConcurrentHashMap<>();
 

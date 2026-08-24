@@ -1,9 +1,8 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
-import com.mapsyncer.config.DimensionScanConfig;
+import com.mapsyncer.config.ScanPlanner;
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.RegionGenerationPlanner;
 import com.mapsyncer.mca.DimensionInfo;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
@@ -109,7 +108,7 @@ public class MapConverter {
         String fullDimId = dimRegions.dimension().location().toString();
         String dimPath = dimRegions.dimension().location().getPath();
 
-        DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
+        LayerPlan plan = ModConfig.getPlan(dimPath);
 
         String dimFolderName = PathMapping.toServerFolderName(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
@@ -121,11 +120,13 @@ public class MapConverter {
         }
 
         DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
-        List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
+        List<RegionScanPass> passes = ScanPlanner.plan(plan, dimTypeInfo);
 
         try {
             for (RegionScanPass pass : passes) {
-                Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
+                        Files.createDirectories(pass.cave() == Integer.MAX_VALUE
+                                ? baseOutputDir
+                                : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
             }
         } catch (IOException e) {
             LOGGER.error("Failed to create output directories under: {}", baseOutputDir, e);
@@ -214,9 +215,9 @@ public class MapConverter {
                 continue;
             }
             String dimPath = dimRegions.dimension().location().getPath();
-            DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
+            LayerPlan plan = ModConfig.getPlan(dimPath);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
-            int passCount = RegionGenerationPlanner.countPasses(scanConfig, dimTypeInfo);
+            int passCount = ScanPlanner.countPasses(plan, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
         }
         return total;
@@ -230,7 +231,9 @@ public class MapConverter {
             RegionCoords coords = entry.coords();
             boolean needs = false;
             for (RegionScanPass pass : passes) {
-                Path zipPath = ModConfig.outputDir(baseOutputDir, pass.caveLayer())
+                Path zipPath = (pass.cave() == Integer.MAX_VALUE
+                                ? baseOutputDir
+                                : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())))
                         .resolve(coords.x() + "_" + coords.z() + ".zip");
                 if (!Files.exists(zipPath)) {
                     needs = true;
@@ -301,7 +304,9 @@ public class MapConverter {
 
             boolean allExist = true;
             for (RegionScanPass pass : passes) {
-                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
+                Path outputDir = pass.cave() == Integer.MAX_VALUE
+                        ? baseOutputDir
+                        : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
                 if (!XaeroWriter.regionFileExists(outputDir, coords.x(), coords.z())) {
                     allExist = false;
                     break;
@@ -347,11 +352,13 @@ public class MapConverter {
 
         if (!com.mapsyncer.mca.McaReader.hasAnyChunk(mcaPath)) {
             for (RegionScanPass pass : passes) {
-                Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-                String relativePath = ModConfig.relativePath(dimFolderName, pass.caveLayer(), coords.x(), coords.z());
+                Path outputDir = pass.cave() == Integer.MAX_VALUE
+                        ? baseOutputDir
+                        : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
+                String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
                 purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
             }
-            ManifestServer.get().invalidate();
+            ManifestServer.invalidate();
             skippedEmptyContentCount.incrementAndGet();
             if (logProgress) {
                 processedCountAtomic.addAndGet(passes.size());
@@ -373,8 +380,10 @@ public class MapConverter {
         for (int i = 0; i < passes.size(); i++) {
             RegionScanPass pass = passes.get(i);
             LayerConvertedRegion layer = i < converted.size() ? converted.get(i) : null;
-            Path outputDir = ModConfig.outputDir(baseOutputDir, pass.caveLayer());
-            String relativePath = ModConfig.relativePath(dimFolderName, pass.caveLayer(), coords.x(), coords.z());
+            Path outputDir = pass.cave() == Integer.MAX_VALUE
+                    ? baseOutputDir
+                    : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
+            String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
 
             ConvertedRegion single =
                     layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
@@ -394,7 +403,7 @@ public class MapConverter {
                 if (logProgress) {
                     int convertedSoFar = convertedCountAtomic.incrementAndGet();
                     processedCountAtomic.incrementAndGet();
-                    String layerLabel = pass.isSurfaceLayer() ? "surface" : String.valueOf(pass.caveLayer());
+                    String layerLabel = pass.isSurface() ? "surface" : String.valueOf(pass.cave());
                     LOGGER.info(
                             "{} region ({}, {}) layer={}: {}/{}",
                             logPrefix,
@@ -405,13 +414,13 @@ public class MapConverter {
                             totalCount);
                 }
             } catch (IOException e) {
-                LOGGER.error("Failed to write region file for layer {}", pass.caveLayer(), e);
+                LOGGER.error("Failed to write region file for layer {}", pass.cave(), e);
                 anyFailed = true;
             }
         }
 
         if (anyWritten || anyPurged) {
-            ManifestServer.get().invalidate();
+            ManifestServer.invalidate();
         }
         if (anyFailed) {
             failedRegions.add(coords);
@@ -420,7 +429,7 @@ public class MapConverter {
         }
     }
 
-    public record IncrementalScanSnapshot(
+    public record AutomaticScanSnapshot(
             String dimPath,
             String dimFolderName,
             Path regionDir,
@@ -428,9 +437,9 @@ public class MapConverter {
             DimensionInfo dimTypeInfo,
             List<RegionScanPass> passes) {}
 
-    public static List<IncrementalScanSnapshot> buildIncrementalScanSnapshots(MinecraftServer server) {
+    public static List<AutomaticScanSnapshot> buildAutomaticScanSnapshots(MinecraftServer server) {
         List<DimensionRegions> allRegions = RegionScanner.scanAllDimensions(server);
-        List<IncrementalScanSnapshot> snapshots = new ArrayList<>();
+        List<AutomaticScanSnapshot> snapshots = new ArrayList<>();
 
         for (DimensionRegions dimRegions : allRegions) {
             ServerLevel level = server.getLevel(dimRegions.dimension());
@@ -441,7 +450,7 @@ public class MapConverter {
             String fullDimId = dimRegions.dimension().location().toString();
             String dimPath = dimRegions.dimension().location().getPath();
 
-            DimensionScanConfig scanConfig = ModConfig.SERVER.getConfigForDimension(dimPath);
+            LayerPlan plan = ModConfig.getPlan(dimPath);
             String dimFolderName = PathMapping.toServerFolderName(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
@@ -451,37 +460,37 @@ public class MapConverter {
 
             Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
-            List<RegionScanPass> passes = RegionGenerationPlanner.plan(scanConfig, dimTypeInfo);
+            List<RegionScanPass> passes = ScanPlanner.plan(plan, dimTypeInfo);
 
             snapshots.add(
-                    new IncrementalScanSnapshot(dimPath, dimFolderName, regionDir, baseOutputDir, dimTypeInfo, passes));
+                    new AutomaticScanSnapshot(dimPath, dimFolderName, regionDir, baseOutputDir, dimTypeInfo, passes));
         }
 
         return snapshots;
     }
 
-    public static void performIncrementalScan(MinecraftServer server) {
-        List<IncrementalScanSnapshot> snapshots;
+    public static void performAutomaticScan(MinecraftServer server) {
+        List<AutomaticScanSnapshot> snapshots;
         try {
             snapshots =
-                    server.submit(() -> buildIncrementalScanSnapshots(server)).get(5, TimeUnit.MINUTES);
+                    server.submit(() -> buildAutomaticScanSnapshots(server)).get(5, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.warn("Incremental scan snapshot interrupted");
+            LOGGER.warn("Automatic scan snapshot interrupted");
             return;
         } catch (java.util.concurrent.TimeoutException e) {
-            LOGGER.error("Timed out building incremental scan snapshot on server thread");
+            LOGGER.error("Timed out building automatic scan snapshot on server thread");
             return;
         } catch (ExecutionException e) {
-            LOGGER.error("Failed to build incremental scan snapshot on server thread", e.getCause());
+            LOGGER.error("Failed to build automatic scan snapshot on server thread", e.getCause());
             return;
         }
-        performIncrementalScan(snapshots);
+        performAutomaticScan(snapshots);
     }
 
-    public static void performIncrementalScan(List<IncrementalScanSnapshot> snapshots) {
+    public static void performAutomaticScan(List<AutomaticScanSnapshot> snapshots) {
         if (!isRunning.compareAndSet(false, true)) {
-            LOGGER.debug("Conversion already in progress, skipping incremental scan");
+            LOGGER.debug("Conversion already in progress, skipping automatic scan");
             return;
         }
         cancelRequested.set(false);
@@ -492,9 +501,9 @@ public class MapConverter {
             processedCountAtomic.set(0);
             ConcurrentLinkedQueue<RegionCoords> failedRegions = new ConcurrentLinkedQueue<>();
 
-            for (IncrementalScanSnapshot snapshot : snapshots) {
+            for (AutomaticScanSnapshot snapshot : snapshots) {
                 if (isCancelRequested()) {
-                    LOGGER.info("Incremental scan cancelled, skipping remaining dimensions");
+                    LOGGER.info("Automatic scan cancelled, skipping remaining dimensions");
                     break;
                 }
                 String dimPath = snapshot.dimPath();
@@ -513,14 +522,16 @@ public class MapConverter {
                 }
 
                 LOGGER.info(
-                        "Dimension {}: {} regions need incremental update (passes={})",
+                        "Dimension {}: {} regions need automatic update (passes={})",
                         dimPath,
                         needsUpdate.size(),
                         passes.size());
 
                 try {
                     for (RegionScanPass pass : passes) {
-                        Files.createDirectories(ModConfig.outputDir(baseOutputDir, pass.caveLayer()));
+                Files.createDirectories(pass.cave() == Integer.MAX_VALUE
+                        ? baseOutputDir
+                        : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave())));
                     }
                 } catch (IOException e) {
                     LOGGER.error("Failed to create output directories: {}", baseOutputDir, e);
@@ -543,7 +554,7 @@ public class MapConverter {
             }
 
             if (totalUpdated > 0) {
-                LOGGER.info("Incremental scan completed: {} regions updated", totalUpdated);
+                LOGGER.info("Automatic scan completed: {} regions updated", totalUpdated);
             }
         } finally {
             isRunning.set(false);

@@ -50,10 +50,10 @@ public final class XaeroWriter {
         Path mwDir = dimDir.resolve("mw$" + worldId);
 
         Path targetDir;
-        if (chunk.ref.caveLayer() == Integer.MAX_VALUE) {
+        if (chunk.ref.cave() == Integer.MAX_VALUE) {
             targetDir = mwDir;
         } else {
-            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.caveLayer()));
+            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.cave()));
         }
 
         Path outputFile = targetDir.resolve(chunk.ref.regionX() + "_" + chunk.ref.regionZ() + ".zip");
@@ -69,7 +69,7 @@ public final class XaeroWriter {
             LOGGER.debug(
                     "Wrote map file: {} (layer={}, {} bytes)",
                     outputFile,
-                    chunk.isSurfaceLayer() ? "surface" : chunk.ref.caveLayer(),
+                    chunk.isSurface() ? "surface" : chunk.ref.cave(),
                     chunk.data.length);
         } catch (IOException e) {
             LOGGER.error("Failed to write map file: {}", outputFile, e);
@@ -77,7 +77,7 @@ public final class XaeroWriter {
         }
 
         Minecraft.getInstance().execute(
-                () -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.caveLayer()));
+                () -> XaeroBridge.loadRegion(chunk.ref.regionX(), chunk.ref.regionZ(), chunk.ref.cave()));
 
         return true;
     }

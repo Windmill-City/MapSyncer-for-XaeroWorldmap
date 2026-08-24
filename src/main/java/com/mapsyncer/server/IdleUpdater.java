@@ -1,102 +1,72 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.config.ModConfig;
-import com.mapsyncer.config.UpdateMode;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IdleUpdater {
+public final class IdleUpdater {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(IdleUpdater.class);
 
-    private static final IdleUpdater INSTANCE = new IdleUpdater();
+    private static final AtomicBoolean running = new AtomicBoolean(false);
 
-    private final AtomicBoolean running = new AtomicBoolean(false);
-
-    private volatile ExecutorService updateExecutor = null;
-
-    public static IdleUpdater get() {
-        return INSTANCE;
-    }
-
-    public void onPlayerLoggedOut(ServerPlayer player) {
+    public static void onPlayerLoggedOut(ServerPlayer player) {
         MinecraftServer server = player.getServer();
         if (server == null || server.isStopped()) {
-            LOGGER.debug("[onPlayerLoggedOut] ignoring: server is null or stopped");
+            LOGGER.debug("Skipping: server is null or already stopped");
             return;
         }
 
-        UpdateMode mode = ModConfig.SERVER.incrementalUpdateMode.get();
-        if (mode != UpdateMode.ON_EMPTY) {
-            LOGGER.debug("[onPlayerLoggedOut] ignoring: update mode is not ON_EMPTY");
+        boolean enabled = ModConfig.SERVER.config().automaticUpdateEnabled.get();
+        if (!enabled) {
+            LOGGER.debug("Skipping: automatic update is disabled");
             return;
         }
 
         checkAndScan(server);
     }
 
-    private void checkAndScan(MinecraftServer server) {
+    private static void checkAndScan(MinecraftServer server) {
         if (running.get()) {
-            LOGGER.debug("[onPlayerLoggedOut] ignoring: already running");
+            LOGGER.debug("Skipping: an automatic update is already in progress");
             return;
         }
 
         int playerCount = server.getPlayerList().getPlayerCount();
         if (playerCount > 1) {
-
-            LOGGER.debug("[onPlayerLoggedOut] ignoring: player count > 1");
+            LOGGER.debug("Skipping: {} players are still online", playerCount);
             return;
         }
 
         performUpdate(server);
     }
 
-    public void performUpdate(MinecraftServer server) {
+    public static void performUpdate(MinecraftServer server) {
         if (!running.compareAndSet(false, true)) {
-            LOGGER.debug("Incremental update already in progress, skipping");
+            LOGGER.debug("Skipping: automatic update is already in progress");
             return;
         }
 
-        LOGGER.info("Performing incremental update: ON_EMPTY mode, no players online");
+        LOGGER.info("Starting automatic map update (ON_EMPTY mode)");
 
-        getUpdateExecutor().submit(() -> {
+        Util.ioPool().execute(() -> {
             try {
-                MapConverter.performIncrementalScan(server);
+                MapConverter.performAutomaticScan(server);
             } catch (RuntimeException e) {
-                LOGGER.error("Error during incremental update", e);
+                LOGGER.error("Automatic map update failed", e);
             } finally {
                 running.set(false);
             }
         });
     }
 
-    private ExecutorService getUpdateExecutor() {
-        ExecutorService current = updateExecutor;
-        if (current == null) {
-            synchronized (this) {
-                current = updateExecutor;
-                if (current == null) {
-                    current = Executors.newSingleThreadExecutor(r -> {
-                        Thread t = new Thread(r, "mapsyncer-incremental-update");
-                        t.setPriority(Thread.MIN_PRIORITY);
-                        t.setDaemon(true);
-                        return t;
-                    });
-                    updateExecutor = current;
-                }
-            }
-        }
-        return current;
-    }
-
-    public void stop() {
+    public static void stop() {
         MapConverter.requestCancel();
         running.set(false);
-        LOGGER.info("MapUpdater stopped");
+        LOGGER.info("Automatic updater stopped");
     }
 }

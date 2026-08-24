@@ -2,42 +2,79 @@ package com.mapsyncer.config;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import net.minecraftforge.common.ForgeConfigSpec.EnumValue;
-import net.minecraftforge.common.ForgeConfigSpec.IntValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ModConfig {
 
-    public static final int MAX_BLOCK_PROPERTIES_CACHE = 10000;
+    public record ForgeConfig(ServerConfig config, ForgeConfigSpec spec) {}
 
-    public static Path outputDir(Path baseOutputDir, int caveLayer) {
-        if (caveLayer == Integer.MAX_VALUE) {
-            return baseOutputDir;
-        }
-        return baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));
+    private static final Logger LOGGER = LoggerFactory.getLogger(ModConfig.class);
+
+    private static Map<String, LayerPlan> layerPlans = Map.of();
+
+    public static final ForgeConfig SERVER;
+
+    public static LayerPlan getPlan(String dimId) {
+        return layerPlans.getOrDefault(dimId, new LayerPlan());
     }
-
-    public static String relativePath(String xaeroDimName, int caveLayer, int regionX, int regionZ) {
-        if (caveLayer == Integer.MAX_VALUE) {
-            return xaeroDimName + "/" + regionX + "_" + regionZ;
-        }
-        return xaeroDimName + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
-    }
-
-    public static final ForgeConfigSpec SERVER_SPEC;
-
-    public static final ServerConfig SERVER;
 
     private static List<String> getDefaultDimensionConfigStrings() {
-        return DimensionConfigParser.getDefaultDimensionConfigStrings();
+        Map<String, LayerPlan> defaults = new LinkedHashMap<>();
+        defaults.put("minecraft:overworld", new LayerPlan(true, List.of()));
+        defaults.put("minecraft:the_nether", new LayerPlan(false, List.of(LayerPlan.DEFAULT_CAVE_START)));
+        defaults.put("minecraft:the_end", new LayerPlan(true, List.of()));
+        return List.of(defaults.toString());
     }
 
     static {
-        var serverPair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
-        SERVER = serverPair.getLeft();
-        SERVER_SPEC = serverPair.getRight();
+        var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
+        SERVER = new ForgeConfig(pair.getLeft(), pair.getRight());
+        rebuildLayerPlans();
+    }
+
+    private static void rebuildLayerPlans() {
+        Map<String, LayerPlan> map = new LinkedHashMap<>();
+        for (String configStr : SERVER.config().dimensionConfigs.get()) {
+            if (configStr == null || configStr.isBlank()) {
+                continue;
+            }
+            String trimmed = configStr.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                for (String entry : trimmed.substring(1, trimmed.length() - 1).split(",\\s+")) {
+                    putPlanEntry(map, entry, configStr);
+                }
+            } else {
+                putPlanEntry(map, trimmed, configStr);
+            }
+        }
+        layerPlans = Map.copyOf(map);
+    }
+
+    private static void putPlanEntry(Map<String, LayerPlan> map, String entry, String configStr) {
+        if (entry == null || entry.isBlank()) {
+            return;
+        }
+        int eq = entry.indexOf('=');
+        String dimension;
+        String planStr;
+        if (eq >= 0) {
+            dimension = entry.substring(0, eq).trim();
+            planStr = entry.substring(eq + 1).trim();
+        } else {
+            dimension = entry.trim();
+            planStr = "";
+        }
+        if (dimension.isEmpty()) {
+            LOGGER.warn("Invalid dimension config (empty dimension): [{}]", configStr);
+            return;
+        }
+        map.put(dimension, planStr.isEmpty() ? new LayerPlan(false, List.of()) : LayerPlan.parse(planStr));
     }
 
     public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
@@ -52,25 +89,21 @@ public class ModConfig {
             CommentedFileConfig disk = CommentedFileConfig.of(path);
             disk.load();
             try {
-                SERVER_SPEC.acceptConfig(disk);
+                SERVER.spec().acceptConfig(disk);
+                rebuildLayerPlans();
             } finally {
                 disk.close();
             }
         }
-        DimensionConfigParser.invalidateCache();
     }
 
     private static volatile net.minecraftforge.fml.config.ModConfig boundServerConfig;
 
     public static class ServerConfig {
 
-        public final EnumValue<UpdateMode> incrementalUpdateMode;
+        public final ConfigValue<Boolean> automaticUpdateEnabled;
 
-        public final EnumValue<LayerPlan.ScanMode> defaultScanMode;
-
-        public final IntValue defaultCaveStart;
-
-        public final ConfigValue<List<? extends String>> dimensionConfigs;
+        public final ConfigValue<List<? extends String>> plans;
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("general");
@@ -78,53 +111,31 @@ public class ModConfig {
 
             builder.pop();
 
-            builder.push("incremental_update");
-            builder.comment("增量更新设置 / Incremental update settings");
+            builder.push("automatic_update");
+            builder.comment("自动更新设置 / Automatic update settings");
 
-            incrementalUpdateMode = builder.comment(
-                            "增量更新模式：DISABLED（禁用），ON_EMPTY（无人在线时更新）",
-                            "Incremental update mode: DISABLED (off), ON_EMPTY (run when no players are online)")
-                    .defineEnum("incrementalUpdateMode", UpdateMode.DISABLED);
+            automaticUpdateEnabled = builder.comment(
+                    "启用自动更新：无人在线时更新",
+                    "Enable automatic updates: run when no players are online")
+                    .define("automaticUpdateEnabled", false);
 
             builder.pop();
 
             builder.push("dimension_scan");
             builder.comment("维度扫描设置 / Dimension scan settings");
 
-            defaultScanMode = builder.comment(
-                            "未在 dimension_configs 中的维度的默认层计划（SURFACE=仅地表，CAVE=单层洞穴）",
-                            "Default layer plan fallback for dimensions not in dimension_configs",
-                            "SURFACE = surface only; CAVE = single cave layer at default_cave_start")
-                    .defineEnum("default_scan_mode", LayerPlan.ScanMode.SURFACE);
-
-            defaultCaveStart = builder.comment(
-                            "default_scan_mode=CAVE 时的 caveStart Y（对应 caves(Y) 层计划）",
-                            "Cave start Y when default_scan_mode=CAVE (maps to layerPlan caves(Y))")
-                    .defineInRange("default_cave_start", 63, -512, 512);
-
             dimensionConfigs = builder.comment(
-                            "维度扫描配置列表（每个维度一条字符串）",
-                            "推荐：\"dimension = layerPlan\"",
-                            "layerPlan：SURFACE、ALL、显式 Y（如 63）或组合（如 SURFACE,63）",
-                            "示例：\"minecraft:the_nether = SURFACE,63\"",
-                            "旧格式 \"dimension|layerPlan\" / \"dimension|SURFACE|63|…\" 仍可读取",
-                            "Per-dimension scan configuration list (one string per dimension)",
-                            "Preferred: \"dimension = layerPlan\"",
-                            "layerPlan: SURFACE, ALL, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
-                            "Example: \"minecraft:the_nether = SURFACE,63\"",
-                            "Legacy \"dimension|layerPlan\" and \"dimension|SURFACE|63|…\" still accepted")
+                    "维度扫描配置列表（每个维度一条字符串）",
+                    "推荐：\"dimension = layerPlan\"",
+                    "layerPlan：SURFACE、显式 Y（如 63）或组合（如 SURFACE,63）",
+                    "示例：\"minecraft:the_nether = SURFACE,63\"",
+                    "Per-dimension scan configuration list (one string per dimension)",
+                    "Preferred: \"dimension = layerPlan\"",
+                    "layerPlan: SURFACE, explicit Y (e.g. 63), or combos (e.g. SURFACE,63)",
+                    "Example: \"minecraft:the_nether = SURFACE,63\"")
                     .defineList("dimension_configs", getDefaultDimensionConfigStrings(), obj -> obj instanceof String);
 
             builder.pop();
-        }
-
-        public List<DimensionScanConfig> parseDimensionConfigs() {
-            return DimensionConfigParser.parseDimensionConfigs(dimensionConfigs.get());
-        }
-
-        public DimensionScanConfig getConfigForDimension(String dimensionPath) {
-            return DimensionConfigParser.getConfigForDimension(
-                    dimensionPath, dimensionConfigs.get(), defaultScanMode.get(), defaultCaveStart.get());
         }
     }
 }

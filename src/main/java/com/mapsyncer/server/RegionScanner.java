@@ -40,10 +40,10 @@ public class RegionScanner {
     public static List<DimensionRegions> scanAllDimensions(MinecraftServer server) {
         List<DimensionNames> dimNames = new ArrayList<>();
         for (ServerLevel level : server.getAllLevels()) {
-            String dimId = ApiHelper.getDimId(level.dimension());
+            String dimId = ApiHelper.getDimId(level.dimId());
             final String finalDimId = dimId;
             if (!dimNames.stream().anyMatch(d -> d.name().equals(finalDimId))) {
-                dimNames.add(new DimensionNames(dimId, level.dimension()));
+                dimNames.add(new DimensionNames(dimId, level.dimId()));
             }
         }
 
@@ -62,7 +62,7 @@ public class RegionScanner {
             if (!Files.exists(worldRoot)) return null;
             worldRoot = worldRoot.toRealPath();
 
-            String dimId = ApiHelper.getDimId(level.dimension());
+            String dimId = ApiHelper.getDimId(level.dimId());
 
             Path regionDir = detectRegionDir(worldRoot, dimId);
 

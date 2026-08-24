@@ -7,7 +7,7 @@ import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
-import com.mapsyncer.server.MapUpdater;
+import com.mapsyncer.server.IdleUpdater;
 import java.nio.file.Path;
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
@@ -52,7 +52,7 @@ public class MapSyncer {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
-        ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER_SPEC);
+        ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.SERVER.spec());
 
         CHANNEL.registerMessage(
                 0,
@@ -124,12 +124,12 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
             MapConverter.cleanupCacheDir();
-            MapUpdater.get().performUpdate(event.getServer());
+            IdleUpdater.performUpdate(event.getServer());
         }
 
         @SubscribeEvent
         public static void onServerStopping(ServerStoppingEvent event) {
-            MapUpdater.get().stop();
+            IdleUpdater.stop();
         }
 
         @SubscribeEvent

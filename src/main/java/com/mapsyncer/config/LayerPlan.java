@@ -1,91 +1,44 @@
 package com.mapsyncer.config;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public record LayerPlan(boolean includeSurface, boolean includeAllCaves, List<Integer> caveStarts) {
+public record LayerPlan(boolean surface, List<Integer> caves) {
+
     public static final int DEFAULT_CAVE_START = 63;
 
-    public enum ScanMode {
-        SURFACE,
-        CAVE
-    }
-
-    public LayerPlan {
-        caveStarts = caveStarts == null || caveStarts.isEmpty() ? List.of() : List.copyOf(caveStarts);
-    }
-
-    public static LayerPlan empty() {
-        return new LayerPlan(false, false, List.of());
-    }
-
-    public static LayerPlan surfaceOnly() {
-        return new LayerPlan(true, false, List.of());
-    }
-
-    public static LayerPlan allCaves() {
-        return new LayerPlan(false, true, List.of());
-    }
-
-    public static LayerPlan caves(int... starts) {
-        if (starts == null || starts.length == 0) {
-            return empty();
-        }
-        return new LayerPlan(
-                false, false, java.util.Arrays.stream(starts).boxed().toList());
-    }
-
-    public static LayerPlan mixed(int... caveStarts) {
-        if (caveStarts == null || caveStarts.length == 0) {
-            return surfaceOnly();
-        }
-        return new LayerPlan(
-                true, false, java.util.Arrays.stream(caveStarts).boxed().toList());
-    }
-
-    public boolean isEmpty() {
-        return !includeSurface && !includeAllCaves && caveStarts.isEmpty();
-    }
-
-    public String toConfigString() {
-        if (isEmpty()) {
+    @Override
+    public String toString() {
+        if (!surface && caves.isEmpty()) {
             return "";
         }
         List<String> parts = new ArrayList<>();
-        if (includeSurface) {
+        if (surface) {
             parts.add("SURFACE");
         }
-        if (includeAllCaves) {
-            parts.add("ALL");
-        }
-        caveStarts.forEach(y -> parts.add(String.valueOf(y)));
+        caves.forEach(y -> parts.add(String.valueOf(y)));
         return String.join(",", parts);
     }
 
     public static LayerPlan parse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return empty();
+            return new LayerPlan(false, List.of());
         }
 
         String trimmed = raw.trim();
         if (trimmed.equalsIgnoreCase("SURFACE")) {
-            return surfaceOnly();
-        }
-        if (trimmed.equalsIgnoreCase("ALL")) {
-            return allCaves();
+            return new LayerPlan(true, List.of());
         }
 
         if (!trimmed.contains(",")) {
             try {
-                return caves(Integer.parseInt(trimmed));
+                return new LayerPlan(false, List.of(Integer.parseInt(trimmed)));
             } catch (NumberFormatException e) {
-                return empty();
+                return new LayerPlan(false, List.of());
             }
         }
 
-        boolean surface = false;
-        boolean allCaves = false;
+        boolean hasSurface = false;
         List<Integer> starts = new ArrayList<>();
         for (String part : trimmed.split(",")) {
             String token = part.trim();
@@ -93,32 +46,18 @@ public record LayerPlan(boolean includeSurface, boolean includeAllCaves, List<In
                 continue;
             }
             if (token.equalsIgnoreCase("SURFACE")) {
-                surface = true;
-            } else if (token.equalsIgnoreCase("ALL")) {
-                allCaves = true;
+                hasSurface = true;
             } else {
                 try {
                     starts.add(Integer.parseInt(token));
                 } catch (NumberFormatException e) {
-
                 }
             }
         }
 
-        if (!surface && !allCaves && starts.isEmpty()) {
-            return empty();
+        if (!hasSurface && starts.isEmpty()) {
+            return new LayerPlan(false, List.of());
         }
-        return new LayerPlan(surface, allCaves, Collections.unmodifiableList(starts));
-    }
-
-    public static LayerPlan fromLegacy(LayerPlan.ScanMode scanMode, String caveField) {
-        LayerPlan parsed = parse(caveField);
-        if (scanMode == LayerPlan.ScanMode.SURFACE) {
-            if (!parsed.includeAllCaves() && parsed.caveStarts().isEmpty()) {
-                return surfaceOnly();
-            }
-            return new LayerPlan(true, parsed.includeAllCaves(), parsed.caveStarts());
-        }
-        return parsed;
+        return new LayerPlan(hasSurface, starts);
     }
 }

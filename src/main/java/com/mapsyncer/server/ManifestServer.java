@@ -18,23 +18,17 @@ import net.minecraft.server.level.ServerLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ManifestServer {
+public final class ManifestServer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestServer.class);
 
-    private static final ManifestServer INSTANCE = new ManifestServer();
+    private static volatile Map<RegionRef, Long> manifest = Map.of();
 
-    private volatile Map<RegionRef, Long> manifest = Map.of();
+    private static volatile boolean isValid = false;
 
-    private volatile boolean isValid = false;
-
-    public static ManifestServer get() {
-        return INSTANCE;
-    }
-
-    public Map<RegionRef, Long> build(MinecraftServer server) {
+    public static Map<RegionRef, Long> build(MinecraftServer server) {
         if (!isValid) {
-            synchronized (this) {
+            synchronized (ManifestServer.class) {
                 if (!isValid) {
                     _build(server);
                 }
@@ -43,7 +37,7 @@ public class ManifestServer {
         return manifest;
     }
 
-    private void _build(MinecraftServer server) {
+    private static void _build(MinecraftServer server) {
         Map<RegionRef, Long> rebuilt = new HashMap<>();
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -83,17 +77,20 @@ public class ManifestServer {
         }
     }
 
-    public Path resolveZipPath(RegionRef ref) {
+    public static Path resolveZipPath(RegionRef ref) {
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathMapping.toServerFolderName(ref.dimId()));
-        Path outputDir = ModConfig.outputDir(baseOutputDir, ref.caveLayer());
+        int caveLayer = ref.cave();
+        Path outputDir = caveLayer == Integer.MAX_VALUE
+                ? baseOutputDir
+                : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));
         return outputDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
     }
 
-    public Long getTimestamp(RegionRef ref) {
+    public static Long getTimestamp(RegionRef ref) {
         return manifest.get(ref);
     }
 
-    public void invalidate() {
+    public static void invalidate() {
         isValid = false;
         manifest = Map.of();
         LOGGER.debug("ManifestCache invalidated");

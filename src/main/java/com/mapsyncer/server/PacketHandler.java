@@ -9,8 +9,6 @@ import com.mapsyncer.network.RegionRef;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,10 +21,8 @@ public class PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
-    private static final int MAX_RESPONSE_PACKET_BYTES = 256 * 1024;
-
     public static void pushManifest(ServerPlayer player) {
-        Map<RegionRef, Long> manifest = ManifestServer.get().build(player.server);
+        Map<RegionRef, Long> manifest = ManifestServer.build(player.server);
         MapSyncer.sendToPlayer(player, new ManifestPayload(manifest));
         LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
@@ -36,54 +32,37 @@ public class PacketHandler {
             Player player = MapSyncer.getPlayerFromContext(context);
             if (!(player instanceof ServerPlayer serverPlayer)) return;
 
-            List<RegionRef> requested = payload.regions();
+            RegionRef requested = payload.region();
 
             LOGGER.debug(
-                    "[SYNC-SRV] request from {}: regions={}",
+                    "[SYNC-SRV] request from {}: region={}",
                     serverPlayer.getName().getString(),
-                    requested.size());
+                    requested);
 
             Path cacheDir = MapSyncer.CACHE_DIR;
             if (!Files.exists(cacheDir)) return;
 
-            ManifestServer.get().build(serverPlayer.server);
+            ManifestServer.build(serverPlayer.server);
 
-            serveRequestedRegions(serverPlayer, requested);
+            serveRequestedRegion(serverPlayer, requested);
         });
         context.get().setPacketHandled(true);
     }
 
-    private static void serveRequestedRegions(ServerPlayer player, List<RegionRef> requested) {
-        ManifestServer manifestCache = ManifestServer.get();
-
-        List<RegionData> parts = new ArrayList<>();
-        int failed = 0;
-
-        for (RegionRef region : requested) {
-            Path zipPath = manifestCache.resolveZipPath(region);
-            Long timestamp = manifestCache.getTimestamp(region);
-            if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
-                failed++;
-                LOGGER.warn("Requested region not found or invalid: {}", region);
-                continue;
-            }
-            RegionData chunk = readRegionData(zipPath, timestamp, region);
-            if (chunk == null) {
-                failed++;
-                continue;
-            }
-            for (RegionData part : RegionData.split(chunk)) {
-                parts.add(part);
-            }
+    private static void serveRequestedRegion(ServerPlayer player, RegionRef region) {
+        Path zipPath = ManifestServer.resolveZipPath(region);
+        Long timestamp = ManifestServer.getTimestamp(region);
+        if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
+            LOGGER.warn("Requested region not found or invalid: {}", region);
+            MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
+            return;
         }
-
-        LOGGER.debug(
-                "[SYNC-SRV] serving {} requested regions for {}: produced {} parts, {} failed",
-                requested.size(),
-                player.getName().getString(),
-                parts.size(),
-                failed);
-        sendRegionResponse(player, parts);
+        RegionData chunk = readRegionData(zipPath, timestamp, region);
+        if (chunk == null) {
+            MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
+            return;
+        }
+        sendRegionResponse(player, chunk);
     }
 
     private static RegionData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
@@ -96,33 +75,12 @@ public class PacketHandler {
         }
     }
 
-    private static void sendRegionResponse(ServerPlayer player, List<RegionData> parts) {
-        if (parts.isEmpty()) {
-            MapSyncer.sendToPlayer(player, new MapResponsePayload(List.of()));
-            return;
-        }
-        List<RegionData> batch = new ArrayList<>();
-        int batchBytes = 0;
-        for (RegionData part : parts) {
-            if (!batch.isEmpty() && batchBytes + part.data.length > MAX_RESPONSE_PACKET_BYTES) {
-                sendRegionBatch(player, batch);
-                batch = new ArrayList<>();
-                batchBytes = 0;
-            }
-            batch.add(part);
-            batchBytes += part.data.length;
-        }
-        sendRegionBatch(player, batch);
-    }
-
-    private static void sendRegionBatch(ServerPlayer player, List<RegionData> batch) {
-        int bytes = 0;
-        for (RegionData part : batch) bytes += part.data.length;
+    private static void sendRegionResponse(ServerPlayer player, RegionData chunk) {
         LOGGER.debug(
-                "[SYNC-SRV] send to {}: {} parts, {} bytes",
+                "[SYNC-SRV] send to {}: region {}, {} bytes",
                 player.getName().getString(),
-                batch.size(),
-                bytes);
-        MapSyncer.sendToPlayer(player, new MapResponsePayload(batch));
+                chunk.ref,
+                chunk.data.length);
+        MapSyncer.sendToPlayer(player, new MapResponsePayload(chunk));
     }
 }

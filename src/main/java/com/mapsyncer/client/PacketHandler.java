@@ -23,7 +23,6 @@ public class PacketHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
 
-    private static final HashMap<String, RegionData[]> partBuffer = new HashMap<>();
     private static final LinkedQueue<RegionRef> pendingRegions = new LinkedQueue<>();
 
     private static int syncTotal = 0;
@@ -55,27 +54,25 @@ public class PacketHandler {
 
     public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         Minecraft.getInstance().execute(() -> {
-            for (RegionData chunk : payload.chunks()) {
-                RegionData assembled = assemblePart(chunk);
-                if (assembled == null) {
-                    continue;
-                }
-
-                AsyncWriter.submit(assembled, success -> () -> Minecraft.getInstance().execute(() -> {
+            RegionData chunk = payload.chunk();
+            if (chunk != null) {
+                AsyncWriter.submit(chunk, success -> () -> Minecraft.getInstance().execute(() -> {
                     if (!success) {
                         LOGGER.error(
                                 "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",
-                                assembled.ref.regionX(),
-                                assembled.ref.regionZ(),
-                                assembled.data.length);
+                                chunk.ref.regionX(),
+                                chunk.ref.regionZ(),
+                                chunk.data.length);
                         syncFailed++;
                     }
                     maybeCompleteSync();
                 }));
+            } else {
+                LOGGER.debug("[SYNC] region missing on server, skipping");
             }
 
             syncProcessed++;
-            LOGGER.debug("[SYNC] region part assembled: syncProcessed={}/{}", syncProcessed, syncTotal);
+            LOGGER.debug("[SYNC] region data received: syncProcessed={}/{}", syncProcessed, syncTotal);
             requestNextRegion();
         });
         context.get().setPacketHandled(true);
@@ -146,7 +143,6 @@ public class PacketHandler {
 
     private static void stop() {
         running = false;
-        partBuffer.clear();
         pendingRegions.clear();
         deferredManifest = null;
         LOGGER.info("[SYNC] sync stopped, resources cleaned up");
@@ -171,7 +167,7 @@ public class PacketHandler {
             return;
         }
 
-        MapSyncer.sendToServer(new MapRequestPayload(List.of(ref)));
+        MapSyncer.sendToServer(new MapRequestPayload(ref));
         LOGGER.debug(
                 "[SYNC] -> request: {} (pendingLeft={}, syncProcessed={}/{})",
                 ref,
@@ -209,46 +205,5 @@ public class PacketHandler {
         if (Minecraft.getInstance().player != null) {
             Minecraft.getInstance().player.displayClientMessage(ChatUtils.desc("mapsyncer.command.no_regions"), false);
         }
-    }
-
-    private static String partKey(RegionData chunk) {
-        return chunk.ref.regionX() + "," + chunk.ref.regionZ() + "," + chunk.ref.dimId() + "," + chunk.ref.caveLayer();
-    }
-
-    private static RegionData assemblePart(RegionData chunk) {
-        if (chunk.totalParts <= 1) {
-            return chunk;
-        }
-        if (chunk.totalParts <= 0 || chunk.partIndex < 0 || chunk.partIndex >= chunk.totalParts) {
-            LOGGER.warn("[SYNC-PART] invalid chunk part metadata: index={} total={}", chunk.partIndex,
-                    chunk.totalParts);
-            return null;
-        }
-
-        String key = partKey(chunk);
-        RegionData[] parts = partBuffer.computeIfAbsent(key, k -> new RegionData[chunk.totalParts]);
-        parts[chunk.partIndex] = chunk;
-
-        for (RegionData p : parts) {
-            if (p == null) {
-                return null;
-            }
-        }
-
-        partBuffer.remove(key);
-        LOGGER.debug("[SYNC-PART] {} fully assembled ({} parts)", key, chunk.totalParts);
-
-        int totalLen = 0;
-        for (RegionData p : parts) {
-            totalLen += p.data.length;
-        }
-        byte[] assembled = new byte[totalLen];
-        int offset = 0;
-        for (RegionData p : parts) {
-            System.arraycopy(p.data, 0, assembled, offset, p.data.length);
-            offset += p.data.length;
-        }
-
-        return new RegionData(parts[0].ref, parts[0].timestampMillis, assembled);
     }
 }

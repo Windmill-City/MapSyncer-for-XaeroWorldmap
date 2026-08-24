@@ -1,24 +1,19 @@
 package com.mapsyncer.network;
 
-import java.util.ArrayList;
-import java.util.List;
 import net.minecraft.network.FriendlyByteBuf;
 
-public record MapResponsePayload(List<RegionData> chunks) {
+public record MapResponsePayload(RegionData chunk) {
 
     public static void write(FriendlyByteBuf buf, MapResponsePayload payload) {
-        buf.writeInt(payload.chunks().size());
-        for (RegionData chunk : payload.chunks()) {
-            RegionData.write(buf, chunk);
+        buf.writeBoolean(payload.chunk() != null);
+        if (payload.chunk() != null) {
+            RegionData.write(buf, payload.chunk());
         }
     }
 
     public static MapResponsePayload read(FriendlyByteBuf buf) {
-        int size = buf.readInt();
-        List<RegionData> chunks = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            chunks.add(RegionData.read(buf));
-        }
-        return new MapResponsePayload(chunks);
+        boolean present = buf.readBoolean();
+        RegionData chunk = present ? RegionData.read(buf) : null;
+        return new MapResponsePayload(chunk);
     }
 }
