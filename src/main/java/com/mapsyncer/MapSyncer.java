@@ -8,6 +8,7 @@ import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
+import com.mapsyncer.server.XaeroWriter;
 import com.mapsyncer.server.AutoUpdater;
 import java.nio.file.Path;
 import java.util.List;
@@ -47,8 +48,8 @@ public class MapSyncer {
 
     public static final Path CACHE_DIR = Path.of(MOD_ID);
 
-    public static final ForgeConfigSpec CONFIG_SPEC;
-    public static final ServerConfig CONFIG;
+    private static final ForgeConfigSpec CONFIG_SPEC;
+    private static final ServerConfig CONFIG;
 
     private static net.minecraftforge.fml.config.PlanConfig serverConfig;
 
@@ -198,7 +199,7 @@ public class MapSyncer {
     public static class ForgeEvents {
         @SubscribeEvent
         public static void onServerStarted(ServerStartedEvent event) {
-            MapConverter.cleanupCacheDir();
+            XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
             AutoUpdater.performUpdate(event.getServer());
         }
 

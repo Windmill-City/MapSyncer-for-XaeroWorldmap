@@ -53,10 +53,6 @@ public class MapConverter {
 
     private static final List<String> completedDimensions = new CopyOnWriteArrayList<>();
 
-    public static void cleanupCacheDir() {
-        XaeroWriter.cleanStaleFiles(MapSyncer.CACHE_DIR);
-    }
-
     public static boolean generate(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.warn("Conversion already in progress, rejecting...");
