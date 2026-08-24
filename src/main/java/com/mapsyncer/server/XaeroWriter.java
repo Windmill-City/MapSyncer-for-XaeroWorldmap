@@ -56,9 +56,4 @@ public class XaeroWriter {
 
         Files.move(tempFile, finalFile, StandardCopyOption.REPLACE_EXISTING);
     }
-
-    public static boolean regionFileExists(Path outputDir, int regionX, int regionZ) {
-        Path zipFile = outputDir.resolve(regionX + "_" + regionZ + ".zip");
-        return Files.exists(zipFile);
-    }
 }
