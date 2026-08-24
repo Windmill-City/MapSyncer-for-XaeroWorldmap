@@ -40,10 +40,6 @@ public class PacketHandler {
                     serverPlayer.getName().getString(),
                     requested);
 
-            if (!Files.exists(PathUtils.CACHE_DIR)) return;
-
-            ManifestServer.get(serverPlayer.server);
-
             serveRequestedRegion(serverPlayer, requested);
         });
         context.get().setPacketHandled(true);
@@ -55,32 +51,24 @@ public class PacketHandler {
             MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
             return;
         }
-        sendRegionResponse(player, chunk);
-    }
-
-    private static RegionData getRegionData(RegionRef region) {
-        Long timestamp = ManifestServer.getTimestamp(region);
-        if (timestamp == null) {
-            LOGGER.warn("Requested region not found or invalid: {}", region);
-            return null;
-        }
-        Path zipPath = resolveZipPath(region);
-        try {
-            byte[] data = Files.readAllBytes(zipPath);
-            return new RegionData(region, timestamp, data);
-        } catch (IOException e) {
-            LOGGER.error("Failed to read zip file: {}", zipPath, e);
-            return null;
-        }
-    }
-
-    private static void sendRegionResponse(ServerPlayer player, RegionData chunk) {
         LOGGER.debug(
                 "[SYNC-SRV] send to {}: region {}, {} bytes",
                 player.getName().getString(),
                 chunk.ref,
                 chunk.data.length);
         MapSyncer.sendToPlayer(player, new MapResponsePayload(chunk));
+    }
+
+    private static RegionData getRegionData(RegionRef region) {
+        Path zipPath = resolveZipPath(region);
+        try {
+            byte[] data = Files.readAllBytes(zipPath);
+            long timestamp = Files.getLastModifiedTime(zipPath).toMillis();
+            return new RegionData(region, timestamp, data);
+        } catch (IOException e) {
+            LOGGER.error("Failed to read zip file: {}", zipPath, e);
+            return null;
+        }
     }
 
     private static Path resolveZipPath(RegionRef ref) {
