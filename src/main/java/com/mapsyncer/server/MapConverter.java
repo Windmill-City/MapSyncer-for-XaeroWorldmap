@@ -198,9 +198,7 @@ public class MapConverter {
                 skippedEmptyContentCount.get(),
                 failedRegions.size());
 
-        String friendlyName = MapCacheManager.friendlyDimensionName(
-                dimRegions.dimension().location().toString());
-        completedDimensions.add(friendlyName);
+        completedDimensions.add(dimRegions.dimension().location().toString());
     }
 
     private static int countTotalWork(MinecraftServer server, List<Regions> allRegions) {

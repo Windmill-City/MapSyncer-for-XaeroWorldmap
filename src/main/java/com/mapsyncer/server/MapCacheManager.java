@@ -27,8 +27,7 @@ public class MapCacheManager {
             for (Path dimDir : dimDirs) {
                 if (!Files.isDirectory(dimDir)) continue;
 
-                String dimName = dimDir.getFileName().toString();
-                String friendlyName = friendlyDimensionName(dimName);
+                String folder = dimDir.getFileName().toString();
 
                 int regionCount = 0;
                 long totalSize = 0;
@@ -50,7 +49,7 @@ public class MapCacheManager {
                 }
 
                 if (regionCount > 0) {
-                    stats.add(new MapCacheStats(friendlyName, regionCount, totalSize));
+                    stats.add(new MapCacheStats(folder, regionCount, totalSize));
                 }
             }
         } catch (IOException e) {
@@ -85,29 +84,5 @@ public class MapCacheManager {
         return deleted;
     }
 
-    public static String friendlyDimensionName(String dimPath) {
-        if (dimPath == null || dimPath.isEmpty()) {
-            return "minecraft:overworld";
-        }
-        if (dimPath.startsWith("minecraft:")) {
-            return dimPath;
-        }
-        int dollarIndex = dimPath.indexOf('$');
-        if (dollarIndex > 0) {
-            String namespace = dimPath.substring(0, dollarIndex);
-            String path = dimPath.substring(dollarIndex + 1).replace('%', '/').replace(',', '.');
-            return namespace + ":" + path;
-        }
-        if (dimPath.contains(":")) {
-            return dimPath;
-        }
-        return "minecraft:" + dimPath;
-    }
-
-    public record MapCacheStats(String dimension, int regionCount, long sizeBytes) {
-
-        public double sizeMB() {
-            return sizeBytes / (1024.0 * 1024.0);
-        }
-    }
+    public record MapCacheStats(String folder, int regions, long size) {}
 }
