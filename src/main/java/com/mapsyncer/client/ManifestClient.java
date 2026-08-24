@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -24,11 +23,9 @@ public class ManifestClient {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
 
-    private static final ExecutorService executor = Util.ioPool();
-
     public static void getManifestAsync(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
         try {
-            executor.execute(() -> {
+            Util.ioPool().execute(() -> {
                 try {
                     callback.accept(getManifest(dimIds));
                 } catch (Exception e) {
