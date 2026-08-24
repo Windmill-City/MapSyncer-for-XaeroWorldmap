@@ -122,9 +122,9 @@ public class PacketHandler {
 
     private static void stop() {
         running = false;
+        partBuffer.clear();
         pendingRegions.clear();
         deferredManifest = null;
-        partBuffer.clear();
         LOGGER.info("[SYNC] sync stopped, resources cleaned up");
     }
 
