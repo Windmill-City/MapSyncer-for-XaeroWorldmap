@@ -1,4 +1,4 @@
-package com.mapsyncer.server;
+package com.mapsyncer.mca;
 
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;

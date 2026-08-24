@@ -5,9 +5,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
-import net.minecraft.server.MinecraftServer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.mca.RegionScanner;
+
+import net.minecraft.server.MinecraftServer;
 
 public class MapConverter {
 
@@ -26,14 +30,23 @@ public class MapConverter {
             LOGGER.warn("Conversion already in progress, rejecting...");
             return false;
         }
+        LOGGER.info("Conversion start...");
         completed.clear();
 
         try {
-            LOGGER.warn("MapConverter.generate is not implemented");
+            var regions = RegionScanner.scan(server);
+            for (RegionScanner.Regions r : regions) {
+                LOGGER.info(
+                        "Dimension: {}, regionDir: {}, regions found: {}",
+                        r.dimId(),
+                        r.regionDir(),
+                        r.entries().size());
+            }
         } catch (Throwable e) {
-            LOGGER.error("Map generate failed", e);
+            LOGGER.error("Conversion failed", e);
         } finally {
             isRunning.set(false);
+            LOGGER.info("Conversion stopped");
         }
         return true;
     }

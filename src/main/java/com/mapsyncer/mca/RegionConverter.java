@@ -21,19 +21,14 @@ public class RegionConverter {
     public static final int TILE_CHUNKS_PER_REGION = 8;
     public static final int MAJOR_VERSION = 6;
     public static final int MINOR_VERSION = 8;
+    public static final int CAVE_DEPTH = 15;
 
     public record ConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
 
-    public record LayerConvertedRegion(int regionX, int regionZ, byte[] xaeroData) {}
-
-    public record CaveModeParams(int caveStart, int caveDepth) {
-        public static final CaveModeParams NONE = new CaveModeParams(Integer.MAX_VALUE, 0);
-    }
-
-    public static List<LayerConvertedRegion> convertRegionMulti(
+    public static List<ConvertedRegion> convertRegionMulti(
             Path mcaPath, int regionX, int regionZ, BlockPropertyLookup blockLookup) {
         try {
-            return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, dimTypeInfo, passes, blockLookup);
+            return RegionConversionPipeline.convertMulti(mcaPath, regionX, regionZ, blockLookup);
         } catch (IOException e) {
             LOGGER.warn("Failed to convert region ({}, {}) multi-pass", regionX, regionZ, e);
             return List.of();

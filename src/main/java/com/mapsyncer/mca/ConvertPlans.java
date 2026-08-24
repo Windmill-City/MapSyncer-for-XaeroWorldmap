@@ -1,6 +1,5 @@
-package com.mapsyncer.server;
+package com.mapsyncer.mca;
 
-import com.mapsyncer.mca.LayerPlan;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,9 +7,9 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ScanPlanner {
+public class ConvertPlans {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScanPlanner.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConvertPlans.class);
 
     private static volatile Map<String, LayerPlan> Plans = Map.of();
 
@@ -18,7 +17,7 @@ public class ScanPlanner {
         return Plans.getOrDefault(dimId, new LayerPlan(false, Set.of()));
     }
 
-    public static void rebuildPlans(List<? extends String> planEntries) {
+    public static void build(List<? extends String> planEntries) {
         Map<String, LayerPlan> rebuilt = new LinkedHashMap<>();
         for (var entryStr : planEntries) {
             if (entryStr == null || entryStr.isBlank()) {

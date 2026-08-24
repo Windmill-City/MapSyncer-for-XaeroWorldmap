@@ -2,12 +2,12 @@ package com.mapsyncer;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
+import com.mapsyncer.mca.ConvertPlans;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
-import com.mapsyncer.server.ScanPlanner;
 import com.mapsyncer.server.XaeroWriter;
 import com.mapsyncer.util.PathUtils;
 import java.nio.file.Path;
@@ -56,7 +56,7 @@ public class MapSyncer {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
         CONFIG = pair.getLeft();
         CONFIG_SPEC = pair.getRight();
-        ScanPlanner.rebuildPlans(CONFIG.Plans.get());
+        ConvertPlans.build(CONFIG.Plans.get());
     }
 
     public static class ServerConfig {
@@ -81,7 +81,7 @@ public class MapSyncer {
                             "Format per entry: \"dimension = layerPlan\"",
                             "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
                             "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("plans", ScanPlanner.getDefaultPlans(), obj -> obj instanceof String);
+                    .defineList("plans", ConvertPlans.getDefaultPlans(), obj -> obj instanceof String);
 
             builder.pop();
         }
@@ -98,7 +98,7 @@ public class MapSyncer {
 
     public static void bindServerConfig(ModConfig config) {
         serverConfig = config;
-        ScanPlanner.rebuildPlans(CONFIG.Plans.get());
+        ConvertPlans.build(CONFIG.Plans.get());
     }
 
     public static void reloadFromDisk() {
@@ -108,7 +108,7 @@ public class MapSyncer {
             try {
                 file.load();
                 CONFIG_SPEC.acceptConfig(file);
-                ScanPlanner.rebuildPlans(CONFIG.Plans.get());
+                ConvertPlans.build(CONFIG.Plans.get());
             } finally {
                 file.close();
             }
