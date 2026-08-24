@@ -108,7 +108,7 @@ public class MapConverter {
 
         LayerPlan plan = PlanConfig.getPlan(dimPath);
 
-        String dimFolderName = PathUtils.toServerFolderName(fullDimId);
+        String dimFolderName = PathUtils.dimToPath(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
         Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
 
@@ -450,7 +450,7 @@ public class MapConverter {
             String dimPath = dimRegions.dimension().location().getPath();
 
             LayerPlan plan = PlanConfig.getPlan(dimPath);
-            String dimFolderName = PathUtils.toServerFolderName(fullDimId);
+            String dimFolderName = PathUtils.dimToPath(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);
             if (regionDir == null) {

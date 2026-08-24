@@ -3,7 +3,6 @@ package com.mapsyncer.server;
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.PathUtils;
-import com.mapsyncer.util.RegionKey;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +40,7 @@ public final class ManifestServer {
 
         for (ServerLevel level : server.getAllLevels()) {
             String dimId = PathUtils.getDimId(level.dimension());
-            String dimFolderName = PathUtils.toServerFolderName(dimId);
+            String dimFolderName = PathUtils.dimToPath(dimId);
             Path dimDir = MapSyncer.CACHE_DIR.resolve(dimFolderName);
             if (!Files.isDirectory(dimDir)) {
                 continue;
@@ -50,8 +49,8 @@ public final class ManifestServer {
             try (Stream<Path> stream = Files.walk(dimDir)) {
                 stream.filter(p -> p.toString().endsWith(".zip")).forEach(zipPath -> {
                     String relative = dimDir.relativize(zipPath).toString().replace("\\", "/");
-                    int caveLayer = RegionKey.caveLayerFromRelative(relative);
-                    int[] coords = RegionKey.coordsFromZipFileName(zipPath);
+                    int caveLayer = PathUtils.caveFromPath(relative);
+                    int[] coords = PathUtils.coordsFromPath(zipPath);
                     RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
                     long timestamp = readMtimeMillis(zipPath);
                     rebuilt.put(ref, timestamp);
@@ -77,7 +76,7 @@ public final class ManifestServer {
     }
 
     public static Path resolveZipPath(RegionRef ref) {
-        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathUtils.toServerFolderName(ref.dimId()));
+        Path baseOutputDir = MapSyncer.CACHE_DIR.resolve(PathUtils.dimToPath(ref.dimId()));
         int caveLayer = ref.cave();
         Path outputDir =
                 ref.isSurface() ? baseOutputDir : baseOutputDir.resolve("caves").resolve(String.valueOf(caveLayer));

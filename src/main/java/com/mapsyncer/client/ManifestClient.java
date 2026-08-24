@@ -1,7 +1,7 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.RegionKey;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -98,8 +98,8 @@ public class ManifestClient {
 
     private static RegionRef buildKey(String dimId, Path dimDir, Path zipPath) {
         String relative = dimDir.relativize(zipPath).toString().replace("\\", "/");
-        int caveLayer = RegionKey.caveLayerFromRelative(relative);
-        int[] coords = RegionKey.coordsFromZipFileName(zipPath);
+        int caveLayer = PathUtils.caveFromPath(relative);
+        int[] coords = PathUtils.coordsFromPath(zipPath);
         return new RegionRef(dimId, caveLayer, coords[0], coords[1]);
     }
 }
