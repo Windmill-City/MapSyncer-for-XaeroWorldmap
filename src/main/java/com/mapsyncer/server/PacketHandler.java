@@ -40,8 +40,7 @@ public class PacketHandler {
                     serverPlayer.getName().getString(),
                     requested);
 
-            Path cacheDir = PathUtils.CACHE_DIR;
-            if (!Files.exists(cacheDir)) return;
+            if (!Files.exists(PathUtils.CACHE_DIR)) return;
 
             ManifestServer.get(serverPlayer.server);
 
@@ -51,14 +50,7 @@ public class PacketHandler {
     }
 
     private static void serveRequestedRegion(ServerPlayer player, RegionRef region) {
-        Path zipPath = PathUtils.resolveZipPath(region);
-        Long timestamp = ManifestServer.getTimestamp(region);
-        if (zipPath == null || timestamp == null || !Files.isRegularFile(zipPath)) {
-            LOGGER.warn("Requested region not found or invalid: {}", region);
-            MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
-            return;
-        }
-        RegionData chunk = readRegionData(zipPath, timestamp, region);
+        RegionData chunk = getRegionData(region);
         if (chunk == null) {
             MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
             return;
@@ -66,10 +58,16 @@ public class PacketHandler {
         sendRegionResponse(player, chunk);
     }
 
-    private static RegionData readRegionData(Path zipPath, long timestampMillis, RegionRef region) {
+    private static RegionData getRegionData(RegionRef region) {
+        Long timestamp = ManifestServer.getTimestamp(region);
+        if (timestamp == null) {
+            LOGGER.warn("Requested region not found or invalid: {}", region);
+            return null;
+        }
+        Path zipPath = resolveZipPath(region);
         try {
             byte[] data = Files.readAllBytes(zipPath);
-            return new RegionData(region, timestampMillis, data);
+            return new RegionData(region, timestamp, data);
         } catch (IOException e) {
             LOGGER.error("Failed to read zip file: {}", zipPath, e);
             return null;
@@ -83,5 +81,11 @@ public class PacketHandler {
                 chunk.ref,
                 chunk.data.length);
         MapSyncer.sendToPlayer(player, new MapResponsePayload(chunk));
+    }
+
+    private static Path resolveZipPath(RegionRef ref) {
+        Path dimDir = PathUtils.getDimDirServer(ref.dimId());
+        Path dstDir = ref.isSurface() ? dimDir : dimDir.resolve("caves").resolve(String.valueOf(ref.cave()));
+        return dstDir.resolve(ref.regionX() + "_" + ref.regionZ() + ".zip");
     }
 }

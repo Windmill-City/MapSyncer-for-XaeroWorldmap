@@ -64,7 +64,7 @@ public class RegionScanner {
 
             String dimId = PathUtils.getDimId(level.dimension());
 
-            Path regionDir = detectRegionDir(worldRoot, dimId);
+            Path regionDir = getRegionDir(worldRoot, dimId);
 
             if (regionDir != null && Files.exists(regionDir)) {
                 return regionDir.toRealPath();
@@ -81,7 +81,7 @@ public class RegionScanner {
     private static RegionScanResult scanRegionDir(Path worldRoot, ResourceKey<Level> dimensionKey) {
         String dimId = PathUtils.getDimId(dimensionKey);
 
-        Path regionDir = detectRegionDir(worldRoot, dimId);
+        Path regionDir = getRegionDir(worldRoot, dimId);
 
         if (regionDir == null || !Files.exists(regionDir)) {
             LOGGER.warn("Region directory not found for dimension: {}", dimId);
@@ -91,7 +91,7 @@ public class RegionScanner {
         return scanRegionDirectory(regionDir);
     }
 
-    private static Path detectRegionDir(Path worldRoot, String dimId) {
+    private static Path getRegionDir(Path worldRoot, String dimId) {
         if (worldRoot == null || !Files.exists(worldRoot)) {
             return null;
         }
