@@ -71,7 +71,14 @@ public class PacketHandler {
             return;
         }
 
-        start();
+        if (running) {
+            LOGGER.debug("[SYNC] sync alreay started, skipping...");
+            return;
+        }
+
+        running = true;
+        syncStartMs = System.currentTimeMillis();
+        LOGGER.info("[SYNC] sync started");
 
         ManifestClient.getManifestAsync(extractDimIds(serverTimestamps.keySet()), localMeta -> {
             Minecraft mc = Minecraft.getInstance();
@@ -90,7 +97,6 @@ public class PacketHandler {
                 pending.sort(Comparator.comparingInt(ref -> ref.regionDistance(
                         mc.player.getBlockX() >> 9, mc.player.getBlockZ() >> 9)));
 
-                pendingRegions.clear();
                 pendingRegions.addAll(pending);
                 syncTotal = pending.size();
                 syncProcessed = 0;
@@ -102,7 +108,8 @@ public class PacketHandler {
         });
     }
 
-    private static List<RegionRef> collectPending(Map<RegionRef, Long> serverTimestamps, Map<RegionRef, Long> localMeta) {
+    private static List<RegionRef> collectPending(Map<RegionRef, Long> serverTimestamps,
+            Map<RegionRef, Long> localMeta) {
         List<RegionRef> pending = new ArrayList<>();
         for (Map.Entry<RegionRef, Long> entry : serverTimestamps.entrySet()) {
             Long local = localMeta.get(entry.getKey());
@@ -113,19 +120,10 @@ public class PacketHandler {
         return pending;
     }
 
-    private static void start() {
-        running = true;
-        syncStartMs = System.currentTimeMillis();
-        LOGGER.info("[SYNC] sync started");
-    }
-
     private static void stop() {
         running = false;
         pendingRegions.clear();
         deferredManifest = null;
-        syncTotal = 0;
-        syncProcessed = 0;
-        syncFailed = 0;
         partBuffer.clear();
         LOGGER.info("[SYNC] sync stopped, resources cleaned up");
     }
@@ -234,7 +232,8 @@ public class PacketHandler {
         if (Minecraft.getInstance().player != null) {
             if (totalReceived > 0) {
                 if (syncFailed > 0) {
-                    Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"), false);
+                    Minecraft.getInstance().player.displayClientMessage(ChatUtils.error("mapsyncer.sync.partial"),
+                            false);
                 }
                 long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
                 Minecraft.getInstance().player.displayClientMessage(
@@ -263,7 +262,8 @@ public class PacketHandler {
             return chunk;
         }
         if (chunk.totalParts <= 0 || chunk.partIndex < 0 || chunk.partIndex >= chunk.totalParts) {
-            LOGGER.warn("[SYNC-PART] invalid chunk part metadata: index={} total={}", chunk.partIndex, chunk.totalParts);
+            LOGGER.warn("[SYNC-PART] invalid chunk part metadata: index={} total={}", chunk.partIndex,
+                    chunk.totalParts);
             return null;
         }
 
