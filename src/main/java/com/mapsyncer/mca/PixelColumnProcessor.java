@@ -21,7 +21,7 @@ public final class PixelColumnProcessor {
             int heightMapValue,
             boolean isCaveMode,
             boolean worldHasSkylight,
-            LightMode lightMode,
+            boolean isSurface,
             boolean singlePalette,
             BlockState singleState,
             ChunkColumnScanner.ColumnScanContext ctx,
@@ -105,7 +105,7 @@ public final class PixelColumnProcessor {
                         ctx,
                         data,
                         blockLookup,
-                        lightMode,
+                        isSurface,
                         worldHasSkylight,
                         true);
             }
@@ -127,7 +127,7 @@ public final class PixelColumnProcessor {
                         ctx,
                         data,
                         blockLookup,
-                        lightMode,
+                        isSurface,
                         worldHasSkylight,
                         false);
             }
@@ -191,7 +191,7 @@ public final class PixelColumnProcessor {
                     aboveWorldY,
                     heightMapValue,
                     overlays,
-                    lightMode,
+                    isSurface,
                     worldHasSkylight,
                     blockLookup);
             int topBlockY = ctx.topPixelH[pos] < 0 ? worldY : ctx.topPixelH[pos];
@@ -218,7 +218,7 @@ public final class PixelColumnProcessor {
             ChunkColumnScanner.ColumnScanContext ctx,
             MapRegionData data,
             BlockPropertyLookup blockLookup,
-            LightMode lightMode,
+            boolean isSurface,
             boolean worldHasSkylight,
             boolean useCalculateLight) {
 
@@ -235,7 +235,7 @@ public final class PixelColumnProcessor {
                         aboveWorldY,
                         heightMapValue,
                         overlays,
-                        lightMode,
+                        isSurface,
                         worldHasSkylight,
                         blockLookup)
                 : getBlockLightCrossSection(chunk, section, lx, ly, lz, aboveWorldY);
@@ -340,7 +340,7 @@ public final class PixelColumnProcessor {
             int worldY,
             int heightMapValue,
             List<OverlayEntry> overlayList,
-            LightMode lightMode,
+            boolean isSurface,
             boolean worldHasSkylight,
             BlockPropertyLookup blockLookup) {
         byte blockLight = getBlockLightCrossSection(chunk, currentSection, lx, ly, lz, worldY);
@@ -385,7 +385,7 @@ public final class PixelColumnProcessor {
         boolean isGlowing = blockLookup.isGlowing(
                 ChunkParser.getBlockStateAt(stateSection, lx, stateLocalY, lz).name());
 
-        return lightMode.calculateEffectiveLight(
-                blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
+        return LightUtil.getLight(
+                isSurface, blockLight, skyLight, hasSkyAccess, hasFluidOverlay, isGlowing, worldHasSkylight);
     }
 }

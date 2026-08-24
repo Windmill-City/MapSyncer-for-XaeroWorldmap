@@ -61,7 +61,7 @@ public final class ChunkColumnScanner {
             ChunkParser.ChunkInfo chunk,
             int minBuildHeight,
             int worldTopY,
-            LightMode lightMode,
+            boolean isSurface,
             int caveStart,
             boolean worldHasSkylight,
             BlockPropertyLookup blockLookup) {
@@ -154,7 +154,7 @@ public final class ChunkColumnScanner {
                             heightMapValue,
                             isCaveMode,
                             worldHasSkylight,
-                            lightMode,
+                            isSurface,
                             singlePalette,
                             singleState,
                             ctx,

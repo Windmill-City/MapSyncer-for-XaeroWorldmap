@@ -77,7 +77,7 @@ public final class RegionConverter {
                                 chunkInfo,
                                 bounds.minY(),
                                 bounds.maxY(),
-                                data.lightMode(),
+                                data.isSurface(),
                                 data.caveStart(),
                                 bounds.hasSkylight(),
                                 blockLookup);

@@ -57,8 +57,8 @@ public class MapRegionData {
         chunkGrid = new ChunkParser.ChunkInfo[Constants.CHUNKS_PER_REGION][Constants.CHUNKS_PER_REGION];
     }
 
-    public LightMode lightMode() {
-        return ref.isSurface() ? LightMode.SURFACE : LightMode.CAVE;
+    public boolean isSurface() {
+        return ref.isSurface();
     }
 
     public int caveStart() {
