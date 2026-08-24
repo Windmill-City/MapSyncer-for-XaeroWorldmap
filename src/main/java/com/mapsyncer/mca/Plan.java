@@ -33,7 +33,8 @@ public record Plan(boolean surface, Set<Integer> caves) {
                 hasSurface = true;
             } else {
                 try {
-                    caves.add((Integer.parseInt(token) >> 4) << 4);
+                    int y = Integer.parseInt(token);
+                    caves.add(Math.floorDiv(y, 16) * 16);
                 } catch (NumberFormatException e) {
                 }
             }
