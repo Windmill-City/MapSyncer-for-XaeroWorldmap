@@ -41,7 +41,7 @@ public class RegionScanner {
         if (regionDir == null) {
             return new Regions(dimId, null, List.of());
         }
-        return new Regions(dimId, regionDir, scanRegionDirectory(regionDir));
+        return new Regions(dimId, regionDir, scan(regionDir));
     }
 
     private static Path getRegionDir(ServerLevel level) {
@@ -72,7 +72,7 @@ public class RegionScanner {
         }
     }
 
-    private static List<RegionEntry> scanRegionDirectory(Path regionDir) {
+    private static List<RegionEntry> scan(Path regionDir) {
         List<RegionEntry> entries = new ArrayList<>();
         if (!Files.exists(regionDir)) {
             return entries;
