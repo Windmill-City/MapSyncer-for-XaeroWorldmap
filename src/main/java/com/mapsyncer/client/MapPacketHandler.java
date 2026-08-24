@@ -54,7 +54,6 @@ public class MapPacketHandler {
     public static void onDisconnect() {
         stop();
         ManifestClient.shutdown();
-        ClientSyncWriteQueue.shutdown();
         LOGGER.info("Client disconnected, all resources cleaned up");
     }
 

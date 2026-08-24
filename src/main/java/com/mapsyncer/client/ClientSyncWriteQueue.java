@@ -2,10 +2,10 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.network.RegionData;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import net.minecraft.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,29 +13,9 @@ public final class ClientSyncWriteQueue {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientSyncWriteQueue.class);
 
-    private static volatile ExecutorService executor = null;
+    private static final ExecutorService executor = Util.ioPool();
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
-
-    private static ExecutorService getExecutor() {
-        ExecutorService current = executor;
-        if (current != null && !current.isShutdown()) {
-            return current;
-        }
-        synchronized (ClientSyncWriteQueue.class) {
-            current = executor;
-            if (current == null || current.isShutdown()) {
-                current = Executors.newSingleThreadExecutor(r -> {
-                    Thread t = new Thread(r, "mapsyncer-sync-io");
-                    t.setDaemon(true);
-                    return t;
-                });
-                executor = current;
-                LOGGER.debug("ClientSyncWriteQueue executor (re)created");
-            }
-            return current;
-        }
-    }
 
     public static boolean hasPendingWrites() {
         return pendingWrites.get() > 0;
@@ -56,7 +36,7 @@ public final class ClientSyncWriteQueue {
         };
 
         try {
-            getExecutor().execute(task);
+            executor.execute(task);
         } catch (RejectedExecutionException e) {
             pendingWrites.decrementAndGet();
             LOGGER.error(
@@ -64,7 +44,7 @@ public final class ClientSyncWriteQueue {
                     chunk.ref.regionX(),
                     chunk.ref.regionZ(),
                     e);
-            invokeCallback(chunk, callback, null);
+            invokeCallback(chunk, callback, false);
         }
     }
 
@@ -74,16 +54,5 @@ public final class ClientSyncWriteQueue {
         } catch (Exception e) {
             LOGGER.error("Sync write callback failed for ({}, {})", chunk.ref.regionX(), chunk.ref.regionZ(), e);
         }
-    }
-
-    public static void shutdown() {
-        synchronized (ClientSyncWriteQueue.class) {
-            if (executor != null) {
-                executor.shutdownNow();
-                executor = null;
-            }
-        }
-        pendingWrites.set(0);
-        LOGGER.debug("ClientSyncWriteQueue shutdown");
     }
 }
