@@ -47,15 +47,11 @@ public class PacketHandler {
 
     private static void serveRequestedRegion(ServerPlayer player, RegionRef region) {
         RegionData chunk = getRegionData(region);
-        if (chunk == null) {
-            MapSyncer.sendToPlayer(player, new MapResponsePayload(null));
-            return;
-        }
         LOGGER.debug(
                 "[SYNC-SRV] send to {}: region {}, {} bytes",
                 player.getName().getString(),
-                chunk.ref,
-                chunk.data.length);
+                region,
+                chunk == null ? 0 : chunk.data.length);
         MapSyncer.sendToPlayer(player, new MapResponsePayload(chunk));
     }
 
