@@ -1,6 +1,6 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.MapSyncer;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
@@ -21,7 +21,7 @@ public final class AutoUpdater {
             return;
         }
 
-        boolean enabled = ModConfig.Config.config().AutoUpdate.get();
+        boolean enabled = MapSyncer.isAutoUpdate();
         if (!enabled) {
             LOGGER.debug("Skipping: automatic update is disabled");
             return;

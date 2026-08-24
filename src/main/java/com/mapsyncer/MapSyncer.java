@@ -1,6 +1,8 @@
 package com.mapsyncer;
 
+import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
+import com.mapsyncer.config.LayerPlan;
 import com.mapsyncer.config.ModConfig;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.MapRequestPayload;
@@ -9,13 +11,21 @@ import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import com.mapsyncer.server.AutoUpdater;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModContainer;
@@ -41,6 +51,85 @@ public class MapSyncer {
 
     public static final Path CACHE_DIR = Path.of(MOD_ID);
 
+    public static final ForgeConfigSpec CONFIG_SPEC;
+    public static final ServerConfig CONFIG;
+
+    private static net.minecraftforge.fml.config.ModConfig serverConfig;
+
+    static {
+        var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
+        CONFIG = pair.getLeft();
+        CONFIG_SPEC = pair.getRight();
+        ModConfig.rebuildPlans(CONFIG.Plans.get());
+    }
+
+    public static class ServerConfig {
+
+        private final ConfigValue<Boolean> AutoUpdate;
+
+        public final ConfigValue<List<? extends String>> Plans;
+
+        public ServerConfig(ForgeConfigSpec.Builder builder) {
+            builder.push("AutoUpdate");
+
+            AutoUpdate = builder.comment(
+                    "Update map when no players are online")
+                    .define("enabled", true);
+
+            builder.pop();
+
+            builder.push("LayerPlans");
+            builder.comment("Dimension scan settings");
+
+            Plans = builder.comment(
+                    "Per-dimension scan configuration list (one line per dimension)",
+                    "Format per entry: \"dimension = layerPlan\"",
+                    "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
+                    "Example: \"minecraft:overworld = SURFACE\"")
+                    .defineList("plans", getDefaultPlans(), obj -> obj instanceof String);
+
+            builder.pop();
+        }
+    }
+
+    private static List<String> getDefaultPlans() {
+        var defaults = new LinkedHashMap<>();
+        defaults.put("minecraft:overworld", new LayerPlan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new LayerPlan(true, Set.of(64)));
+        defaults.put("minecraft:the_end", new LayerPlan(true, Set.of()));
+        return defaults.entrySet().stream()
+                .map(Map.Entry::toString)
+                .toList();
+    }
+
+    public static boolean isAutoUpdate() {
+        return CONFIG.AutoUpdate.get();
+    }
+
+    public static void setAutoUpdate(boolean enabled) {
+        CONFIG.AutoUpdate.set(enabled);
+        CONFIG_SPEC.save();
+    }
+
+    public static void bindServerConfig(net.minecraftforge.fml.config.ModConfig config) {
+        serverConfig = config;
+        ModConfig.rebuildPlans(CONFIG.Plans.get());
+    }
+
+    public static void reloadFromDisk() {
+        if (serverConfig != null) {
+            try {
+                Path path = serverConfig.getFullPath();
+                CommentedFileConfig file = CommentedFileConfig.of(path);
+                file.load();
+                CONFIG_SPEC.acceptConfig(file);
+                ModConfig.rebuildPlans(CONFIG.Plans.get());
+            } finally {
+                file.close();
+            }
+        }
+    }
+
     private static final String PROTOCOL_VERSION = "4";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(MOD_ID, "main"),
@@ -52,7 +141,7 @@ public class MapSyncer {
         ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
         VERSION = modContainer.getModInfo().getVersion().toString();
 
-        ModLoadingContext.get().registerConfig(Type.SERVER, ModConfig.Config.spec());
+        ModLoadingContext.get().registerConfig(Type.SERVER, CONFIG_SPEC);
 
         CHANNEL.registerMessage(
                 0,
@@ -107,7 +196,7 @@ public class MapSyncer {
     public static class ModEvents {
         @SubscribeEvent
         public static void onConfigLoading(ModConfigEvent.Loading event) {
-            ModConfig.bindServerConfig(event.getConfig());
+            bindServerConfig(event.getConfig());
         }
     }
 
@@ -135,6 +224,29 @@ public class MapSyncer {
         @SubscribeEvent
         public static void onRegisterCommands(RegisterCommandsEvent event) {
             CommandHandler.register(event.getDispatcher(), "mapsyncer");
+        }
+    }
+
+    @EventBusSubscriber(value = Dist.DEDICATED_SERVER, bus = EventBusSubscriber.Bus.FORGE)
+    public static class ServerEvents {
+        @SubscribeEvent
+        public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+            ServerPlayer player = (ServerPlayer) event.getEntity();
+            com.mapsyncer.server.PacketHandler.pushManifest(player);
+
+            AutoUpdater.stop();
+        }
+
+        @SubscribeEvent
+        public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
+            ServerPlayer player = (ServerPlayer) event.getEntity();
+
+            AutoUpdater.onPlayerLoggedOut(player);
+        }
+
+        @SubscribeEvent
+        public static void onServerStopped(ServerStoppedEvent event) {
+            AutoUpdater.stop();
         }
     }
 }

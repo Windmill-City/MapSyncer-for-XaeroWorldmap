@@ -1,5 +1,5 @@
 package com.mapsyncer.server;
-import com.mapsyncer.config.ModConfig;
+import com.mapsyncer.MapSyncer;
 import com.mapsyncer.server.MapConverter.DimensionCacheStats;
 import com.mapsyncer.util.ChatUtils;
 import com.mojang.brigadier.Command;
@@ -159,7 +159,7 @@ public class CommandHandler {
     }
 
     public static MutableComponent automaticStatusMessage() {
-        boolean enabled = ModConfig.Config.config().AutoUpdate.get();
+        boolean enabled = MapSyncer.isAutoUpdate();
 
         if (enabled) {
             return ChatUtils.message("mapsyncer.command.automatic_on");
@@ -201,19 +201,17 @@ public class CommandHandler {
     }
 
     public static void disableAutomatic() {
-        ModConfig.Config.config().automaticUpdateEnabled.set(false);
-        ModConfig.Config.spec().save();
+        MapSyncer.setAutoUpdate(false);
         AutoUpdater.stop();
     }
 
     public static void setAutomaticOn() {
-        ModConfig.Config.config().automaticUpdateEnabled.set(true);
-        ModConfig.Config.spec().save();
+        MapSyncer.setAutoUpdate(true);
     }
 
     public static boolean reloadConfig() {
         try {
-            ModConfig.reloadFromDisk();
+            MapSyncer.reloadFromDisk();
 
             AutoUpdater.stop();
 

@@ -356,7 +356,7 @@ public class MapConverter {
                 Path outputDir = pass.isSurface()
                         ? baseOutputDir
                         : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
-                String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
+                String relativePath = relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
                 purgeGeneratedArtifacts(outputDir, coords.x(), coords.z(), relativePath);
             }
             ManifestServer.invalidate();
@@ -384,7 +384,7 @@ public class MapConverter {
             Path outputDir = pass.isSurface()
                     ? baseOutputDir
                     : baseOutputDir.resolve("caves").resolve(String.valueOf(pass.cave()));
-            String relativePath = ModConfig.relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
+            String relativePath = relativePath(dimFolderName, pass.cave(), coords.x(), coords.z());
 
             ConvertedRegion single =
                     layer == null ? null : new ConvertedRegion(layer.regionX(), layer.regionZ(), layer.xaeroData());
@@ -660,6 +660,13 @@ public class MapConverter {
         }
 
         return stats;
+    }
+
+    private static String relativePath(String xaeroDimName, int caveLayer, int regionX, int regionZ) {
+        if (caveLayer == Integer.MAX_VALUE) {
+            return xaeroDimName + "/" + regionX + "_" + regionZ;
+        }
+        return xaeroDimName + "/caves/" + caveLayer + "/" + regionX + "_" + regionZ;
     }
 
     private static void purgeGeneratedArtifacts(Path outputDir, int regionX, int regionZ, String relativePath) {
