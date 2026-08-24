@@ -1,16 +1,11 @@
 package com.mapsyncer.server;
 
-import com.mapsyncer.config.PlanConfig;
-import com.mapsyncer.config.ScanPlanner;
-import com.mapsyncer.mca.DimensionInfo;
+import com.mapsyncer.mca.LayerPlan;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionConverter.ConvertedRegion;
 import com.mapsyncer.mca.RegionConverter.LayerConvertedRegion;
-import com.mapsyncer.mca.config.LayerPlan;
-import com.mapsyncer.mca.convert.scan.RegionScanPass;
 import com.mapsyncer.server.RegionScanner.RegionCoords;
 import com.mapsyncer.server.RegionScanner.Regions;
-import com.mapsyncer.util.ApiHelper;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -103,7 +98,7 @@ public class MapConverter {
         String fullDimId = dimRegions.dimension().location().toString();
         String dimPath = dimRegions.dimension().location().getPath();
 
-        LayerPlan plan = PlanConfig.getPlan(dimPath);
+        LayerPlan plan = ScanPlanner.getPlan(dimPath);
 
         String dimFolderName = PathUtils.getDimFolderServer(fullDimId);
         Path regionDir = RegionScanner.getRegionDir(level);
@@ -209,7 +204,7 @@ public class MapConverter {
                 continue;
             }
             String dimPath = dimRegions.dimension().location().getPath();
-            LayerPlan plan = PlanConfig.getPlan(dimPath);
+            LayerPlan plan = ScanPlanner.getPlan(dimPath);
             DimensionInfo dimTypeInfo = ApiHelper.fromDimensionType(level.dimensionType());
             int passCount = ScanPlanner.countPasses(plan, dimTypeInfo);
             total += dimRegions.regions().size() * passCount;
@@ -444,7 +439,7 @@ public class MapConverter {
             String fullDimId = dimRegions.dimension().location().toString();
             String dimPath = dimRegions.dimension().location().getPath();
 
-            LayerPlan plan = PlanConfig.getPlan(dimPath);
+            LayerPlan plan = ScanPlanner.getPlan(dimPath);
             String dimFolderName = PathUtils.getDimFolderServer(fullDimId);
 
             Path regionDir = RegionScanner.getRegionDir(level);

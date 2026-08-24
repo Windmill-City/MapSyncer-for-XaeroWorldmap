@@ -1,5 +1,6 @@
-package com.mapsyncer.mca.config;
+package com.mapsyncer.server;
 
+import com.mapsyncer.mca.LayerPlan;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,9 +8,9 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PlanConfig {
+public class ScanPlanner {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PlanConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScanPlanner.class);
 
     private static volatile Map<String, LayerPlan> Plans = Map.of();
 
