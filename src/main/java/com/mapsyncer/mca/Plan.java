@@ -7,12 +7,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public record Plan(boolean surface, Set<Integer> caves) {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Plan.class);
+    private static final Logger LOGGER = LogManager.getLogger(Plan.class);
 
     private static volatile Map<String, Plan> Plans = Map.of();
 

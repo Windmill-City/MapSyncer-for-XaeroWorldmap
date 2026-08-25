@@ -37,15 +37,15 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 @Mod(MapSyncer.MOD_ID)
 public class MapSyncer {
 
     public static final String MOD_ID = "mapsyncer";
     public static String VERSION = "unknown";
-    public static final Logger LOGGER = LoggerFactory.getLogger(MapSyncer.class);
+    public static final Logger LOGGER = LogManager.getLogger(MapSyncer.class);
 
     private static final ForgeConfigSpec CONFIG_SPEC;
     private static final ServerConfig CONFIG;

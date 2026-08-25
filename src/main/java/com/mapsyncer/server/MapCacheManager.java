@@ -9,12 +9,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class MapCacheManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MapCacheManager.class);
+    private static final Logger LOGGER = LogManager.getLogger(MapCacheManager.class);
 
     public static List<MapCacheStats> getCacheStats() {
         List<MapCacheStats> stats = new ArrayList<>();

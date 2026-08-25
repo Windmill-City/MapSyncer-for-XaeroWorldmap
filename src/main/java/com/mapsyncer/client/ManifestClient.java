@@ -12,7 +12,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.PathUtils;
@@ -21,7 +22,7 @@ import net.minecraft.Util;
 
 public class ManifestClient {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestClient.class);
+    private static final Logger LOGGER = LogManager.getLogger(ManifestClient.class);
 
     public static void get(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
         try {

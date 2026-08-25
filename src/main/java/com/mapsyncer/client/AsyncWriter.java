@@ -5,12 +5,12 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import net.minecraft.Util;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class AsyncWriter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncWriter.class);
+    private static final Logger LOGGER = LogManager.getLogger(AsyncWriter.class);
 
     private static final AtomicInteger pendingWrites = new AtomicInteger(0);
 

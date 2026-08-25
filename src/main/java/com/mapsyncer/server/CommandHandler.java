@@ -13,12 +13,12 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class CommandHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(CommandHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(CommandHandler.class);
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("mapsyncer")

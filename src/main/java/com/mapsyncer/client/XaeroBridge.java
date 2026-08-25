@@ -5,8 +5,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import xaero.map.MapProcessor;
 import xaero.map.WorldMapSession;
 import xaero.map.file.MapSaveLoad;
@@ -15,7 +15,7 @@ import xaero.map.region.MapRegion;
 
 public final class XaeroBridge {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroBridge.class);
+    private static final Logger LOGGER = LogManager.getLogger(XaeroBridge.class);
 
     private static final byte LOAD_STATE_CLEARED = 4;
 

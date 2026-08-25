@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ManifestServer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ManifestServer.class);
+    private static final Logger LOGGER = LogManager.getLogger(ManifestServer.class);
 
     private static volatile Map<RegionRef, Long> manifest = Map.of();
 

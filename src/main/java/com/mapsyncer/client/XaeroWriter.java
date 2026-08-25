@@ -7,12 +7,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import net.minecraft.client.Minecraft;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class XaeroWriter {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(XaeroWriter.class);
+    private static final Logger LOGGER = LogManager.getLogger(XaeroWriter.class);
 
     public static boolean writeChunkData(RegionData chunk) {
         String xaeroDim = XaeroBridge.getDimensionName(chunk.ref.dimId());

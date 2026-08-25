@@ -4,12 +4,12 @@ import com.mapsyncer.MapSyncer;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class AutoUpdater {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AutoUpdater.class);
+    private static final Logger LOGGER = LogManager.getLogger(AutoUpdater.class);
 
     public static void onPlayerLoggedOut(ServerPlayer player) {
         MinecraftServer server = player.getServer();

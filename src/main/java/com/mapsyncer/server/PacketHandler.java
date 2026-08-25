@@ -15,12 +15,12 @@ import java.util.function.Supplier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class PacketHandler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PacketHandler.class);
+    private static final Logger LOGGER = LogManager.getLogger(PacketHandler.class);
 
     public static void pushManifest(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get(player.server);
