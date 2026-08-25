@@ -9,7 +9,6 @@ import com.mapsyncer.network.MapRequestPayload;
 import com.mapsyncer.network.MapResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
-import com.mapsyncer.util.PathUtils;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;

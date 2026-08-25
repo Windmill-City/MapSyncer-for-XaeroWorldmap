@@ -75,8 +75,7 @@ public final class XaeroWriter {
             return false;
         }
 
-        Minecraft.getInstance()
-                .execute(() -> XaeroBridge.loadRegion(chunk.ref.X(), chunk.ref.Z(), chunk.ref.cave()));
+        Minecraft.getInstance().execute(() -> XaeroBridge.loadRegion(chunk.ref.X(), chunk.ref.Z(), chunk.ref.cave()));
 
         return true;
     }

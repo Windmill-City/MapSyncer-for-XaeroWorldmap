@@ -1,6 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.network.RegionRef;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;

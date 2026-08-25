@@ -1,8 +1,9 @@
 package com.mapsyncer.client;
 
+import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
@@ -11,14 +12,9 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-
+import net.minecraft.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.PathUtils;
-
-import net.minecraft.Util;
 
 public class ManifestClient {
 
