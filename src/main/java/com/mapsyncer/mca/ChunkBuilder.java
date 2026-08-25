@@ -36,6 +36,8 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Replicates Xaero WorldMap's {@code WorldDataReader.buildTile} column scan for one
@@ -73,6 +75,9 @@ final class ChunkBuilder {
 
     private static final int MAX_OVERLAYS = 10;
     private static final int HEIGHTMAP_ENTRIES = 256;
+    private static final Logger LOGGER = LogManager.getLogger();
+
+    private static final List<BlockState> buggedStates = new ArrayList<>();
 
     private static final boolean[] underair = new boolean[HEIGHTMAP_ENTRIES];
     private static final boolean[] shouldEnterGround = new boolean[HEIGHTMAP_ENTRIES];
@@ -439,7 +444,7 @@ final class ChunkBuilder {
             int h,
             boolean cave,
             OverlayBuilder overlayBuilder) {
-        if (isInvisible(state, b)) {
+        if (isInvisible(state, b, cave)) {
             return false;
         }
         if (shouldOverlay(fluidFluidState == null ? state : fluidFluidState)) {
@@ -478,7 +483,7 @@ final class ChunkBuilder {
         return true;
     }
 
-    private static boolean isInvisible(BlockState state, Block b) {
+    private static boolean isInvisible(BlockState state, Block b, boolean cave) {
         if (!(b instanceof LiquidBlock) && state.getRenderShape() == RenderShape.INVISIBLE) {
             return true;
         }
@@ -491,14 +496,19 @@ final class ChunkBuilder {
         if (b == Blocks.GLASS || b == Blocks.GLASS_PANE) {
             return true;
         }
-        if (b instanceof DoublePlantBlock
-                || b instanceof PitcherCropBlock
+        boolean notCave = b instanceof PitcherCropBlock
                 || b instanceof TallFlowerBlock
                 || b instanceof FlowerBlock
-                || state.is(BlockTags.FLOWERS) && !state.is(BlockTags.LEAVES)) {
+                || state.is(BlockTags.FLOWERS) && !state.is(BlockTags.LEAVES);
+        if (b instanceof DoublePlantBlock && !notCave) {
             return true;
         }
-        return false;
+        if (notCave && !cave) {
+            return true;
+        }
+        synchronized (buggedStates) {
+            return buggedStates.contains(state);
+        }
     }
 
     private static boolean shouldOverlay(StateHolder<?, ?> state) {
@@ -513,12 +523,18 @@ final class ChunkBuilder {
     }
 
     private static boolean hasVanillaColor(BlockState state) {
+        MapColor color = null;
         try {
-            MapColor color = state.getMapColor(level, mutablePos);
-            return color != null && color.col != 0;
+            color = state.getMapColor(level, mutablePos);
         } catch (Throwable t) {
-            return false;
+            synchronized (buggedStates) {
+                buggedStates.add(state);
+            }
+            LOGGER.info(
+                    "Found bugged state! Adding to bugged list: "
+                            + level.registryAccess().registryOrThrow(Registries.BLOCK).getKey(state.getBlock()));
         }
+        return color != null && color.col != 0;
     }
 
     private static void updateHeightArray(int bitsPerHeight) {
