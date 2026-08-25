@@ -4,7 +4,7 @@ plugins {
     id 'maven-publish'
 }
 
-version = mod_version + '-forge-' + g1_jar_suffix
+version = mod_version + '-forge-' + minecraft_version
 group = mod_group_id
 
 base {
@@ -72,11 +72,9 @@ tasks.withType(JavaCompile).configureEach {
 
 processResources {
     inputs.property "version", project.version
-    inputs.property "minecraft_range_forge", g1_minecraft_range_forge
 
     filesMatching("META-INF/mods.toml") {
-        expand "version": project.version,
-                "minecraft_range_forge": g1_minecraft_range_forge
+        expand "version": project.version
     }
 }
 
