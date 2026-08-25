@@ -65,7 +65,7 @@ public class MapSyncer {
         Plan.build(CONFIG.Plans.get());
     }
 
-    public static class ServerConfig {
+    private static class ServerConfig {
 
         private final ConfigValue<Boolean> AutoUpdate;
 
@@ -219,14 +219,12 @@ public class MapSyncer {
         public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
             ServerPlayer player = (ServerPlayer) event.getEntity();
             com.mapsyncer.server.PacketHandler.pushManifest(player);
-
             AutoUpdater.stop();
         }
 
         @SubscribeEvent
         public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
             ServerPlayer player = (ServerPlayer) event.getEntity();
-
             AutoUpdater.onPlayerLoggedOut(player);
         }
 
