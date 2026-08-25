@@ -37,9 +37,11 @@ public final class AutoUpdater {
         }
         LOGGER.info("Starting map autoupdate (no players online)");
 
+        server.saveAllChunks(true, true, false);
+
         Util.ioPool().execute(() -> {
             try {
-                MapConverter.generate(server);
+                MapConverter.start(server);
             } finally {
                 running.set(false);
             }

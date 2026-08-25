@@ -36,7 +36,7 @@ public class MapConverter {
         return true;
     }
 
-    static boolean generate(MinecraftServer server) {
+    static boolean start(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.warn("Conversion already in progress, rejecting...");
             return false;

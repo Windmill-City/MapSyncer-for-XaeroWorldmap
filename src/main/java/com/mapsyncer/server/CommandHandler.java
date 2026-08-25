@@ -81,7 +81,7 @@ public class CommandHandler {
     private static int generateStart(CommandContext<CommandSourceStack> ctx) {
         MinecraftServer server = ctx.getSource().getServer();
         Util.ioPool().execute(() -> {
-            if (MapConverter.generate(server)) {
+            if (MapConverter.start(server)) {
                 String dimList = String.join(", ", MapConverter.getCompleted());
                 ctx.getSource()
                         .sendSuccess(
