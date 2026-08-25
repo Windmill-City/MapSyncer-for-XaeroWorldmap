@@ -20,7 +20,7 @@ public class RegionScanner {
 
     private static final Pattern REGION_PATTERN = Pattern.compile("^r\\.(-?[0-9]+)\\.(-?[0-9]+)\\.mc[ar]$");
 
-    public record Region(int X, int Z, ServerLevel level) {}
+    public record Region(int X, int Z, ServerLevel level, Path regionFile) {}
 
     public static List<Region> scan(ServerLevel level) {
         return scanRegionFiles(getRegionDir(level), level);
@@ -70,7 +70,7 @@ public class RegionScanner {
                 try {
                     int regionX = Integer.parseInt(matcher.group(1));
                     int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new Region(regionX, regionZ, level));
+                    entries.add(new Region(regionX, regionZ, level, file));
                 } catch (NumberFormatException e) {
                     LOGGER.warn("Invalid region coordinates for {}", fileName, e);
                 }
