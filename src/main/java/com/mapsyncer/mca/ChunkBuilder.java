@@ -52,7 +52,12 @@ final class ChunkBuilder {
      * light level captured at the column.
      */
     public record PixelData(
-            BlockState state, short height, short topHeight, byte light, ResourceKey<Biome> biome, List<Overlay> overlays) {
+            BlockState state,
+            short height,
+            short topHeight,
+            byte light,
+            ResourceKey<Biome> biome,
+            List<Overlay> overlays) {
 
         /**
          * One transparent block stacked above the pixel, e.g. water, with its opacity
@@ -242,9 +247,7 @@ final class ChunkBuilder {
                         if (cave && !fullCave) {
                             startHeight = caveStart;
                         } else {
-                            startHeight = heightMapValue < chunkBottomY
-                                    ? sectionBasedHeight
-                                    : heightMapValue + 3;
+                            startHeight = heightMapValue < chunkBottomY ? sectionBasedHeight : heightMapValue + 3;
                         }
                         if (startHeight >= worldTopY) {
                             startHeight = worldTopY - 1;
