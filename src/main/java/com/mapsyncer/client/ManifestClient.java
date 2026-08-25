@@ -1,6 +1,6 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.mca.RegionRef;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;

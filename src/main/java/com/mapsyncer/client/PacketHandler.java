@@ -1,11 +1,11 @@
 package com.mapsyncer.client;
 
 import com.mapsyncer.MapSyncer;
+import com.mapsyncer.mca.RegionData;
+import com.mapsyncer.mca.RegionRef;
 import com.mapsyncer.network.ManifestPayload;
 import com.mapsyncer.network.RequestPayload;
 import com.mapsyncer.network.ResponsePayload;
-import com.mapsyncer.network.RegionData;
-import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ChatUtils;
 import java.util.ArrayDeque;
 import java.util.ArrayList;

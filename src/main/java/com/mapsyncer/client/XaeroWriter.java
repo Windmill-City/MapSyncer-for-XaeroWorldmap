@@ -1,6 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.RegionData;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -9,6 +8,8 @@ import java.nio.file.StandardCopyOption;
 import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.mapsyncer.mca.RegionData;
 
 public final class XaeroWriter {
 

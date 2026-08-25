@@ -1,6 +1,5 @@
 package com.mapsyncer.mca;
 
-import com.mapsyncer.network.RegionData;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.io.OutputStream;

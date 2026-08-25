@@ -1,12 +1,13 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.RegionData;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import net.minecraft.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.mapsyncer.mca.RegionData;
 
 public final class AsyncWriter {
 
