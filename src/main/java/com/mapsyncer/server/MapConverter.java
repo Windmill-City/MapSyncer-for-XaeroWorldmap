@@ -34,6 +34,7 @@ class MapConverter {
             return false;
         }
         LOGGER.info("Conversion start...");
+        ManifestServer.invalidate();
         completed.clear();
         processed = 0;
         total = 0;
