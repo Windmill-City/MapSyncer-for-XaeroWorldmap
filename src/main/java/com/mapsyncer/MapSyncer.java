@@ -12,7 +12,6 @@ import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Supplier;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,7 +31,6 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.config.ModConfig.Type;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
@@ -91,35 +89,6 @@ public class MapSyncer {
         }
     }
 
-    public static boolean isAutoUpdate() {
-        return CONFIG.AutoUpdate.get();
-    }
-
-    public static void setAutoUpdate(boolean enabled) {
-        CONFIG.AutoUpdate.set(enabled);
-        CONFIG_SPEC.save();
-        LOGGER.info("Set AutoUpdate config (enabled={})", enabled);
-    }
-
-    public static void bindServerConfig(ModConfig config) {
-        serverConfig = config;
-        Plan.build(CONFIG.Plans.get());
-    }
-
-    public static void reloadFromDisk() {
-        if (serverConfig != null) {
-            Path path = serverConfig.getFullPath();
-            CommentedFileConfig file = CommentedFileConfig.of(path);
-            try {
-                file.load();
-                CONFIG_SPEC.acceptConfig(file);
-                Plan.build(CONFIG.Plans.get());
-            } finally {
-                file.close();
-            }
-        }
-    }
-
     public MapSyncer() {
         ModContainer modContainer = ModList.get()
                 .getModContainerById(MOD_ID)
@@ -168,19 +137,36 @@ public class MapSyncer {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
     }
 
-    public static void enqueueWork(Supplier<NetworkEvent.Context> ctx, Runnable work) {
-        ctx.get().enqueueWork(work);
+    public static boolean isAutoUpdate() {
+        return CONFIG.AutoUpdate.get();
     }
 
-    public static ServerPlayer getPlayerFromContext(Supplier<NetworkEvent.Context> ctx) {
-        return ctx.get().getSender();
+    public static void setAutoUpdate(boolean enabled) {
+        CONFIG.AutoUpdate.set(enabled);
+        CONFIG_SPEC.save();
+        LOGGER.info("Set AutoUpdate config (enabled={})", enabled);
+    }
+
+    public static void reloadFromDisk() {
+        if (serverConfig != null) {
+            Path path = serverConfig.getFullPath();
+            CommentedFileConfig file = CommentedFileConfig.of(path);
+            try {
+                file.load();
+                CONFIG_SPEC.acceptConfig(file);
+                Plan.build(CONFIG.Plans.get());
+            } finally {
+                file.close();
+            }
+        }
     }
 
     @EventBusSubscriber(bus = EventBusSubscriber.Bus.MOD)
     public static class ModEvents {
         @SubscribeEvent
         public static void onConfigLoading(ModConfigEvent.Loading event) {
-            bindServerConfig(event.getConfig());
+            serverConfig = event.getConfig();
+            Plan.build(CONFIG.Plans.get());
         }
     }
 

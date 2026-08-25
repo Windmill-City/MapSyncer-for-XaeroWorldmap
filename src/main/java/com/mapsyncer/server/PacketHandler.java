@@ -13,7 +13,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Supplier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.network.NetworkEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,18 +28,12 @@ public class PacketHandler {
     }
 
     public static void handleRequest(RequestPayload payload, Supplier<NetworkEvent.Context> context) {
-        MapSyncer.enqueueWork(context, () -> {
-            Player player = MapSyncer.getPlayerFromContext(context);
-            if (!(player instanceof ServerPlayer serverPlayer)) return;
-
+        ServerPlayer player = (ServerPlayer) context.get().getSender();
+        context.get().enqueueWork(() -> {
             RegionRef requested = payload.region();
-
             LOGGER.debug(
-                    "[SYNC-SRV] request from {}: region={}",
-                    serverPlayer.getName().getString(),
-                    requested);
-
-            serveRequestedRegion(serverPlayer, requested);
+                    "[SYNC-SRV] request from {}: region={}", player.getName().getString(), requested);
+            serveRequestedRegion(player, requested);
         });
         context.get().setPacketHandled(true);
     }
