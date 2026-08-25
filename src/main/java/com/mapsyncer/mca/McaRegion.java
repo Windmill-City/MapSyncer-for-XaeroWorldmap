@@ -62,7 +62,7 @@ final class McaRegion implements AutoCloseable {
         file.seek((long) sectorOffset * SECTOR_LENGTH);
         int length = file.readInt();
         if (length <= 0 || length > sectorCount * SECTOR_LENGTH) {
-            throw new IOException("Invalid chunk length " + length + " for chunk (" + chunkX + ", " + chunkZ + ")");
+            return null;
         }
         int compression = file.readByte() & 0xFF;
         byte[] payload = new byte[length - 1];
