@@ -29,6 +29,7 @@ public class RegionScanner {
         }
 
         List<Region> entries = new ArrayList<>();
+        Path dimDir = PathUtils.getDimDirServer(PathUtils.getDimId(level));
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
             for (Path file : stream) {
                 String fileName = file.getFileName().toString();
@@ -36,12 +37,25 @@ public class RegionScanner {
                 if (!matcher.matches()) {
                     continue;
                 }
+                int regionX;
+                int regionZ;
                 try {
-                    int regionX = Integer.parseInt(matcher.group(1));
-                    int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new Region(regionX, regionZ, level, file));
+                    regionX = Integer.parseInt(matcher.group(1));
+                    regionZ = Integer.parseInt(matcher.group(2));
                 } catch (NumberFormatException e) {
                     LOGGER.warn("Invalid region coordinates for {}", fileName, e);
+                    continue;
+                }
+                try {
+                    Path zipPath = dimDir.resolve(regionX + "_" + regionZ + ".zip");
+                    if (Files.exists(zipPath)
+                            && Files.getLastModifiedTime(zipPath).toMillis()
+                                    >= Files.getLastModifiedTime(file).toMillis()) {
+                        continue;
+                    }
+                    entries.add(new Region(regionX, regionZ, level, file));
+                } catch (IOException e) {
+                    LOGGER.warn("Failed to compare region {} with cached zip", fileName, e);
                 }
             }
         } catch (IOException e) {
