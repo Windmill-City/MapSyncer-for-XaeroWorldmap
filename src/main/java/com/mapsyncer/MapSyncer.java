@@ -49,7 +49,7 @@ public class MapSyncer {
     private static final ForgeConfigSpec CONFIG_SPEC;
     private static final ServerConfig CONFIG;
 
-    private static net.minecraftforge.fml.config.ModConfig serverConfig;
+    private static ModConfig serverConfig;
 
     private static final String PROTOCOL_VERSION = "4";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
