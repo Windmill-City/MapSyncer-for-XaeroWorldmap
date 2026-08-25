@@ -51,7 +51,7 @@ final class ChunkBuilder {
      * absolute height, the height of the topmost transparent block above it and the
      * light level captured at the column.
      */
-    public record PixelData(
+    record PixelData(
             BlockState state,
             short height,
             short topHeight,
@@ -64,9 +64,9 @@ final class ChunkBuilder {
          * (accumulated light-block value, 0-15) and the light level captured at its
          * first block, byte-compatible with Xaero's {@code Overlay}.
          */
-        public record Overlay(BlockState state, byte opacity, byte light) {}
+        record Overlay(BlockState state, byte opacity, byte light) {}
 
-        public boolean hasOverlays() {
+        boolean hasOverlays() {
             return !overlays.isEmpty();
         }
     }

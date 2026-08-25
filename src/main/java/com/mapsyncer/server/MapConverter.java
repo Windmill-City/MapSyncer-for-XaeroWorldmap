@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class MapConverter {
+class MapConverter {
 
     private static final Logger LOGGER = LogManager.getLogger(MapConverter.class);
 
@@ -28,7 +28,7 @@ public class MapConverter {
 
     private static final List<String> completed = new CopyOnWriteArrayList<>();
 
-    public static boolean generate(MinecraftServer server) {
+    static boolean generate(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
             LOGGER.warn("Conversion already in progress, rejecting...");
             return false;
@@ -77,11 +77,11 @@ public class MapConverter {
         return true;
     }
 
-    public static boolean isRunning() {
+    static boolean isRunning() {
         return isRunning.get();
     }
 
-    public static boolean requestCancel() {
+    static boolean requestCancel() {
         if (!isRunning.compareAndSet(true, false)) {
             return false;
         }
@@ -89,15 +89,15 @@ public class MapConverter {
         return true;
     }
 
-    public static int getProcessed() {
+    static int getProcessed() {
         return processed;
     }
 
-    public static int getTotal() {
+    static int getTotal() {
         return total;
     }
 
-    public static List<String> getCompleted() {
+    static List<String> getCompleted() {
         return Collections.unmodifiableList(new ArrayList<>(completed));
     }
 }

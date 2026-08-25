@@ -38,21 +38,21 @@ public final class XaeroBridge {
         }
     }
 
-    public static String getCurrentWorldId() {
+    static String getCurrentWorldId() {
         if (!initialized) return null;
         MapProcessor processor = getMapProcessor();
         if (processor == null) return null;
         return processor.getCurrentWorldId();
     }
 
-    public static Path getCurrentServerDirectory() {
+    static Path getCurrentServerDirectory() {
         if (!initialized) return null;
         String worldId = getCurrentWorldId();
         if (worldId == null || worldId.isEmpty()) return null;
         return MapSaveLoad.getRootFolder(worldId);
     }
 
-    public static String getDimensionName(String dimId) {
+    static String getDimensionName(String dimId) {
         if (!initialized) return null;
         MapProcessor processor = getMapProcessor();
         if (processor == null) return null;
@@ -61,7 +61,7 @@ public final class XaeroBridge {
         return processor.getDimensionName(key);
     }
 
-    public static void loadRegion(int regionX, int regionZ, int cave) {
+    static void loadRegion(int regionX, int regionZ, int cave) {
         if (!initialized) return;
         try {
             Object mapRegion = getLeafMapRegion(cave, regionX, regionZ, true);

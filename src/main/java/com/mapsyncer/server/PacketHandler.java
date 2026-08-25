@@ -51,7 +51,7 @@ public class PacketHandler {
                 "[SYNC-SRV] send to {}: region {}, {} bytes",
                 player.getName().getString(),
                 region,
-                chunk == null ? 0 : chunk.data.length);
+                chunk == null ? 0 : chunk.data().length);
         MapSyncer.sendToPlayer(player, new ResponsePayload(chunk));
     }
 

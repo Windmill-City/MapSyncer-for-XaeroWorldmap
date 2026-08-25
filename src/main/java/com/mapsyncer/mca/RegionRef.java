@@ -4,7 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 
 public record RegionRef(String dimId, int cave, int X, int Z) {
 
-    public static final int SURFACE_CAVE = Integer.MAX_VALUE;
+    static final int SURFACE_CAVE = Integer.MAX_VALUE;
 
     public int regionDistance(int playerRegionX, int playerRegionZ) {
         return Math.max(Math.abs(X - playerRegionX), Math.abs(Z - playerRegionZ));

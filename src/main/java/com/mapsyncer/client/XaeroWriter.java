@@ -10,18 +10,18 @@ import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class XaeroWriter {
+final class XaeroWriter {
 
     private static final Logger LOGGER = LogManager.getLogger(XaeroWriter.class);
 
-    public static boolean writeChunkData(RegionData chunk) {
-        String xaeroDim = XaeroBridge.getDimensionName(chunk.ref.dimId());
+    static boolean writeChunkData(RegionData chunk) {
+        String xaeroDim = XaeroBridge.getDimensionName(chunk.ref().dimId());
         if (xaeroDim == null) {
             LOGGER.error(
                     "Unable to resolve Xaero dimension name for {}, skipping region ({}, {})",
-                    chunk.ref.dimId(),
-                    chunk.ref.X(),
-                    chunk.ref.Z());
+                    chunk.ref().dimId(),
+                    chunk.ref().X(),
+                    chunk.ref().Z());
             return false;
         }
 
@@ -29,9 +29,9 @@ public final class XaeroWriter {
         if (serverDir == null) {
             LOGGER.error(
                     "Unable to resolve server directory, skipping region ({}, {}) dim={}",
-                    chunk.ref.X(),
-                    chunk.ref.Z(),
-                    chunk.ref.dimId());
+                    chunk.ref().X(),
+                    chunk.ref().Z(),
+                    chunk.ref().dimId());
             return false;
         }
 
@@ -39,9 +39,9 @@ public final class XaeroWriter {
         if (worldId == null || worldId.isEmpty()) {
             LOGGER.error(
                     "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
-                    chunk.ref.X(),
-                    chunk.ref.Z(),
-                    chunk.ref.dimId());
+                    chunk.ref().X(),
+                    chunk.ref().Z(),
+                    chunk.ref().dimId());
             return false;
         }
 
@@ -49,33 +49,33 @@ public final class XaeroWriter {
         Path mwDir = dimDir.resolve("mw$" + worldId);
 
         Path targetDir;
-        if (chunk.ref.isSurface()) {
+        if (chunk.ref().isSurface()) {
             targetDir = mwDir;
         } else {
-            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref.cave()));
+            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref().cave()));
         }
 
-        Path outputFile = targetDir.resolve(chunk.ref.X() + "_" + chunk.ref.Z() + ".zip");
-        Path tempFile = targetDir.resolve(chunk.ref.X() + "_" + chunk.ref.Z() + ".zip.temp");
+        Path outputFile = targetDir.resolve(chunk.ref().X() + "_" + chunk.ref().Z() + ".zip");
+        Path tempFile = targetDir.resolve(chunk.ref().X() + "_" + chunk.ref().Z() + ".zip.temp");
 
         try {
             Files.createDirectories(targetDir);
 
             try (OutputStream fileOut = Files.newOutputStream(tempFile)) {
-                fileOut.write(chunk.data);
+                fileOut.write(chunk.data());
             }
             Files.move(tempFile, outputFile, StandardCopyOption.REPLACE_EXISTING);
             LOGGER.debug(
                     "Wrote map file: {} (layer={}, {} bytes)",
                     outputFile,
-                    chunk.ref.isSurface() ? "surface" : chunk.ref.cave(),
-                    chunk.data.length);
+                    chunk.ref().isSurface() ? "surface" : chunk.ref().cave(),
+                    chunk.data().length);
         } catch (IOException e) {
             LOGGER.error("Failed to write map file: {}", outputFile, e);
             return false;
         }
 
-        Minecraft.getInstance().execute(() -> XaeroBridge.loadRegion(chunk.ref.X(), chunk.ref.Z(), chunk.ref.cave()));
+        Minecraft.getInstance().execute(() -> XaeroBridge.loadRegion(chunk.ref().X(), chunk.ref().Z(), chunk.ref().cave()));
 
         return true;
     }

@@ -39,7 +39,7 @@ public class PacketHandler {
         stop();
     }
 
-    public static void onXaeroWorldContextReady() {
+    static void onXaeroWorldContextReady() {
         Minecraft.getInstance().execute(() -> {
             if (deferredManifest != null) {
                 _handleManifest(deferredManifest);
@@ -61,9 +61,9 @@ public class PacketHandler {
                     if (!success) {
                         LOGGER.error(
                                 "[SYNC-WRITE] region ({}, {}) write failed ({} bytes)",
-                                chunk.ref.X(),
-                                chunk.ref.Z(),
-                                chunk.data.length);
+                                chunk.ref().X(),
+                                chunk.ref().Z(),
+                                chunk.data().length);
                         syncFailed++;
                     }
                     maybeCompleteSync();

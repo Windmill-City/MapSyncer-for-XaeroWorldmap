@@ -14,7 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public final class ManifestServer {
+final class ManifestServer {
 
     private static final Logger LOGGER = LogManager.getLogger(ManifestServer.class);
 
@@ -22,7 +22,7 @@ public final class ManifestServer {
 
     private static volatile boolean isValid = false;
 
-    public static Map<RegionRef, Long> get(MinecraftServer server) {
+    static Map<RegionRef, Long> get(MinecraftServer server) {
         if (!isValid) {
             synchronized (ManifestServer.class) {
                 if (!isValid) {
@@ -33,7 +33,7 @@ public final class ManifestServer {
         return Collections.unmodifiableMap(manifest);
     }
 
-    public static void invalidate() {
+    static void invalidate() {
         isValid = false;
         manifest = Map.of();
         LOGGER.debug("ManifestCache invalidated");

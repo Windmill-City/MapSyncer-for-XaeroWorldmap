@@ -23,9 +23,9 @@ import net.minecraft.world.level.block.state.BlockState;
  * {@code cave} is {@link RegionRef#SURFACE_CAVE} for the surface layer or an
  * absolute Y for a cave layer; the scan window is derived from it.
  */
-public final class RegionBuilder {
+final class RegionBuilder {
 
-    public static final int CAVE_DEPTH = 30;
+    private static final int CAVE_DEPTH = 30;
 
     private static final int SAVE_MAJOR_VERSION = 6;
     private static final int SAVE_MINOR_VERSION = 8;
@@ -47,7 +47,7 @@ public final class RegionBuilder {
     private static final int FLAG_OVERLAY_STATE_NOT_IN_PALETTE = 0x400;
     private static final int FLAG_OVERLAY_OPACITY_SHIFT = 11;
 
-    public static byte[] build(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave)
+    static byte[] build(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave)
             throws IOException {
         Map<BlockState, Integer> statePalette = new HashMap<>();
         Map<ResourceKey<Biome>, Integer> biomePalette = new HashMap<>();

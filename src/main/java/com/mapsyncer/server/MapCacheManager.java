@@ -12,11 +12,11 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class MapCacheManager {
+class MapCacheManager {
 
     private static final Logger LOGGER = LogManager.getLogger(MapCacheManager.class);
 
-    public static List<MapCacheStats> getCacheStats() {
+    static List<MapCacheStats> getCacheStats() {
         List<MapCacheStats> stats = new ArrayList<>();
 
         if (!Files.exists(PathUtils.CACHE_DIR)) {
@@ -59,7 +59,7 @@ public class MapCacheManager {
         return stats;
     }
 
-    public static int purgeCache() {
+    static int purgeCache() {
         if (!Files.exists(PathUtils.CACHE_DIR)) {
             return 0;
         }
@@ -84,5 +84,5 @@ public class MapCacheManager {
         return deleted;
     }
 
-    public record MapCacheStats(String folder, int regions, long size) {}
+    record MapCacheStats(String folder, int regions, long size) {}
 }

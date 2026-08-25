@@ -11,7 +11,7 @@ import java.util.zip.InflaterInputStream;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
 
-public final class McaRegion implements AutoCloseable {
+final class McaRegion implements AutoCloseable {
 
     private static final int CHUNKS = 32;
 
@@ -34,7 +34,7 @@ public final class McaRegion implements AutoCloseable {
         }
     }
 
-    public static McaRegion open(Path path) throws IOException {
+    static McaRegion open(Path path) throws IOException {
         RandomAccessFile file = new RandomAccessFile(path.toFile(), "r");
         boolean success = false;
         try {
@@ -48,7 +48,7 @@ public final class McaRegion implements AutoCloseable {
         }
     }
 
-    public CompoundTag readChunk(int chunkX, int chunkZ) throws IOException {
+    CompoundTag readChunk(int chunkX, int chunkZ) throws IOException {
         int index = (chunkZ & (CHUNKS - 1)) * CHUNKS + (chunkX & (CHUNKS - 1));
         int location = locations[index];
         int sectorOffset = location >>> 8;

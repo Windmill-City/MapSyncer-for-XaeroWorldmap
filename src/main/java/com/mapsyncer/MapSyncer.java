@@ -43,9 +43,8 @@ import org.apache.logging.log4j.Logger;
 public class MapSyncer {
 
     public static final String MOD_ID = "mapsyncer";
-    public static String VERSION = "unknown";
-    public static final Logger LOGGER = LogManager.getLogger(MapSyncer.class);
 
+    private static final Logger LOGGER = LogManager.getLogger(MapSyncer.class);
     private static final ForgeConfigSpec CONFIG_SPEC;
     private static final ServerConfig CONFIG;
 
@@ -125,7 +124,6 @@ public class MapSyncer {
         ModContainer modContainer = ModList.get()
                 .getModContainerById(MOD_ID)
                 .orElseThrow(() -> new IllegalStateException("Mod container not found for " + MOD_ID));
-        VERSION = modContainer.getModInfo().getVersion().toString();
 
         modContainer.addConfig(new ModConfig(Type.SERVER, CONFIG_SPEC, modContainer));
 

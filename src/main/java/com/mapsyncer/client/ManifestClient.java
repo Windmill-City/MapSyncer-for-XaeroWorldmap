@@ -16,11 +16,11 @@ import net.minecraft.Util;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ManifestClient {
+class ManifestClient {
 
     private static final Logger LOGGER = LogManager.getLogger(ManifestClient.class);
 
-    public static void get(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
+    static void get(Set<String> dimIds, Consumer<Map<RegionRef, Long>> callback) {
         try {
             Util.ioPool().execute(() -> {
                 try {
