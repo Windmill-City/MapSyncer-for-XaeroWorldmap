@@ -87,7 +87,7 @@ public class RegionScanner {
         try {
             return path.toRealPath();
         } catch (IOException e) {
-            LOGGER.warn("Failed to resolve region directory for dimension {} (resolved to {})", dimId, path, e);
+            LOGGER.warn("Failed to resolve region directory for dimension {} (resolved to {})", dimId, path);
             return null;
         }
     }
