@@ -1,13 +1,9 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.network.RegionRef;
-import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +11,13 @@ import java.util.Set;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import net.minecraft.Util;
-import org.slf4j.Logger;
+
 import org.slf4j.LoggerFactory;
+
+import com.mapsyncer.network.RegionRef;
+import com.mapsyncer.util.PathUtils;
+
+import net.minecraft.Util;
 
 public class ManifestClient {
 
@@ -28,22 +28,22 @@ public class ManifestClient {
             Util.ioPool().execute(() -> {
                 try {
                     callback.accept(_get(dimIds));
-                } catch (Exception e) {
-                    LOGGER.error("Exception occurred while processing client manifest", e);
+                } catch (Throwable e) {
+                    LOGGER.error("Failed to build client manifest", e);
                 }
             });
         } catch (RejectedExecutionException e) {
-            LOGGER.error("Scan executor rejected task, executor shutdown?", e);
-            callback.accept(Collections.emptyMap());
+            LOGGER.error("I/O pool rejected manifest scan task, pool shutting down?", e);
+            callback.accept(Map.of());
         }
     }
 
     private static Map<RegionRef, Long> _get(Set<String> dimIds) {
         Map<RegionRef, Long> manifest = new HashMap<>();
 
-        Path serverDir = XaeroBridge.getCurrentServerDirectory();
-        if (serverDir == null || !Files.exists(serverDir)) {
-            LOGGER.info("Xaero server directory unavailable ({}), will request all regions from server", serverDir);
+        Path root = XaeroBridge.getCurrentServerDirectory();
+        if (root == null || !Files.exists(root)) {
+            LOGGER.info("Xaero map directory unavailable ({}), will request all regions from server", root);
             return manifest;
         }
 
@@ -53,50 +53,34 @@ public class ManifestClient {
                 LOGGER.debug("No Xaero dimension name for {}, skipping", dimId);
                 continue;
             }
-            Path dimDir = serverDir.resolve(xaeroDim);
-            if (!Files.isDirectory(dimDir)) {
-                LOGGER.debug("No local map directory for dimension {} ({}), skipping", dimId, xaeroDim);
-                continue;
-            }
 
+            Path dimDir = root.resolve(xaeroDim);
             List<Path> zipFiles;
             try (Stream<Path> walk = Files.walk(dimDir)) {
                 zipFiles = walk.filter(p -> p.toString().endsWith(".zip")).toList();
             } catch (IOException e) {
-                LOGGER.error("Failed to walk map directory {}", dimDir, e);
+                LOGGER.debug("No Xaero local map directory for {} (resolved to {}), skipping", dimId, dimDir);
                 continue;
             }
 
             for (Path zipPath : zipFiles) {
                 try {
-                    RegionRef ref = buildKey(dimId, dimDir, zipPath);
-                    long timestampMillis = getFileModificationTime(zipPath);
-                    LOGGER.debug("Region {}: ts={}ms (mtime)", ref, timestampMillis);
-                    manifest.put(ref, timestampMillis);
-                } catch (Throwable e) {
-                    LOGGER.error("Failed to scan region file: {}", zipPath, e);
+                    RegionRef ref = getRef(dimId, dimDir, zipPath);
+                    long timestamp = Files.getLastModifiedTime(zipPath).toMillis();
+                    manifest.put(ref, timestamp);
+                } catch (IOException e) {
+                    LOGGER.error("Failed to scan region file: {}, skipping", zipPath, e);
                     continue;
                 }
             }
         }
 
-        LOGGER.info("Found {} regions with metadata", manifest.size());
+        LOGGER.info("Built manifest with {} region(s)", manifest.size());
 
-        return manifest;
+        return Map.copyOf(manifest);
     }
 
-    private static long getFileModificationTime(Path path) {
-        try {
-            BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
-            FileTime time = attrs.lastModifiedTime();
-            return time.toMillis();
-        } catch (IOException e) {
-            LOGGER.error("Failed to get modification time for {}", path, e);
-            return 0;
-        }
-    }
-
-    private static RegionRef buildKey(String dimId, Path dimDir, Path zipPath) {
+    private static RegionRef getRef(String dimId, Path dimDir, Path zipPath) {
         Path relative = dimDir.relativize(zipPath);
         int cave = PathUtils.getCaveByDir(relative);
         int[] coords = PathUtils.getCoordByZip(zipPath);
