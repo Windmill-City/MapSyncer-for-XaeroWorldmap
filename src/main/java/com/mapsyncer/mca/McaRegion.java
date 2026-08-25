@@ -56,6 +56,9 @@ final class McaRegion implements AutoCloseable {
             return null;
         }
         int sectorCount = location & 0xFF;
+        if ((long) (sectorOffset + sectorCount) * SECTOR_LENGTH > file.length()) {
+            return null;
+        }
         file.seek((long) sectorOffset * SECTOR_LENGTH);
         int length = file.readInt();
         if (length <= 0 || length > sectorCount * SECTOR_LENGTH) {
