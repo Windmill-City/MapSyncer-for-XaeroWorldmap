@@ -187,7 +187,7 @@ public class MapSyncer {
     @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
     public static class ClientEvents {
         @SubscribeEvent
-        public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        public static void onPlayerLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
             com.mapsyncer.client.PacketHandler.onDisconnect();
         }
     }
@@ -195,14 +195,14 @@ public class MapSyncer {
     @EventBusSubscriber(value = Dist.DEDICATED_SERVER, bus = EventBusSubscriber.Bus.FORGE)
     public static class ServerEvents {
         @SubscribeEvent
-        public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
+        public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
             ServerPlayer player = (ServerPlayer) event.getEntity();
             com.mapsyncer.server.PacketHandler.pushManifest(player);
             AutoUpdater.stop();
         }
 
         @SubscribeEvent
-        public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
+        public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
             ServerPlayer player = (ServerPlayer) event.getEntity();
             AutoUpdater.onPlayerLoggedOut(player);
         }
