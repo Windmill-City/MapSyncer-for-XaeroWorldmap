@@ -4,11 +4,11 @@ plugins {
     id 'maven-publish'
 }
 
-version = mod_version + '-forge-' + minecraft_version
-group = mod_group_id
+version = '1.0.5-forge-1.20.1'
+group = 'com.mapsyncer'
 
 base {
-    archivesName = mod_id
+    archivesName = 'mapsyncer'
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -35,18 +35,18 @@ minecraft {
         }
 
         client {
-            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'forge.enabledGameTestNamespaces', 'mapsyncer'
         }
 
         server {
-            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'forge.enabledGameTestNamespaces', 'mapsyncer'
             args '--nogui'
         }
     }
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.5'
 
     implementation 'org.slf4j:slf4j-api:2.0.9'
 
