@@ -62,7 +62,10 @@ public class ManifestClient {
 
             for (Path zipPath : zipFiles) {
                 try {
-                    RegionRef ref = getRef(dimId, dimDir, zipPath);
+                    Path relative = dimDir.relativize(zipPath);
+                    int cave = PathUtils.getCaveByDir(relative);
+                    int[] coords = PathUtils.getCoordByZip(zipPath);
+                    RegionRef ref = new RegionRef(dimId, cave, coords[0], coords[1]);
                     long timestamp = Files.getLastModifiedTime(zipPath).toMillis();
                     manifest.put(ref, timestamp);
                 } catch (IOException e) {
@@ -75,12 +78,5 @@ public class ManifestClient {
         LOGGER.info("Built manifest with {} region(s)", manifest.size());
 
         return Map.copyOf(manifest);
-    }
-
-    private static RegionRef getRef(String dimId, Path dimDir, Path zipPath) {
-        Path relative = dimDir.relativize(zipPath);
-        int cave = PathUtils.getCaveByDir(relative);
-        int[] coords = PathUtils.getCoordByZip(zipPath);
-        return new RegionRef(dimId, cave, coords[0], coords[1]);
     }
 }
