@@ -1,5 +1,6 @@
 package com.mapsyncer.server;
 
+import com.mapsyncer.mca.Plan;
 import com.mapsyncer.mca.RegionConverter;
 import com.mapsyncer.mca.RegionScanner;
 import com.mapsyncer.mca.RegionScanner.Region;
@@ -41,10 +42,15 @@ public class MapConverter {
             for (ServerLevel level : server.getAllLevels()) {
                 if (!isRunning.get()) break;
 
+                var dimId = PathUtils.getDimId(level);
+                Plan plan = Plan.getPlan(dimId);
+                if (!plan.surface() && plan.caves().isEmpty()) {
+                    LOGGER.debug("No layer plan for dimension {}, skipping", dimId);
+                    continue;
+                }
+
                 List<Region> entries = RegionScanner.scan(level);
                 if (entries.isEmpty()) continue;
-
-                var dimId = PathUtils.getDimId(level);
 
                 total += entries.size();
                 LOGGER.info("Converting dimension {} ({} regions)", dimId, entries.size());
@@ -53,7 +59,7 @@ public class MapConverter {
                     if (!isRunning.get()) break;
 
                     try {
-                        RegionConverter.convert(entry);
+                        RegionConverter.convert(entry, plan);
                     } catch (IOException e) {
                         LOGGER.warn("Failed to convert region ({}, {})", entry.X(), entry.Z(), e);
                     }
