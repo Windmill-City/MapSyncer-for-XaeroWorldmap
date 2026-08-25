@@ -30,17 +30,23 @@ public record Plan(boolean surface, Set<Integer> caves) {
     }
 
     public static void build(List<? extends String> planEntries) {
+        LOGGER.info("Building dimension plans from {} entries", planEntries.size());
         Map<String, Plan> rebuilt = new LinkedHashMap<>();
         for (var entryStr : planEntries) {
             if (entryStr == null || entryStr.isBlank()) {
+                LOGGER.warn("Skipping blank or null plan entry");
                 continue;
             }
             var entry = parsePlanEntry(entryStr);
             if (entry != null) {
                 rebuilt.put(entry.getKey(), entry.getValue());
+                LOGGER.info("Registered plan for dimension [{}]: {}", entry.getKey(), entry.getValue());
+            } else {
+                LOGGER.warn("Skipping invalid plan entry: [{}]", entryStr);
             }
         }
         Plans = rebuilt;
+        LOGGER.info("Dimension plans rebuilt: {} dimensions registered", rebuilt.size());
     }
 
     public static List<String> getDefaults() {
