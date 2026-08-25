@@ -29,7 +29,7 @@ public final class AsyncWriter {
                     LOGGER.error("Async region write failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
                 } finally {
                     pendingWrites.decrementAndGet();
-                    invokeCallback(chunk, callback, success);
+                    callback.accept(success);
                 }
             });
         } catch (RejectedExecutionException e) {
@@ -39,15 +39,7 @@ public final class AsyncWriter {
                     chunk.ref.X(),
                     chunk.ref.Z(),
                     e);
-            invokeCallback(chunk, callback, false);
-        }
-    }
-
-    private static void invokeCallback(RegionData chunk, Consumer<Boolean> callback, boolean success) {
-        try {
-            callback.accept(success);
-        } catch (Exception e) {
-            LOGGER.error("Async write callback failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
+            callback.accept(false);
         }
     }
 }
