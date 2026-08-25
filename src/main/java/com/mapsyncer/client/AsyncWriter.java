@@ -35,7 +35,7 @@ public final class AsyncWriter {
         } catch (RejectedExecutionException e) {
             pendingWrites.decrementAndGet();
             LOGGER.error(
-                    "Sync write queue rejected task for ({}, {}), executor shutdown?",
+                    "Async write queue rejected task for ({}, {}), executor shutdown?",
                     chunk.ref.X(),
                     chunk.ref.Z(),
                     e);
@@ -47,7 +47,7 @@ public final class AsyncWriter {
         try {
             callback.accept(success);
         } catch (Exception e) {
-            LOGGER.error("Sync write callback failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
+            LOGGER.error("Async write callback failed for ({}, {})", chunk.ref.X(), chunk.ref.Z(), e);
         }
     }
 }
