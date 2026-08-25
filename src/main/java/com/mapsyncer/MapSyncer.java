@@ -61,7 +61,6 @@ public class MapSyncer {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
         CONFIG = pair.getLeft();
         CONFIG_SPEC = pair.getRight();
-        Plan.build(CONFIG.Plans.get());
     }
 
     private static class ServerConfig {
