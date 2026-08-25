@@ -138,12 +138,10 @@ final class ChunkBuilder {
                 : chunk.getString("Status");
         ChunkStatus chunkStatus = ChunkStatus.byName(status);
         if (chunkStatus == null || chunkStatus.getIndex() < ChunkStatus.BIOMES.getIndex()) {
-            LOGGER.debug("Chunk ({}, {}) has unusable status '{}', skipping (below BIOMES)", chunkX, chunkZ, status);
             return null;
         }
         readBiomes(chunk);
         if (chunkStatus.getIndex() < ChunkStatus.FEATURES.getIndex()) {
-            LOGGER.debug("Chunk ({}, {}) has status '{}' (below FEATURES), skipping", chunkX, chunkZ, status);
             return null;
         }
 
@@ -194,7 +192,6 @@ final class ChunkBuilder {
         ListTag sectionsList = chunk.getList("sections", 10);
         int fillCounter = HEIGHTMAP_ENTRIES;
         if (sectionsList.size() == 0) {
-            LOGGER.debug("Chunk ({}, {}) has no sections (Status={}), building void/air tile", chunkX, chunkZ, status);
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
                     pixels[x][z] = airPixel();

@@ -16,8 +16,6 @@ import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Builds the raw {@code region.xaero} payload for one map region and one layer,
@@ -26,8 +24,6 @@ import org.apache.logging.log4j.Logger;
  * absolute Y for a cave layer; the scan window is derived from it.
  */
 final class RegionBuilder {
-
-    private static final Logger LOGGER = LogManager.getLogger();
 
     private static final int CAVE_DEPTH = 30;
 
@@ -121,17 +117,11 @@ final class RegionBuilder {
         int chunkZ = regionZ * 32 + p * 4 + j;
         CompoundTag tag = region.readChunk(chunkX, chunkZ);
         if (tag == null) {
-            LOGGER.debug(
-                    "Chunk ({}, {}) missing from region ({}, {}), tile will be empty",
-                    chunkX,
-                    chunkZ,
-                    regionX,
-                    regionZ);
             return null;
         }
         int dataVersion = tag.contains("DataVersion", 99) ? tag.getInt("DataVersion") : -1;
         tag = DataFixTypes.CHUNK.updateToCurrentVersion(level.getServer().getFixerUpper(), tag, dataVersion);
-        ChunkBuilder.PixelData[][] pixels = ChunkBuilder.build(
+        return ChunkBuilder.build(
                 tag,
                 chunkX,
                 chunkZ,
@@ -139,16 +129,6 @@ final class RegionBuilder {
                 CAVE_DEPTH,
                 level,
                 level.registryAccess().lookupOrThrow(Registries.BLOCK));
-        if (pixels == null) {
-            String status = tag.getString("Status");
-            LOGGER.debug(
-                    "Chunk ({}, {}) exists but is not generated enough (Status={}, DataVersion={}), tile will be empty",
-                    chunkX,
-                    chunkZ,
-                    status.isEmpty() ? "MISSING" : status,
-                    dataVersion);
-        }
-        return pixels;
     }
 
     private static void savePixel(

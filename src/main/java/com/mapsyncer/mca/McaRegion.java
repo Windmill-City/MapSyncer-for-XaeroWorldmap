@@ -10,12 +10,8 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtIo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 final class McaRegion implements AutoCloseable {
-
-    private static final Logger LOGGER = LogManager.getLogger();
 
     private static final int CHUNKS = 32;
 
@@ -57,29 +53,15 @@ final class McaRegion implements AutoCloseable {
         int location = locations[index];
         int sectorOffset = location >>> 8;
         if (sectorOffset == 0) {
-            LOGGER.debug("Chunk ({}, {}) slot is empty in region file (not generated)", chunkX, chunkZ);
             return null;
         }
         int sectorCount = location & 0xFF;
         if ((long) (sectorOffset + sectorCount) * SECTOR_LENGTH > file.length()) {
-            LOGGER.warn(
-                    "Chunk ({}, {}) data extends beyond region file length (offset={}, sectors={}, fileLen={}), returning null",
-                    chunkX,
-                    chunkZ,
-                    sectorOffset,
-                    sectorCount,
-                    file.length());
             return null;
         }
         file.seek((long) sectorOffset * SECTOR_LENGTH);
         int length = file.readInt();
         if (length <= 0 || length > sectorCount * SECTOR_LENGTH) {
-            LOGGER.warn(
-                    "Chunk ({}, {}) has invalid length {} (sectors={}), returning null",
-                    chunkX,
-                    chunkZ,
-                    length,
-                    sectorCount);
             return null;
         }
         int compression = file.readByte() & 0xFF;
@@ -87,15 +69,6 @@ final class McaRegion implements AutoCloseable {
         file.readFully(payload);
         try (InputStream input = decompress(payload, compression)) {
             return NbtIo.read(new DataInputStream(input));
-        } catch (IOException e) {
-            LOGGER.warn(
-                    "Chunk ({}, {}) failed to decompress/read (compression={}, length={}): {}",
-                    chunkX,
-                    chunkZ,
-                    compression,
-                    length,
-                    e.toString());
-            throw e;
         }
     }
 
