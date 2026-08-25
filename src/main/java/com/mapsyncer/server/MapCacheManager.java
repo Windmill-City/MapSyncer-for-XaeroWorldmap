@@ -60,6 +60,8 @@ class MapCacheManager {
     }
 
     static int purgeCache() {
+        ManifestServer.invalidate();
+
         if (!Files.exists(PathUtils.CACHE_DIR)) {
             return 0;
         }
