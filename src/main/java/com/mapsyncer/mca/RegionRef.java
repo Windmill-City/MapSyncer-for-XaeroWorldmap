@@ -28,4 +28,9 @@ public record RegionRef(String dimId, int cave, int X, int Z) {
         int regionZ = buf.readInt();
         return new RegionRef(dimId, cave, regionX, regionZ);
     }
+
+    @Override
+    public String toString() {
+        return "RegionRef[" + dimId + ", cave=" + (isSurface() ? "surface" : cave) + ", X=" + X + ", Z=" + Z + "]";
+    }
 }
