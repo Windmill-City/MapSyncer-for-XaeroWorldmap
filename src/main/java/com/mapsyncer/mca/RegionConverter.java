@@ -17,8 +17,7 @@ public final class RegionConverter {
     }
 
     private static void writeLayer(Region entry, String dimId, int cave) throws IOException {
-        RegionBuilder builder = new RegionBuilder(entry.level(), entry.regionFile(), entry.X(), entry.Z(), cave);
-        byte[] data = builder.build();
+        byte[] data = RegionBuilder.build(entry.level(), entry.regionFile(), entry.X(), entry.Z(), cave);
         RegionRef ref = new RegionRef(dimId, cave, entry.X(), entry.Z());
         XaeroWriter.writeRegionFile(new RegionData(ref, data));
     }

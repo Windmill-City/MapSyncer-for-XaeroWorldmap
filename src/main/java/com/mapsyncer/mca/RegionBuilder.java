@@ -47,32 +47,10 @@ public final class RegionBuilder {
     private static final int FLAG_OVERLAY_STATE_NOT_IN_PALETTE = 0x400;
     private static final int FLAG_OVERLAY_OPACITY_SHIFT = 11;
 
-    private final ServerLevel level;
-    private final Path regionFile;
-    private final int regionX;
-    private final int regionZ;
-    private final int cave;
-    private final int caveStart;
-    private final int caveDepth;
-
-    private final Map<BlockState, Integer> statePalette = new HashMap<>();
-    private final Map<ResourceKey<Biome>, Integer> biomePalette = new HashMap<>();
-
-    public RegionBuilder(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave) {
-        this.level = level;
-        this.regionFile = regionFile;
-        this.regionX = regionX;
-        this.regionZ = regionZ;
-        this.cave = cave;
-        this.caveStart = cave;
-        this.caveDepth = CAVE_DEPTH;
-    }
-
-    public boolean isSurface() {
-        return cave == RegionRef.SURFACE_CAVE;
-    }
-
-    public byte[] build() throws IOException {
+    public static byte[] build(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave)
+            throws IOException {
+        Map<BlockState, Integer> statePalette = new HashMap<>();
+        Map<ResourceKey<Biome>, Integer> biomePalette = new HashMap<>();
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         try (McaRegion region = McaRegion.open(regionFile);
                 DataOutputStream out = new DataOutputStream(buffer)) {
@@ -80,19 +58,40 @@ public final class RegionBuilder {
             out.writeInt(FULL_VERSION);
             for (int o = 0; o < 8; o++) {
                 for (int p = 0; p < 8; p++) {
-                    writeTileChunk(out, region, o, p);
+                    writeTileChunk(
+                            out,
+                            region,
+                            o,
+                            p,
+                            level,
+                            regionX,
+                            regionZ,
+                            cave,
+                            statePalette,
+                            biomePalette);
                 }
             }
         }
         return buffer.toByteArray();
     }
 
-    private void writeTileChunk(DataOutputStream out, McaRegion region, int o, int p) throws IOException {
+    private static void writeTileChunk(
+            DataOutputStream out,
+            McaRegion region,
+            int o,
+            int p,
+            ServerLevel level,
+            int regionX,
+            int regionZ,
+            int cave,
+            Map<BlockState, Integer> statePalette,
+            Map<ResourceKey<Biome>, Integer> biomePalette)
+            throws IOException {
         ChunkBuilder.PixelData[][][][] tiles = new ChunkBuilder.PixelData[4][4][][];
         boolean hasAny = false;
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                tiles[i][j] = readTile(region, o, p, i, j);
+                tiles[i][j] = readTile(region, o, p, i, j, level, regionX, regionZ, cave);
                 if (tiles[i][j] != null) {
                     hasAny = true;
                 }
@@ -112,17 +111,27 @@ public final class RegionBuilder {
                 for (int x = 0; x < 16; x++) {
                     ChunkBuilder.PixelData[] column = tile[x];
                     for (int z = 0; z < 16; z++) {
-                        savePixel(out, column[z]);
+                        savePixel(out, column[z], statePalette, biomePalette);
                     }
                 }
                 out.write(WORLD_INTERPRETATION_VERSION);
-                out.writeInt(caveStart);
-                out.write(caveDepth);
+                out.writeInt(cave);
+                out.write(CAVE_DEPTH);
             }
         }
     }
 
-    private ChunkBuilder.PixelData[][] readTile(McaRegion region, int o, int p, int i, int j) throws IOException {
+    private static ChunkBuilder.PixelData[][] readTile(
+            McaRegion region,
+            int o,
+            int p,
+            int i,
+            int j,
+            ServerLevel level,
+            int regionX,
+            int regionZ,
+            int cave)
+            throws IOException {
         int chunkX = regionX * 32 + o * 4 + i;
         int chunkZ = regionZ * 32 + p * 4 + j;
         CompoundTag tag = region.readChunk(chunkX, chunkZ);
@@ -135,13 +144,18 @@ public final class RegionBuilder {
                 tag,
                 chunkX,
                 chunkZ,
-                caveStart,
-                caveDepth,
+                cave,
+                CAVE_DEPTH,
                 level,
                 level.registryAccess().lookupOrThrow(Registries.BLOCK));
     }
 
-    private void savePixel(DataOutputStream out, ChunkBuilder.PixelData pixel) throws IOException {
+    private static void savePixel(
+            DataOutputStream out,
+            ChunkBuilder.PixelData pixel,
+            Map<BlockState, Integer> statePalette,
+            Map<ResourceKey<Biome>, Integer> biomePalette)
+            throws IOException {
         boolean isGrass = pixel.state().getBlock() == Blocks.GRASS_BLOCK;
         boolean inPalette = false;
         boolean biomeInPalette = false;
@@ -171,7 +185,7 @@ public final class RegionBuilder {
         if (pixel.hasOverlays()) {
             out.write(pixel.overlays().size());
             for (ChunkBuilder.PixelData.Overlay overlay : pixel.overlays()) {
-                saveOverlay(out, overlay);
+                saveOverlay(out, overlay, statePalette);
             }
         }
         if (pixelBiome != null) {
@@ -184,7 +198,9 @@ public final class RegionBuilder {
         }
     }
 
-    private void saveOverlay(DataOutputStream out, ChunkBuilder.PixelData.Overlay overlay) throws IOException {
+    private static void saveOverlay(
+            DataOutputStream out, ChunkBuilder.PixelData.Overlay overlay, Map<BlockState, Integer> statePalette)
+            throws IOException {
         boolean isWater = overlay.state().getBlock() == Blocks.WATER;
         boolean inPalette = false;
         BlockState state = overlay.state();
