@@ -5,7 +5,6 @@ import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,14 +57,14 @@ public final class ManifestServer {
                         int cave = PathUtils.getCaveByDir(relative);
                         int[] coords = PathUtils.getCoordByZip(zipPath);
                         RegionRef ref = new RegionRef(dimId, cave, coords[0], coords[1]);
-                        long timestamp = readMtimeMillis(zipPath);
+                        long timestamp = Files.getLastModifiedTime(zipPath).toMillis();
                         rebuilt.put(ref, timestamp);
-                    } catch (Throwable e) {
+                    } catch (IOException e) {
                         LOGGER.warn(
                                 "Skipping malformed region file {} while building manifest for {}", zipPath, dimId, e);
                     }
                 }
-            } catch (Throwable e) {
+            } catch (IOException e) {
                 LOGGER.error("Failed to walk cache directory while building manifest for {}", dimId, e);
             }
         }
@@ -73,15 +72,5 @@ public final class ManifestServer {
         manifest = rebuilt;
         isValid = true;
         LOGGER.info("Manifest cache built with {} entries", rebuilt.size());
-    }
-
-    private static long readMtimeMillis(Path zipPath) {
-        try {
-            FileTime mtime = Files.getLastModifiedTime(zipPath);
-            return mtime.toMillis();
-        } catch (IOException e) {
-            LOGGER.warn("Failed to read mtime for {}, using current time", zipPath);
-            return System.currentTimeMillis();
-        }
     }
 }
