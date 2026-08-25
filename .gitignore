@@ -5,6 +5,6 @@ bin/
 .kilo/
 
 build/
-outputs/
 
-run/
+runClient/
+runServer/
