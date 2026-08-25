@@ -54,10 +54,10 @@ public final class XaeroBridge {
         return processor.getMapSaveLoad();
     }
 
-    private static MapRegion getLeafMapRegion(int caveLayer, int regionX, int regionZ, boolean createIfMissing) {
+    private static MapRegion getLeafMapRegion(int cave, int regionX, int regionZ, boolean createIfMissing) {
         MapProcessor processor = getMapProcessor();
         if (processor == null) return null;
-        return processor.getLeafMapRegion(caveLayer, regionX, regionZ, createIfMissing);
+        return processor.getLeafMapRegion(cave, regionX, regionZ, createIfMissing);
     }
 
     private static boolean requestLoad(Object mapRegion, String reason, boolean prioritize) {
@@ -125,31 +125,31 @@ public final class XaeroBridge {
         return processor.getDimensionName(key);
     }
 
-    public static void loadRegion(int regionX, int regionZ, int caveLayer) {
+    public static void loadRegion(int regionX, int regionZ, int cave) {
         if (!initialized) return;
         try {
-            Object mapRegion = getLeafMapRegion(caveLayer, regionX, regionZ, true);
+            Object mapRegion = getLeafMapRegion(cave, regionX, regionZ, true);
             if (mapRegion == null) {
-                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", regionX, regionZ, caveLayer);
+                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", regionX, regionZ, cave);
                 return;
             }
 
             if (!cancelRefresh(mapRegion) || !setShouldCache(mapRegion, true) || !setHasHadTerrain(mapRegion)) {
-                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", regionX, regionZ, caveLayer);
+                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", regionX, regionZ, cave);
                 return;
             }
 
             if (!setLoadState(mapRegion, LOAD_STATE_CLEARED)) {
-                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", regionX, regionZ, caveLayer);
+                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", regionX, regionZ, cave);
                 return;
             }
 
             if (!requestLoad(mapRegion, "sync", false)) {
-                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", regionX, regionZ, caveLayer);
+                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", regionX, regionZ, cave);
                 return;
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to load region ({}, {}) layer={}", regionX, regionZ, caveLayer, e);
+            LOGGER.error("Failed to load region ({}, {}) layer={}", regionX, regionZ, cave, e);
         }
     }
 

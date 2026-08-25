@@ -49,9 +49,9 @@ public final class ManifestServer {
                         (Iterable<Path>) stream.filter(p -> p.toString().endsWith(".zip"))::iterator) {
                     try {
                         Path relative = dimDir.relativize(zipPath);
-                        int caveLayer = PathUtils.getCaveByDir(relative);
+                        int cave = PathUtils.getCaveByDir(relative);
                         int[] coords = PathUtils.getCoordByZip(zipPath);
-                        RegionRef ref = new RegionRef(dimId, caveLayer, coords[0], coords[1]);
+                        RegionRef ref = new RegionRef(dimId, cave, coords[0], coords[1]);
                         long timestamp = readMtimeMillis(zipPath);
                         rebuilt.put(ref, timestamp);
                     } catch (Throwable e) {

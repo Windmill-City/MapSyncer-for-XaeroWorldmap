@@ -16,15 +16,6 @@ public record Plan(boolean surface, Set<Integer> caves) {
 
     private static volatile Map<String, Plan> Plans = Map.of();
 
-    public List<Integer> caveLayers() {
-        List<Integer> layers = new ArrayList<>();
-        if (surface) {
-            layers.add(RegionRef.SURFACE_CAVE);
-        }
-        caves.stream().mapToInt(cave -> cave >> 4).sorted().forEach(layers::add);
-        return List.copyOf(layers);
-    }
-
     @Override
     public String toString() {
         List<String> parts = new ArrayList<>();
@@ -35,7 +26,7 @@ public record Plan(boolean surface, Set<Integer> caves) {
         return String.join(",", parts);
     }
 
-    public static Plan parse(String planStr) {
+    private static Plan parse(String planStr) {
         if (planStr == null || planStr.isBlank()) {
             return new Plan(false, Set.of());
         }

@@ -98,8 +98,8 @@ public class ManifestClient {
 
     private static RegionRef buildKey(String dimId, Path dimDir, Path zipPath) {
         Path relative = dimDir.relativize(zipPath);
-        int caveLayer = PathUtils.getCaveByDir(relative);
+        int cave = PathUtils.getCaveByDir(relative);
         int[] coords = PathUtils.getCoordByZip(zipPath);
-        return new RegionRef(dimId, caveLayer, coords[0], coords[1]);
+        return new RegionRef(dimId, cave, coords[0], coords[1]);
     }
 }
