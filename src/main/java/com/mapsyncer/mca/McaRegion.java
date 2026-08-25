@@ -67,7 +67,7 @@ public final class McaRegion implements AutoCloseable {
             throw new IOException("Invalid chunk length " + length + " for chunk (" + chunkX + ", " + chunkZ + ")");
         }
         int compression = file.readByte() & 0xFF;
-        byte[] payload = new byte[length];
+        byte[] payload = new byte[length - 1];
         file.readFully(payload);
         try (InputStream input = decompress(payload, compression)) {
             return NbtIo.read(new DataInputStream(input));
