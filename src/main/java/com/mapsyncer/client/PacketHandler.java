@@ -69,6 +69,7 @@ public class PacketHandler {
                     maybeCompleteSync();
                 }));
             } else {
+                syncFailed++;
                 LOGGER.debug("[SYNC] region missing on server, skipping");
             }
 
