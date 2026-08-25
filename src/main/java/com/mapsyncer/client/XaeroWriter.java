@@ -35,10 +35,10 @@ final class XaeroWriter {
             return false;
         }
 
-        String worldId = XaeroBridge.getCurrentWorldId();
-        if (worldId == null || worldId.isEmpty()) {
+        String mwId = XaeroBridge.getCurrentMWId();
+        if (mwId == null || mwId.isEmpty()) {
             LOGGER.error(
-                    "Unable to resolve current world id from Xaero, skipping region ({}, {}) dim={}",
+                    "Unable to resolve current multiworld id from Xaero, skipping region ({}, {}) dim={}",
                     chunk.ref().X(),
                     chunk.ref().Z(),
                     chunk.ref().dimId());
@@ -46,7 +46,7 @@ final class XaeroWriter {
         }
 
         Path dimDir = serverDir.resolve(xaeroDim);
-        Path mwDir = dimDir.resolve("mw$" + worldId);
+        Path mwDir = dimDir.resolve(mwId);
 
         Path targetDir;
         if (chunk.ref().isSurface()) {

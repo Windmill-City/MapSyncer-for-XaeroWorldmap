@@ -152,8 +152,8 @@ public class PacketHandler {
     }
 
     private static boolean isWorldContextReady() {
-        String worldId = XaeroBridge.getCurrentWorldId();
-        return worldId != null && !worldId.isEmpty();
+        String mwId = XaeroBridge.getCurrentMWId();
+        return mwId != null && !mwId.isEmpty();
     }
 
     private static Set<String> extractDimIds(Set<RegionRef> keys) {

@@ -17,12 +17,12 @@ public abstract class MapProcessorMixin {
             at =
                     @At(
                             value = "FIELD",
-                            target = "Lxaero/map/MapProcessor;currentWorldId:Ljava/lang/String;",
+                            target = "Lxaero/map/MapProcessor;currentMWId:Ljava/lang/String;",
                             opcode = Opcodes.PUTFIELD,
                             ordinal = 0,
                             shift = At.Shift.AFTER),
             require = 1)
-    private void mapsyncer$onWorldIdAssigned(CallbackInfo ci) {
-        XaeroBridge.onWorldIdChanged();
+    private void mapsyncer$onMapContextAssigned(CallbackInfo ci) {
+        XaeroBridge.onMWIdChanged();
     }
 }

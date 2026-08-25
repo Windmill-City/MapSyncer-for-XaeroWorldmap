@@ -38,16 +38,18 @@ public final class XaeroBridge {
         }
     }
 
-    static String getCurrentWorldId() {
+    static String getCurrentMWId() {
         if (!initialized) return null;
         MapProcessor processor = getMapProcessor();
         if (processor == null) return null;
-        return processor.getCurrentWorldId();
+        return processor.getCurrentMWId();
     }
 
     static Path getCurrentServerDirectory() {
         if (!initialized) return null;
-        String worldId = getCurrentWorldId();
+        MapProcessor processor = getMapProcessor();
+        if (processor == null) return null;
+        String worldId = processor.getCurrentWorldId();
         if (worldId == null || worldId.isEmpty()) return null;
         return MapSaveLoad.getRootFolder(worldId);
     }
@@ -89,7 +91,7 @@ public final class XaeroBridge {
         }
     }
 
-    public static void onWorldIdChanged() {
+    public static void onMWIdChanged() {
         PacketHandler.onXaeroWorldContextReady();
     }
 
