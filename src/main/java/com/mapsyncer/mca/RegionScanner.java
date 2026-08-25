@@ -23,7 +23,31 @@ public class RegionScanner {
     public record Region(int X, int Z, ServerLevel level, Path regionFile) {}
 
     public static List<Region> scan(ServerLevel level) {
-        return scanRegionFiles(getRegionDir(level), level);
+        Path regionDir = getRegionDir(level);
+        if (regionDir == null || !Files.exists(regionDir)) {
+            return List.of();
+        }
+
+        List<Region> entries = new ArrayList<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
+            for (Path file : stream) {
+                String fileName = file.getFileName().toString();
+                Matcher matcher = REGION_PATTERN.matcher(fileName);
+                if (!matcher.matches()) {
+                    continue;
+                }
+                try {
+                    int regionX = Integer.parseInt(matcher.group(1));
+                    int regionZ = Integer.parseInt(matcher.group(2));
+                    entries.add(new Region(regionX, regionZ, level, file));
+                } catch (NumberFormatException e) {
+                    LOGGER.warn("Invalid region coordinates for {}", fileName, e);
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to scan region directory: {}", regionDir, e);
+        }
+        return List.copyOf(entries);
     }
 
     private static Path getRegionDir(ServerLevel level) {
@@ -52,32 +76,5 @@ public class RegionScanner {
             LOGGER.warn("Failed to resolve region directory for dimension {} (resolved to {})", dimId, path, e);
             return null;
         }
-    }
-
-    private static List<Region> scanRegionFiles(Path regionDir, ServerLevel level) {
-        if (regionDir == null || !Files.exists(regionDir)) {
-            return List.of();
-        }
-
-        List<Region> entries = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(regionDir)) {
-            for (Path file : stream) {
-                String fileName = file.getFileName().toString();
-                Matcher matcher = REGION_PATTERN.matcher(fileName);
-                if (!matcher.matches()) {
-                    continue;
-                }
-                try {
-                    int regionX = Integer.parseInt(matcher.group(1));
-                    int regionZ = Integer.parseInt(matcher.group(2));
-                    entries.add(new Region(regionX, regionZ, level, file));
-                } catch (NumberFormatException e) {
-                    LOGGER.warn("Invalid region coordinates for {}", fileName, e);
-                }
-            }
-        } catch (IOException e) {
-            LOGGER.error("Failed to scan region directory: {}", regionDir, e);
-        }
-        return List.copyOf(entries);
     }
 }
