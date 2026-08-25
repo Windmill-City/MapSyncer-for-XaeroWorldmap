@@ -47,8 +47,7 @@ final class RegionBuilder {
     private static final int FLAG_OVERLAY_STATE_NOT_IN_PALETTE = 0x400;
     private static final int FLAG_OVERLAY_OPACITY_SHIFT = 11;
 
-    static byte[] build(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave)
-            throws IOException {
+    static byte[] build(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave) throws IOException {
         Map<BlockState, Integer> statePalette = new HashMap<>();
         Map<ResourceKey<Biome>, Integer> biomePalette = new HashMap<>();
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -58,17 +57,7 @@ final class RegionBuilder {
             out.writeInt(FULL_VERSION);
             for (int o = 0; o < 8; o++) {
                 for (int p = 0; p < 8; p++) {
-                    writeTileChunk(
-                            out,
-                            region,
-                            o,
-                            p,
-                            level,
-                            regionX,
-                            regionZ,
-                            cave,
-                            statePalette,
-                            biomePalette);
+                    writeTileChunk(out, region, o, p, level, regionX, regionZ, cave, statePalette, biomePalette);
                 }
             }
         }
@@ -122,15 +111,7 @@ final class RegionBuilder {
     }
 
     private static ChunkBuilder.PixelData[][] readTile(
-            McaRegion region,
-            int o,
-            int p,
-            int i,
-            int j,
-            ServerLevel level,
-            int regionX,
-            int regionZ,
-            int cave)
+            McaRegion region, int o, int p, int i, int j, ServerLevel level, int regionX, int regionZ, int cave)
             throws IOException {
         int chunkX = regionX * 32 + o * 4 + i;
         int chunkZ = regionZ * 32 + p * 4 + j;

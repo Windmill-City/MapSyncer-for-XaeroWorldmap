@@ -52,7 +52,8 @@ final class XaeroWriter {
         if (chunk.ref().isSurface()) {
             targetDir = mwDir;
         } else {
-            targetDir = mwDir.resolve("caves").resolve(String.valueOf(chunk.ref().cave()));
+            targetDir =
+                    mwDir.resolve("caves").resolve(String.valueOf(chunk.ref().cave()));
         }
 
         Path outputFile = targetDir.resolve(chunk.ref().X() + "_" + chunk.ref().Z() + ".zip");
@@ -75,7 +76,9 @@ final class XaeroWriter {
             return false;
         }
 
-        Minecraft.getInstance().execute(() -> XaeroBridge.loadRegion(chunk.ref().X(), chunk.ref().Z(), chunk.ref().cave()));
+        Minecraft.getInstance()
+                .execute(() -> XaeroBridge.loadRegion(
+                        chunk.ref().X(), chunk.ref().Z(), chunk.ref().cave()));
 
         return true;
     }

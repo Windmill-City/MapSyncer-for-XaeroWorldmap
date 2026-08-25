@@ -26,7 +26,11 @@ final class AsyncWriter {
                 try {
                     success = XaeroWriter.writeChunkData(chunk);
                 } catch (Exception e) {
-                    LOGGER.error("Async region write failed for ({}, {})", chunk.ref().X(), chunk.ref().Z(), e);
+                    LOGGER.error(
+                            "Async region write failed for ({}, {})",
+                            chunk.ref().X(),
+                            chunk.ref().Z(),
+                            e);
                 } finally {
                     pendingWrites.decrementAndGet();
                     callback.accept(success);
