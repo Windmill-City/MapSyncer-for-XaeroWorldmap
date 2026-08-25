@@ -1,10 +1,8 @@
 package com.mapsyncer.network;
 
+import com.mapsyncer.mca.RegionRef;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.mapsyncer.mca.RegionRef;
-
 import net.minecraft.network.FriendlyByteBuf;
 
 public class ManifestPayload {

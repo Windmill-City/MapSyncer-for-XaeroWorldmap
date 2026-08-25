@@ -84,5 +84,4 @@ public final class ManifestServer {
             return System.currentTimeMillis();
         }
     }
-
 }

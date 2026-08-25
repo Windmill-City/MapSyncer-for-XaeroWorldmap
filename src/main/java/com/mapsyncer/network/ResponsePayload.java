@@ -1,7 +1,6 @@
 package com.mapsyncer.network;
 
 import com.mapsyncer.mca.RegionData;
-
 import net.minecraft.network.FriendlyByteBuf;
 
 public record ResponsePayload(RegionData chunk) {
