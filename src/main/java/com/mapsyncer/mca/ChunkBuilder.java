@@ -530,9 +530,8 @@ final class ChunkBuilder {
             synchronized (buggedStates) {
                 buggedStates.add(state);
             }
-            LOGGER.info(
-                    "Found bugged state! Adding to bugged list: "
-                            + level.registryAccess().registryOrThrow(Registries.BLOCK).getKey(state.getBlock()));
+            LOGGER.info("Found bugged state! Adding to bugged list: "
+                    + level.registryAccess().registryOrThrow(Registries.BLOCK).getKey(state.getBlock()));
         }
         return color != null && color.col != 0;
     }
