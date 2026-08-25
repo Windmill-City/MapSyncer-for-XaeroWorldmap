@@ -29,7 +29,9 @@ public final class McaRegion implements AutoCloseable {
 
     private McaRegion(RandomAccessFile file) throws IOException {
         this.file = file;
-        readHeader();
+        for (int i = 0; i < locations.length; i++) {
+            locations[i] = file.readInt();
+        }
     }
 
     public static McaRegion open(Path path) throws IOException {
@@ -43,13 +45,6 @@ public final class McaRegion implements AutoCloseable {
             if (!success) {
                 file.close();
             }
-        }
-    }
-
-    private void readHeader() throws IOException {
-        file.seek(0L);
-        for (int i = 0; i < locations.length; i++) {
-            locations[i] = file.readInt();
         }
     }
 
