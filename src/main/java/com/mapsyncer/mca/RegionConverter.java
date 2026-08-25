@@ -9,22 +9,18 @@ public final class RegionConverter {
     public static void convert(Region entry, Plan plan) throws IOException {
         String dimId = PathUtils.getDimId(entry.level());
         if (plan.surface()) {
-            writeSurfaceLayer(entry, dimId);
+            writeLayer(entry, dimId, RegionRef.SURFACE_CAVE);
         }
         for (int caveY : plan.caves()) {
-            writeCaveLayer(entry, dimId, caveY);
+            writeLayer(entry, dimId, caveY);
         }
     }
 
-    private static void writeSurfaceLayer(Region entry, String dimId) throws IOException {
-        // TODO: RegionBuilder with top-down scan, RegionRef.SURFACE_CAVE,
-        //       surface parametres in savePixel, write via XaeroWriter
-        throw new UnsupportedOperationException("not implemented yet");
-    }
-
-    private static void writeCaveLayer(Region entry, String dimId, int caveY) throws IOException {
-        // TODO: RegionBuilder with cave scan (caveStart = caveY, depth = RegionBuilder.CAVE_DEPTH),
-        //       cave parametres in savePixel, write via XaeroWriter
-        throw new UnsupportedOperationException("not implemented yet");
+    private static void writeLayer(Region entry, String dimId, int cave) throws IOException {
+        RegionBuilder builder =
+                new RegionBuilder(entry.level(), entry.regionFile(), entry.X(), entry.Z(), cave);
+        byte[] data = builder.build();
+        RegionRef ref = new RegionRef(dimId, cave, entry.X(), entry.Z());
+        XaeroWriter.writeRegionFile(new RegionData(ref, data));
     }
 }

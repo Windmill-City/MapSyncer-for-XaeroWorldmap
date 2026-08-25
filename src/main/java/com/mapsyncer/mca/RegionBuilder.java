@@ -11,8 +11,10 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Builds the raw {@code region.xaero} payload for one map region and one cave layer,
+ * Builds the raw {@code region.xaero} payload for one map region and one layer,
  * byte-compatible with Xaero WorldMap's region save format (major 6, minor 8).
+ * {@code cave} is {@link RegionRef#SURFACE_CAVE} for the surface layer or an
+ * absolute Y for a cave layer; the scan window is derived from it.
  */
 public final class RegionBuilder {
 
@@ -25,6 +27,7 @@ public final class RegionBuilder {
     private final Path regionFile;
     private final int regionX;
     private final int regionZ;
+    private final int cave;
     private final int caveStart;
     private final int caveDepth;
 
@@ -32,13 +35,18 @@ public final class RegionBuilder {
     private final Map<ResourceKey<Biome>, Integer> biomePalette = new HashMap<>();
     private final ChunkBuilder chunkBuilder = new ChunkBuilder();
 
-    public RegionBuilder(ServerLevel level, Path regionFile, int regionX, int regionZ, int caveStart, int caveDepth) {
+    public RegionBuilder(ServerLevel level, Path regionFile, int regionX, int regionZ, int cave) {
         this.level = level;
         this.regionFile = regionFile;
         this.regionX = regionX;
         this.regionZ = regionZ;
-        this.caveStart = caveStart;
-        this.caveDepth = caveDepth;
+        this.cave = cave;
+        this.caveStart = cave == RegionRef.SURFACE_CAVE ? 0 : cave;
+        this.caveDepth = cave == RegionRef.SURFACE_CAVE ? 0 : CAVE_DEPTH;
+    }
+
+    public boolean isSurface() {
+        return cave == RegionRef.SURFACE_CAVE;
     }
 
     public byte[] build() throws IOException {
