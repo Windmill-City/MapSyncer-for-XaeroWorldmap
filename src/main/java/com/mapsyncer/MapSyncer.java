@@ -9,6 +9,7 @@ import com.mapsyncer.network.RequestPayload;
 import com.mapsyncer.network.ResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
+import com.mapsyncer.server.MapConverter;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
@@ -228,7 +229,7 @@ public class MapSyncer {
 
         @SubscribeEvent
         public static void onServerStopped(ServerStoppedEvent event) {
-            AutoUpdater.stop();
+            MapConverter.stop();
         }
     }
 }

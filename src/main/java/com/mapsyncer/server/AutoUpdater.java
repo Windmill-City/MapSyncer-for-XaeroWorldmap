@@ -51,7 +51,7 @@ public final class AutoUpdater {
             LOGGER.debug("Skipping: autoupdater is not running");
             return;
         }
-        MapConverter.requestCancel();
+        MapConverter.stop();
         LOGGER.info("Stopping map autoupdate");
     }
 

@@ -99,7 +99,7 @@ public class CommandHandler {
     }
 
     private static int generateStop(CommandContext<CommandSourceStack> ctx) {
-        if (MapConverter.requestCancel()) {
+        if (MapConverter.stop()) {
             ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.command.conversion_stopped"), false);
         } else {
             ctx.getSource().sendFailure(ChatUtils.error("mapsyncer.command.conversion_not_running"));

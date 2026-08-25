@@ -16,7 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-class MapConverter {
+public class MapConverter {
 
     private static final Logger LOGGER = LogManager.getLogger(MapConverter.class);
 
@@ -27,6 +27,14 @@ class MapConverter {
     private static volatile int total = 0;
 
     private static final List<String> completed = new CopyOnWriteArrayList<>();
+
+    public static boolean stop() {
+        if (!isRunning.compareAndSet(true, false)) {
+            return false;
+        }
+        LOGGER.info("Cancellation requested for ongoing conversion");
+        return true;
+    }
 
     static boolean generate(MinecraftServer server) {
         if (!isRunning.compareAndSet(false, true)) {
@@ -80,14 +88,6 @@ class MapConverter {
 
     static boolean isRunning() {
         return isRunning.get();
-    }
-
-    static boolean requestCancel() {
-        if (!isRunning.compareAndSet(true, false)) {
-            return false;
-        }
-        LOGGER.info("Cancellation requested for ongoing conversion");
-        return true;
     }
 
     static int getProcessed() {
