@@ -195,11 +195,14 @@ public class PacketHandler {
         LOGGER.debug("[SYNC] sync complete: {} regions processed, {} failed", syncProcessed, syncFailed);
 
         if (Minecraft.getInstance().player != null) {
-            long elapsed = Math.max(0, (System.currentTimeMillis() - syncStartMs) / 1000);
+            long elapsedMs = Math.max(0, System.currentTimeMillis() - syncStartMs);
+            String elapsed = String.format("%.1f", elapsedMs / 1000.0);
             Minecraft.getInstance()
                     .player
                     .displayClientMessage(
-                            ChatUtils.success("mapsyncer.sync.completed", syncProcessed, syncFailed, elapsed), false);
+                            ChatUtils.success(
+                                    "mapsyncer.sync.completed", syncProcessed - syncFailed, syncFailed, elapsed),
+                            false);
         }
 
         stop();

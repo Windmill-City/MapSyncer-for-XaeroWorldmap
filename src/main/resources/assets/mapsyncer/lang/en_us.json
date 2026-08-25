@@ -1,5 +1,5 @@
 {
-  "mapsyncer.sync.completed": "Sync complete: %d regions updated, %d failed (took %ds)",
+  "mapsyncer.sync.completed": "Sync complete: %d regions updated, %d failed (took %ss)",
   "mapsyncer.sync.started": "Sync started, %d regions to update",
   "mapsyncer.command.no_regions": "Local map is up-to-date, nothing to sync",
 

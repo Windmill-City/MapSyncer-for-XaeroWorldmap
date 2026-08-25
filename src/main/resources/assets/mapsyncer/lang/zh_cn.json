@@ -1,5 +1,5 @@
 {
-  "mapsyncer.sync.completed": "同步完成，已更新 %d 个区域，%d 个失败（耗时 %d 秒）",
+  "mapsyncer.sync.completed": "同步完成，已更新 %d 个区域，%d 个失败（耗时 %s 秒）",
   "mapsyncer.sync.started": "开始同步，共 %d 个区域需要更新",
   "mapsyncer.command.no_regions": "本地地图已是最新，无需同步",
 
