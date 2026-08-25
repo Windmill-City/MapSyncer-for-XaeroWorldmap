@@ -25,7 +25,7 @@ import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.config.ModConfig;
@@ -116,16 +116,18 @@ public class MapSyncer {
 
     private static final String PROTOCOL_VERSION = "4";
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            new ResourceLocation(MOD_ID, "main"),
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"),
             () -> PROTOCOL_VERSION,
             NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
             NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
 
     public MapSyncer() {
-        ModContainer modContainer = ModLoadingContext.get().getActiveContainer();
+        ModContainer modContainer = ModList.get()
+                .getModContainerById(MOD_ID)
+                .orElseThrow(() -> new IllegalStateException("Mod container not found for " + MOD_ID));
         VERSION = modContainer.getModInfo().getVersion().toString();
 
-        ModLoadingContext.get().registerConfig(Type.SERVER, CONFIG_SPEC);
+        modContainer.addConfig(new ModConfig(Type.SERVER, CONFIG_SPEC, modContainer));
 
         CHANNEL.registerMessage(
                 0,
