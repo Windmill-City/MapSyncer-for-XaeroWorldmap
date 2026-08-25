@@ -1,5 +1,12 @@
 package com.mapsyncer;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import com.mapsyncer.client.XaeroBridge;
 import com.mapsyncer.mca.Plan;
@@ -10,9 +17,7 @@ import com.mapsyncer.network.ResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
 import com.mapsyncer.server.MapConverter;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Supplier;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.api.distmarker.Dist;
@@ -22,7 +27,6 @@ import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModContainer;
@@ -37,8 +41,6 @@ import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @Mod(MapSyncer.MOD_ID)
 public class MapSyncer {
@@ -73,8 +75,7 @@ public class MapSyncer {
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("AutoUpdate");
 
-            AutoUpdate =
-                    builder.comment("Update map when no players are online").define("enabled", true);
+            AutoUpdate = builder.comment("Update map when no players are online").define("enabled", true);
 
             builder.pop();
 
@@ -82,10 +83,10 @@ public class MapSyncer {
             builder.comment("Dimension scan settings");
 
             Plans = builder.comment(
-                            "Per-dimension scan configuration list (one line per dimension)",
-                            "Format per entry: \"dimension = layerPlan\"",
-                            "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
-                            "Example: \"minecraft:overworld = SURFACE\"")
+                    "Per-dimension scan configuration list (one line per dimension)",
+                    "Format per entry: \"dimension = layerPlan\"",
+                    "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
+                    "Example: \"minecraft:overworld = SURFACE\"")
                     .defineList("plans", Plan.getDefaults(), obj -> obj instanceof String);
 
             builder.pop();
@@ -186,29 +187,10 @@ public class MapSyncer {
     }
 
     @EventBusSubscriber(value = Dist.CLIENT, bus = EventBusSubscriber.Bus.FORGE)
-    public static class ClientEventHandler {
+    public static class ClientEvents {
         @SubscribeEvent
         public static void onPlayerLoggedOut(ClientPlayerNetworkEvent.LoggingOut event) {
             com.mapsyncer.client.PacketHandler.onDisconnect();
-        }
-    }
-
-    @EventBusSubscriber(bus = EventBusSubscriber.Bus.FORGE)
-    public static class ForgeEvents {
-        @SubscribeEvent
-        public static void onServerStarted(ServerStartedEvent event) {
-            XaeroWriter.cleanStaleFiles();
-            AutoUpdater.performScan(event.getServer());
-        }
-
-        @SubscribeEvent
-        public static void onServerStopping(ServerStoppingEvent event) {
-            AutoUpdater.stop();
-        }
-
-        @SubscribeEvent
-        public static void onRegisterCommands(RegisterCommandsEvent event) {
-            CommandHandler.register(event.getDispatcher());
         }
     }
 
@@ -228,8 +210,19 @@ public class MapSyncer {
         }
 
         @SubscribeEvent
-        public static void onServerStopped(ServerStoppedEvent event) {
+        public static void onServerStarted(ServerStartedEvent event) {
+            XaeroWriter.cleanStaleFiles();
+            AutoUpdater.performScan(event.getServer());
+        }
+
+        @SubscribeEvent
+        public static void onServerStopping(ServerStoppingEvent event) {
             MapConverter.stop();
+        }
+
+        @SubscribeEvent
+        public static void onRegisterCommands(RegisterCommandsEvent event) {
+            CommandHandler.register(event.getDispatcher());
         }
     }
 }
