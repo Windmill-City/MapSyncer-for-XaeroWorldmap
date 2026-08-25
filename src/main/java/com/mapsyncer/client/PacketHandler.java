@@ -73,12 +73,12 @@ public class PacketHandler {
                 }));
             } else {
                 syncFailed++;
-                maybeCompleteSync();
                 LOGGER.debug("[SYNC] region missing on server, skipping");
             }
 
             syncProcessed++;
             LOGGER.debug("[SYNC] region data received: syncProcessed={}/{}", syncProcessed, syncTotal);
+            maybeCompleteSync();
             requestNextRegion();
         });
         context.get().setPacketHandled(true);
