@@ -34,6 +34,12 @@ public final class ManifestServer {
         return Collections.unmodifiableMap(manifest);
     }
 
+    public static void invalidate() {
+        isValid = false;
+        manifest = Map.of();
+        LOGGER.debug("ManifestCache invalidated");
+    }
+
     private static void _get(MinecraftServer server) {
         Map<RegionRef, Long> rebuilt = new HashMap<>();
 
@@ -79,9 +85,4 @@ public final class ManifestServer {
         }
     }
 
-    public static void invalidate() {
-        isValid = false;
-        manifest = Map.of();
-        LOGGER.debug("ManifestCache invalidated");
-    }
 }

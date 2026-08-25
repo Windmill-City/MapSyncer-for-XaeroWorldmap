@@ -27,16 +27,6 @@ public final class AutoUpdater {
         checkAndScan(server);
     }
 
-    private static void checkAndScan(MinecraftServer server) {
-        int playerCount = server.getPlayerList().getPlayerCount();
-        if (playerCount > 1) {
-            LOGGER.debug("Skipping: {} players are still online", playerCount);
-            return;
-        }
-
-        performScan(server);
-    }
-
     public static void performScan(MinecraftServer server) {
         LOGGER.info("Starting map autoupdate (no players online)");
 
@@ -48,5 +38,15 @@ public final class AutoUpdater {
     public static void stop() {
         MapConverter.requestCancel();
         LOGGER.info("Stopping map autoupdate");
+    }
+
+    private static void checkAndScan(MinecraftServer server) {
+        int playerCount = server.getPlayerList().getPlayerCount();
+        if (playerCount > 1) {
+            LOGGER.debug("Skipping: {} players are still online", playerCount);
+            return;
+        }
+
+        performScan(server);
     }
 }

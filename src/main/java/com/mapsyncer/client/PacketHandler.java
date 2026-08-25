@@ -2,8 +2,8 @@ package com.mapsyncer.client;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.ManifestPayload;
-import com.mapsyncer.network.MapRequestPayload;
-import com.mapsyncer.network.MapResponsePayload;
+import com.mapsyncer.network.RequestPayload;
+import com.mapsyncer.network.ResponsePayload;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.ChatUtils;
@@ -42,18 +42,18 @@ public class PacketHandler {
     public static void onXaeroWorldContextReady() {
         Minecraft.getInstance().execute(() -> {
             if (deferredManifest != null) {
-                handleManifestReceived(deferredManifest);
+                _handleManifest(deferredManifest);
             }
         });
     }
 
-    public static void handleSyncManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleManifest(ManifestPayload payload, Supplier<NetworkEvent.Context> context) {
         LOGGER.debug("[SYNC] <- manifest: entries={}", payload.timestamps().size());
-        Minecraft.getInstance().execute(() -> handleManifestReceived(payload));
+        Minecraft.getInstance().execute(() -> _handleManifest(payload));
         context.get().setPacketHandled(true);
     }
 
-    public static void handleSyncResponse(MapResponsePayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleResponse(ResponsePayload payload, Supplier<NetworkEvent.Context> context) {
         Minecraft.getInstance().execute(() -> {
             RegionData chunk = payload.chunk();
             if (chunk != null) {
@@ -79,7 +79,7 @@ public class PacketHandler {
         context.get().setPacketHandled(true);
     }
 
-    private static void handleManifestReceived(ManifestPayload payload) {
+    private static void _handleManifest(ManifestPayload payload) {
         if (!isWorldContextReady()) {
             LOGGER.debug("[SYNC] Xaero map context not ready yet, deferring sync until Xaero assigns world id");
             deferredManifest = payload;
@@ -168,7 +168,7 @@ public class PacketHandler {
             return;
         }
 
-        MapSyncer.sendToServer(new MapRequestPayload(ref));
+        MapSyncer.sendToServer(new RequestPayload(ref));
         LOGGER.debug(
                 "[SYNC] -> request: {} (pendingLeft={}, syncProcessed={}/{})",
                 ref,

@@ -2,8 +2,8 @@ package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
 import com.mapsyncer.network.ManifestPayload;
-import com.mapsyncer.network.MapRequestPayload;
-import com.mapsyncer.network.MapResponsePayload;
+import com.mapsyncer.network.RequestPayload;
+import com.mapsyncer.network.ResponsePayload;
 import com.mapsyncer.network.RegionData;
 import com.mapsyncer.network.RegionRef;
 import com.mapsyncer.util.PathUtils;
@@ -28,7 +28,7 @@ public class PacketHandler {
         LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
     }
 
-    public static void handleMapRequest(MapRequestPayload payload, Supplier<NetworkEvent.Context> context) {
+    public static void handleRequest(RequestPayload payload, Supplier<NetworkEvent.Context> context) {
         MapSyncer.enqueueWork(context, () -> {
             Player player = MapSyncer.getPlayerFromContext(context);
             if (!(player instanceof ServerPlayer serverPlayer)) return;
@@ -52,7 +52,7 @@ public class PacketHandler {
                 player.getName().getString(),
                 region,
                 chunk == null ? 0 : chunk.data.length);
-        MapSyncer.sendToPlayer(player, new MapResponsePayload(chunk));
+        MapSyncer.sendToPlayer(player, new ResponsePayload(chunk));
     }
 
     private static RegionData getRegionData(RegionRef region) {

@@ -25,6 +25,32 @@ public record Plan(boolean surface, Set<Integer> caves) {
         return String.join(",", parts);
     }
 
+    public static Plan getPlan(String dimId) {
+        return Plans.getOrDefault(dimId, new Plan(false, Set.of()));
+    }
+
+    public static void build(List<? extends String> planEntries) {
+        Map<String, Plan> rebuilt = new LinkedHashMap<>();
+        for (var entryStr : planEntries) {
+            if (entryStr == null || entryStr.isBlank()) {
+                continue;
+            }
+            var entry = parsePlanEntry(entryStr);
+            if (entry != null) {
+                rebuilt.put(entry.getKey(), entry.getValue());
+            }
+        }
+        Plans = rebuilt;
+    }
+
+    public static List<String> getDefaults() {
+        var defaults = new LinkedHashMap<String, Plan>();
+        defaults.put("minecraft:overworld", new Plan(true, Set.of()));
+        defaults.put("minecraft:the_nether", new Plan(true, Set.of(64)));
+        defaults.put("minecraft:the_end", new Plan(true, Set.of()));
+        return defaults.entrySet().stream().map(Map.Entry::toString).toList();
+    }
+
     private static Plan parse(String planStr) {
         if (planStr == null || planStr.isBlank()) {
             return new Plan(false, Set.of());
@@ -49,32 +75,6 @@ public record Plan(boolean surface, Set<Integer> caves) {
         }
 
         return new Plan(hasSurface, Set.copyOf(caves));
-    }
-
-    public static Plan getPlan(String dimId) {
-        return Plans.getOrDefault(dimId, new Plan(false, Set.of()));
-    }
-
-    public static void build(List<? extends String> planEntries) {
-        Map<String, Plan> rebuilt = new LinkedHashMap<>();
-        for (var entryStr : planEntries) {
-            if (entryStr == null || entryStr.isBlank()) {
-                continue;
-            }
-            var entry = parsePlanEntry(entryStr);
-            if (entry != null) {
-                rebuilt.put(entry.getKey(), entry.getValue());
-            }
-        }
-        Plans = rebuilt;
-    }
-
-    public static List<String> getDefaultPlans() {
-        var defaults = new LinkedHashMap<String, Plan>();
-        defaults.put("minecraft:overworld", new Plan(true, Set.of()));
-        defaults.put("minecraft:the_nether", new Plan(true, Set.of(64)));
-        defaults.put("minecraft:the_end", new Plan(true, Set.of()));
-        return defaults.entrySet().stream().map(Map.Entry::toString).toList();
     }
 
     private static Map.Entry<String, Plan> parsePlanEntry(String configStr) {

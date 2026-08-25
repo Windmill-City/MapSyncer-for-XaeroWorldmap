@@ -5,8 +5,8 @@ import com.mapsyncer.client.XaeroBridge;
 import com.mapsyncer.mca.Plan;
 import com.mapsyncer.mca.XaeroWriter;
 import com.mapsyncer.network.ManifestPayload;
-import com.mapsyncer.network.MapRequestPayload;
-import com.mapsyncer.network.MapResponsePayload;
+import com.mapsyncer.network.RequestPayload;
+import com.mapsyncer.network.ResponsePayload;
 import com.mapsyncer.server.AutoUpdater;
 import com.mapsyncer.server.CommandHandler;
 import java.nio.file.Path;
@@ -51,6 +51,13 @@ public class MapSyncer {
 
     private static net.minecraftforge.fml.config.ModConfig serverConfig;
 
+    private static final String PROTOCOL_VERSION = "4";
+    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+            ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"),
+            () -> PROTOCOL_VERSION,
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
+            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
+
     static {
         var pair = new ForgeConfigSpec.Builder().configure(ServerConfig::new);
         CONFIG = pair.getLeft();
@@ -62,7 +69,7 @@ public class MapSyncer {
 
         private final ConfigValue<Boolean> AutoUpdate;
 
-        public final ConfigValue<List<? extends String>> Plans;
+        private final ConfigValue<List<? extends String>> Plans;
 
         public ServerConfig(ForgeConfigSpec.Builder builder) {
             builder.push("AutoUpdate");
@@ -80,7 +87,7 @@ public class MapSyncer {
                             "Format per entry: \"dimension = layerPlan\"",
                             "layerPlan: SURFACE, explicit Y (e.g. 64), or combos (e.g. SURFACE,64)",
                             "Example: \"minecraft:overworld = SURFACE\"")
-                    .defineList("plans", Plan.getDefaultPlans(), obj -> obj instanceof String);
+                    .defineList("plans", Plan.getDefaults(), obj -> obj instanceof String);
 
             builder.pop();
         }
@@ -114,13 +121,6 @@ public class MapSyncer {
         }
     }
 
-    private static final String PROTOCOL_VERSION = "4";
-    private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"),
-            () -> PROTOCOL_VERSION,
-            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals),
-            NetworkRegistry.acceptMissingOr(PROTOCOL_VERSION::equals));
-
     public MapSyncer() {
         ModContainer modContainer = ModList.get()
                 .getModContainerById(MOD_ID)
@@ -131,22 +131,22 @@ public class MapSyncer {
 
         CHANNEL.registerMessage(
                 0,
-                MapRequestPayload.class,
-                (msg, buf) -> MapRequestPayload.write(buf, msg),
-                MapRequestPayload::read,
-                com.mapsyncer.server.PacketHandler::handleMapRequest);
+                RequestPayload.class,
+                (msg, buf) -> RequestPayload.write(buf, msg),
+                RequestPayload::read,
+                com.mapsyncer.server.PacketHandler::handleRequest);
         CHANNEL.registerMessage(
                 1,
-                MapResponsePayload.class,
-                (msg, buf) -> MapResponsePayload.write(buf, msg),
-                MapResponsePayload::read,
-                com.mapsyncer.client.PacketHandler::handleSyncResponse);
+                ResponsePayload.class,
+                (msg, buf) -> ResponsePayload.write(buf, msg),
+                ResponsePayload::read,
+                com.mapsyncer.client.PacketHandler::handleResponse);
         CHANNEL.registerMessage(
                 2,
                 ManifestPayload.class,
                 (msg, buf) -> ManifestPayload.write(buf, msg),
                 ManifestPayload::read,
-                com.mapsyncer.client.PacketHandler::handleSyncManifest);
+                com.mapsyncer.client.PacketHandler::handleManifest);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             LOGGER.info("Initializing Xaero WorldMap bridge...");
             if (XaeroBridge.initialize()) {
@@ -158,11 +158,11 @@ public class MapSyncer {
         LOGGER.info("MapSyncer initialized");
     }
 
-    public static void sendToServer(MapRequestPayload payload) {
+    public static void sendToServer(RequestPayload payload) {
         CHANNEL.sendToServer(payload);
     }
 
-    public static void sendToPlayer(ServerPlayer player, MapResponsePayload payload) {
+    public static void sendToPlayer(ServerPlayer player, ResponsePayload payload) {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), payload);
     }
 

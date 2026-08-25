@@ -38,6 +38,61 @@ public final class XaeroBridge {
         }
     }
 
+    public static String getCurrentWorldId() {
+        if (!initialized) return null;
+        MapProcessor processor = getMapProcessor();
+        if (processor == null) return null;
+        return processor.getCurrentWorldId();
+    }
+
+    public static Path getCurrentServerDirectory() {
+        if (!initialized) return null;
+        String worldId = getCurrentWorldId();
+        if (worldId == null || worldId.isEmpty()) return null;
+        return MapSaveLoad.getRootFolder(worldId);
+    }
+
+    public static String getDimensionName(String dimId) {
+        if (!initialized) return null;
+        MapProcessor processor = getMapProcessor();
+        if (processor == null) return null;
+        ResourceKey<Level> key = toDimensionKey(dimId);
+        if (key == null) return null;
+        return processor.getDimensionName(key);
+    }
+
+    public static void loadRegion(int regionX, int regionZ, int cave) {
+        if (!initialized) return;
+        try {
+            Object mapRegion = getLeafMapRegion(cave, regionX, regionZ, true);
+            if (mapRegion == null) {
+                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", regionX, regionZ, cave);
+                return;
+            }
+
+            if (!cancelRefresh(mapRegion) || !setShouldCache(mapRegion, true) || !setHasHadTerrain(mapRegion)) {
+                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", regionX, regionZ, cave);
+                return;
+            }
+
+            if (!setLoadState(mapRegion, LOAD_STATE_CLEARED)) {
+                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", regionX, regionZ, cave);
+                return;
+            }
+
+            if (!requestLoad(mapRegion, "sync", false)) {
+                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", regionX, regionZ, cave);
+                return;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to load region ({}, {}) layer={}", regionX, regionZ, cave, e);
+        }
+    }
+
+    public static void onWorldIdChanged() {
+        PacketHandler.onXaeroWorldContextReady();
+    }
+
     private static WorldMapSession getSession() {
         return WorldMapSession.getCurrentSession();
     }
@@ -100,60 +155,5 @@ public final class XaeroBridge {
             return null;
         }
         return ResourceKey.create(Registries.DIMENSION, location);
-    }
-
-    public static String getCurrentWorldId() {
-        if (!initialized) return null;
-        MapProcessor processor = getMapProcessor();
-        if (processor == null) return null;
-        return processor.getCurrentWorldId();
-    }
-
-    public static Path getCurrentServerDirectory() {
-        if (!initialized) return null;
-        String worldId = getCurrentWorldId();
-        if (worldId == null || worldId.isEmpty()) return null;
-        return MapSaveLoad.getRootFolder(worldId);
-    }
-
-    public static String getDimensionName(String dimId) {
-        if (!initialized) return null;
-        MapProcessor processor = getMapProcessor();
-        if (processor == null) return null;
-        ResourceKey<Level> key = toDimensionKey(dimId);
-        if (key == null) return null;
-        return processor.getDimensionName(key);
-    }
-
-    public static void loadRegion(int regionX, int regionZ, int cave) {
-        if (!initialized) return;
-        try {
-            Object mapRegion = getLeafMapRegion(cave, regionX, regionZ, true);
-            if (mapRegion == null) {
-                LOGGER.warn("Cannot create MapRegion ({}, {}) layer={}", regionX, regionZ, cave);
-                return;
-            }
-
-            if (!cancelRefresh(mapRegion) || !setShouldCache(mapRegion, true) || !setHasHadTerrain(mapRegion)) {
-                LOGGER.warn("Region ({}, {}) layer={} load preparation failed", regionX, regionZ, cave);
-                return;
-            }
-
-            if (!setLoadState(mapRegion, LOAD_STATE_CLEARED)) {
-                LOGGER.warn("Region ({}, {}) layer={} setLoadState failed", regionX, regionZ, cave);
-                return;
-            }
-
-            if (!requestLoad(mapRegion, "sync", false)) {
-                LOGGER.warn("Region ({}, {}) layer={} requestLoad failed", regionX, regionZ, cave);
-                return;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Failed to load region ({}, {}) layer={}", regionX, regionZ, cave, e);
-        }
-    }
-
-    public static void onWorldIdChanged() {
-        PacketHandler.onXaeroWorldContextReady();
     }
 }
