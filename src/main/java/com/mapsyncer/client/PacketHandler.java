@@ -1,12 +1,5 @@
 package com.mapsyncer.client;
 
-import com.mapsyncer.MapSyncer;
-import com.mapsyncer.mca.RegionData;
-import com.mapsyncer.mca.RegionRef;
-import com.mapsyncer.network.ManifestPayload;
-import com.mapsyncer.network.RequestPayload;
-import com.mapsyncer.network.ResponsePayload;
-import com.mapsyncer.util.ChatUtils;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -15,10 +8,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import net.minecraft.client.Minecraft;
-import net.minecraftforge.network.NetworkEvent;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.mapsyncer.MapSyncer;
+import com.mapsyncer.mca.RegionData;
+import com.mapsyncer.mca.RegionRef;
+import com.mapsyncer.network.ManifestPayload;
+import com.mapsyncer.network.RequestPayload;
+import com.mapsyncer.network.ResponsePayload;
+import com.mapsyncer.util.ChatUtils;
+
+import net.minecraft.client.Minecraft;
+import net.minecraftforge.network.NetworkEvent;
 
 public class PacketHandler {
 
@@ -70,6 +73,7 @@ public class PacketHandler {
                 }));
             } else {
                 syncFailed++;
+                maybeCompleteSync();
                 LOGGER.debug("[SYNC] region missing on server, skipping");
             }
 
@@ -197,8 +201,7 @@ public class PacketHandler {
         if (Minecraft.getInstance().player != null) {
             long elapsedMs = Math.max(0, System.currentTimeMillis() - syncStartMs);
             String elapsed = String.format("%.1f", elapsedMs / 1000.0);
-            Minecraft.getInstance()
-                    .player
+            Minecraft.getInstance().player
                     .displayClientMessage(
                             ChatUtils.success(
                                     "mapsyncer.sync.completed", syncProcessed - syncFailed, syncFailed, elapsed),
