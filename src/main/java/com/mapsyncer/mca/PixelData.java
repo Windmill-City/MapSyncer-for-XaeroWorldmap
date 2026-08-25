@@ -1,5 +1,6 @@
 package com.mapsyncer.mca;
 
+import java.util.List;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
@@ -9,17 +10,13 @@ import net.minecraft.world.level.block.state.BlockState;
  * absolute height, the height of the topmost transparent block above it and the
  * light level captured at the column.
  */
-public record PixelData(BlockState state, short height, short topHeight, byte light) {
+public record PixelData(
+        BlockState state, short height, short topHeight, byte light, ResourceKey<Biome> biome, List<Overlay> overlays) {
 
-    // TODO: biome - ResourceKey<Biome> sampled at topHeight (simplified: from the chunk's own section biome palette)
-
-    public ResourceKey<Biome> biome() {
-        return null;
-    }
-
-    // TODO: overlays - accumulated transparent blocks (e.g. water) above the pixel, with opacity
+    /** One transparent block stacked above the pixel, e.g. water, with its opacity. */
+    public record Overlay(BlockState state, byte opacity) {}
 
     public boolean hasOverlays() {
-        return false;
+        return !overlays.isEmpty();
     }
 }
