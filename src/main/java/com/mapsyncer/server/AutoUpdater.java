@@ -1,6 +1,7 @@
 package com.mapsyncer.server;
 
 import com.mapsyncer.MapSyncer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -10,6 +11,8 @@ import org.apache.logging.log4j.Logger;
 public final class AutoUpdater {
 
     private static final Logger LOGGER = LogManager.getLogger(AutoUpdater.class);
+
+    private static final AtomicBoolean running = new AtomicBoolean(false);
 
     public static void onPlayerLoggedOut(ServerPlayer player) {
         MinecraftServer server = player.getServer();
@@ -28,14 +31,26 @@ public final class AutoUpdater {
     }
 
     public static void performScan(MinecraftServer server) {
+        if (!running.compareAndSet(false, true)) {
+            LOGGER.debug("Skipping: autoupdater is already running");
+            return;
+        }
         LOGGER.info("Starting map autoupdate (no players online)");
 
         Util.ioPool().execute(() -> {
-            MapConverter.generate(server);
+            try {
+                MapConverter.generate(server);
+            } finally {
+                running.set(false);
+            }
         });
     }
 
     public static void stop() {
+        if (!running.compareAndSet(true, false)) {
+            LOGGER.debug("Skipping: autoupdater is not running");
+            return;
+        }
         MapConverter.requestCancel();
         LOGGER.info("Stopping map autoupdate");
     }
