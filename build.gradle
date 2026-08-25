@@ -79,7 +79,3 @@ spotless {
         palantirJavaFormat('2.50.0')
     }
 }
-
-tasks.named('jarJar') {
-    enabled = false
-}
