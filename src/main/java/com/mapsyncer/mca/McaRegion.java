@@ -64,7 +64,7 @@ final class McaRegion implements AutoCloseable {
         if (length <= 0 || length > sectorCount * SECTOR_LENGTH) {
             return null;
         }
-        int compression = file.readByte() & 0xFF;
+        int compression = file.readByte();
         byte[] payload = new byte[length - 1];
         file.readFully(payload);
         try (InputStream input = decompress(payload, compression)) {
