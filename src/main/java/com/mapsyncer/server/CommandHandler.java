@@ -82,10 +82,7 @@ public class CommandHandler {
         MinecraftServer server = ctx.getSource().getServer();
         Util.ioPool().execute(() -> {
             if (MapConverter.start(server)) {
-                ctx.getSource()
-                        .sendSuccess(
-                                () -> ChatUtils.success("mapsyncer.generate.complete"),
-                                false);
+                ctx.getSource().sendSuccess(() -> ChatUtils.success("mapsyncer.generate.complete"), false);
             }
         });
         ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start"), false);
