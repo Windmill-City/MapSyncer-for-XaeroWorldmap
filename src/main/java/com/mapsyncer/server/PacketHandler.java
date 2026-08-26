@@ -28,7 +28,7 @@ public class PacketHandler {
     }
 
     public static void handleRequest(RequestPayload payload, Supplier<NetworkEvent.Context> context) {
-        ServerPlayer player = (ServerPlayer) context.get().getSender();
+        ServerPlayer player = context.get().getSender();
         context.get().enqueueWork(() -> {
             RegionRef requested = payload.region();
             LOGGER.debug(
