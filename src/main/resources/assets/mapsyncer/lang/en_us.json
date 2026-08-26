@@ -23,8 +23,8 @@
   "mapsyncer.command.autoupdate_status_hint": "Subcommands: /mapsyncer autoupdate off | on",
 
   "mapsyncer.generate.start_full": "Starting full map generation...",
-  "mapsyncer.generate.full_complete": "Map generation complete: %d/%d regions across %d completed dimensions: %s",
-  "mapsyncer.generate.in_progress": "Generation in progress: %d/%d regions across %d completed dimensions: %s",
+  "mapsyncer.generate.full_complete": "Map generation complete: %d/%d regions, last dimension: %s",
+  "mapsyncer.generate.in_progress": "Generation in progress: %d/%d regions, current dimension: %s",
   "mapsyncer.generate.no_progress": "No generation in progress",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
   "mapsyncer.command.conversion_not_running": "No generation task is currently running.",

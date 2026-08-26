@@ -82,15 +82,13 @@ public class CommandHandler {
         MinecraftServer server = ctx.getSource().getServer();
         Util.ioPool().execute(() -> {
             if (MapConverter.start(server)) {
-                String dimList = String.join(", ", MapConverter.getCompleted());
                 ctx.getSource()
                         .sendSuccess(
                                 () -> ChatUtils.success(
                                         "mapsyncer.generate.full_complete",
                                         MapConverter.getProcessed(),
                                         MapConverter.getTotal(),
-                                        MapConverter.getCompleted().size(),
-                                        dimList),
+                                        MapConverter.getCurrent()),
                                 false);
             }
         });
@@ -112,13 +110,11 @@ public class CommandHandler {
                 .sendSuccess(
                         () -> {
                             if (MapConverter.isRunning()) {
-                                String dimList = String.join(", ", MapConverter.getCompleted());
                                 return ChatUtils.message(
                                         "mapsyncer.generate.in_progress",
                                         MapConverter.getProcessed(),
                                         MapConverter.getTotal(),
-                                        MapConverter.getCompleted().size(),
-                                        dimList);
+                                        MapConverter.getCurrent());
                             }
                             return ChatUtils.message("mapsyncer.generate.no_progress");
                         },

@@ -6,10 +6,7 @@ import com.mapsyncer.mca.RegionScanner;
 import com.mapsyncer.mca.RegionScanner.Region;
 import com.mapsyncer.util.PathUtils;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -26,7 +23,7 @@ public class MapConverter {
 
     private static volatile int total = 0;
 
-    private static final List<String> completed = new CopyOnWriteArrayList<>();
+    private static volatile String current = "";
 
     public static boolean stop() {
         if (!isRunning.compareAndSet(true, false)) {
@@ -43,7 +40,7 @@ public class MapConverter {
         }
         LOGGER.info("Conversion start...");
         ManifestServer.invalidate();
-        completed.clear();
+        current = "";
         processed = 0;
         total = 0;
 
@@ -62,6 +59,7 @@ public class MapConverter {
                 if (entries.isEmpty()) continue;
 
                 total += entries.size();
+                current = dimId;
                 LOGGER.info("Converting dimension {} ({} regions)", dimId, entries.size());
 
                 for (Region entry : entries) {
@@ -74,7 +72,6 @@ public class MapConverter {
                     }
                     processed++;
                 }
-                completed.add(dimId);
                 LOGGER.info("Dimension {} conversion complete", dimId);
             }
         } catch (Throwable e) {
@@ -98,7 +95,7 @@ public class MapConverter {
         return total;
     }
 
-    static List<String> getCompleted() {
-        return Collections.unmodifiableList(new ArrayList<>(completed));
+    static String getCurrent() {
+        return current;
     }
 }
