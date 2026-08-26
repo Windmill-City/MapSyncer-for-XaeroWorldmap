@@ -24,7 +24,7 @@ public class PacketHandler {
     public static void pushManifest(ServerPlayer player) {
         Map<RegionRef, Long> manifest = ManifestServer.get(player.server);
         MapSyncer.sendToPlayer(player, new ManifestPayload(manifest));
-        LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getUUID(), manifest.size());
+        LOGGER.debug("Proactively pushed sync manifest to player {}: {} regions", player.getName().getString(), manifest.size());
     }
 
     public static void handleRequest(RequestPayload payload, Supplier<NetworkEvent.Context> context) {
