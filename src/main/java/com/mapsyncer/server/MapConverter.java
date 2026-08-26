@@ -61,6 +61,7 @@ public class MapConverter {
                 processed = 0;
                 total = entries.size();
                 current = dimId;
+                int lastPercent = 0;
                 LOGGER.info("Converting dimension {} ({} regions)", dimId, total);
 
                 for (Region entry : entries) {
@@ -72,6 +73,11 @@ public class MapConverter {
                         LOGGER.warn("Failed to convert region ({}, {})", entry.X(), entry.Z(), e);
                     }
                     processed++;
+                    int percent = processed * 100 / total;
+                    if (percent >= lastPercent + 5) {
+                        lastPercent = percent;
+                        LOGGER.info("Dimension {} progress: {}% ({}/{})", dimId, percent, processed, total);
+                    }
                 }
                 LOGGER.info("Dimension {} conversion complete", dimId);
             }
