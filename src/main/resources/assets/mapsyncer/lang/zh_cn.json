@@ -22,8 +22,8 @@
   "mapsyncer.command.autoupdate_on": "自动更新已开启（无人在线时执行）",
   "mapsyncer.command.autoupdate_status_hint": "可用子命令: /mapsyncer autoupdate off | on",
 
-  "mapsyncer.generate.start_full": "开始全量地图生成...",
-  "mapsyncer.generate.full_complete": "地图生成完成: %d/%d 个区域，最后处理维度: %s",
+  "mapsyncer.generate.start": "开始地图生成...",
+  "mapsyncer.generate.complete": "地图生成完成",
   "mapsyncer.generate.in_progress": "生成进行中: %d/%d 个区域，当前处理维度: %s",
   "mapsyncer.generate.no_progress": "当前无生成任务",
   "mapsyncer.command.conversion_stopped": "已请求停止生成任务，正在取消剩余区域...",

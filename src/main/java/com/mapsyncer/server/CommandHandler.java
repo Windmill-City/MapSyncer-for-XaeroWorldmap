@@ -84,15 +84,11 @@ public class CommandHandler {
             if (MapConverter.start(server)) {
                 ctx.getSource()
                         .sendSuccess(
-                                () -> ChatUtils.success(
-                                        "mapsyncer.generate.full_complete",
-                                        MapConverter.getProcessed(),
-                                        MapConverter.getTotal(),
-                                        MapConverter.getCurrent()),
+                                () -> ChatUtils.success("mapsyncer.generate.complete"),
                                 false);
             }
         });
-        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start_full"), false);
+        ctx.getSource().sendSuccess(() -> ChatUtils.message("mapsyncer.generate.start"), false);
         return Command.SINGLE_SUCCESS;
     }
 

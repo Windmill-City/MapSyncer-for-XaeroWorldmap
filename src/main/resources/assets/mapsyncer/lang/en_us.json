@@ -22,8 +22,8 @@
   "mapsyncer.command.autoupdate_on": "Autoupdate enabled (will run when no players are online)",
   "mapsyncer.command.autoupdate_status_hint": "Subcommands: /mapsyncer autoupdate off | on",
 
-  "mapsyncer.generate.start_full": "Starting full map generation...",
-  "mapsyncer.generate.full_complete": "Map generation complete: %d/%d regions, last dimension: %s",
+  "mapsyncer.generate.start": "Starting map generation...",
+  "mapsyncer.generate.complete": "Map generation complete",
   "mapsyncer.generate.in_progress": "Generation in progress: %d/%d regions, current dimension: %s",
   "mapsyncer.generate.no_progress": "No generation in progress",
   "mapsyncer.command.conversion_stopped": "Generation task stop requested, cancelling remaining regions...",
