@@ -58,7 +58,8 @@ public class MapConverter {
                 List<Region> entries = RegionScanner.scan(level);
                 if (entries.isEmpty()) continue;
 
-                total += entries.size();
+                processed = 0;
+                total = entries.size();
                 current = dimId;
                 LOGGER.info("Converting dimension {} ({} regions)", dimId, entries.size());
 
