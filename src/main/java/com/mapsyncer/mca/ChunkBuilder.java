@@ -496,19 +496,14 @@ final class ChunkBuilder {
         if (b == Blocks.GLASS || b == Blocks.GLASS_PANE) {
             return true;
         }
-        boolean notCave = b instanceof PitcherCropBlock
+        boolean isFlower = b instanceof PitcherCropBlock
                 || b instanceof TallFlowerBlock
                 || b instanceof FlowerBlock
                 || state.is(BlockTags.FLOWERS) && !state.is(BlockTags.LEAVES);
-        if (b instanceof DoublePlantBlock && !notCave) {
+        if (b instanceof DoublePlantBlock && !isFlower) {
             return true;
         }
-        if (notCave && !cave) {
-            return true;
-        }
-        synchronized (buggedStates) {
-            return buggedStates.contains(state);
-        }
+        return buggedStates.contains(state);
     }
 
     private static boolean shouldOverlay(StateHolder<?, ?> state) {
@@ -527,9 +522,7 @@ final class ChunkBuilder {
         try {
             color = state.getMapColor(level, mutablePos);
         } catch (Throwable t) {
-            synchronized (buggedStates) {
-                buggedStates.add(state);
-            }
+            buggedStates.add(state);
             LOGGER.info("Found bugged state! Adding to bugged list: "
                     + level.registryAccess().registryOrThrow(Registries.BLOCK).getKey(state.getBlock()));
         }
