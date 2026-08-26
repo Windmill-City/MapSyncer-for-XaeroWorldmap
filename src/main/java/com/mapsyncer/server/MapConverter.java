@@ -61,7 +61,7 @@ public class MapConverter {
                 processed = 0;
                 total = entries.size();
                 current = dimId;
-                LOGGER.info("Converting dimension {} ({} regions)", dimId, entries.size());
+                LOGGER.info("Converting dimension {} ({} regions)", dimId, total);
 
                 for (Region entry : entries) {
                     if (!isRunning.get()) break;
