@@ -28,8 +28,9 @@
   "mapsyncer.generate.no_progress": "当前无生成任务",
   "mapsyncer.command.conversion_stopped": "已请求停止生成任务，正在取消剩余区域...",
   "mapsyncer.command.conversion_not_running": "当前没有正在进行的生成任务。",
-  "mapsyncer.status.cache_detail": "缓存统计: 共 %d 个维度，%d 个区域，占用 %s MB\n%s",
+  "mapsyncer.status.cache_detail": "缓存统计: 共 %d 个维度，%d 个区域，占用 %s MB",
   "mapsyncer.status.cache_empty": "暂无地图缓存数据",
+  "mapsyncer.status.cache_line": "  %s: %d 个区域，%.2f MB",
   "mapsyncer.cache.purge_start": "正在清理地图缓存...",
   "mapsyncer.cache.purged": "地图缓存已清理，删除 %d 个文件"
 }

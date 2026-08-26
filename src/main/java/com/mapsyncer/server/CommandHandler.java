@@ -130,22 +130,25 @@ public class CommandHandler {
         int totalRegions = cacheStats.stream().mapToInt(MapCacheStats::regions).sum();
         long totalSize = cacheStats.stream().mapToLong(MapCacheStats::size).sum();
 
-        StringBuilder dims = new StringBuilder();
-        for (MapCacheStats stat : cacheStats) {
-            if (dims.length() > 0) dims.append("\n");
-            dims.append(String.format(
-                    "  %s: %d regions, %.2f MB", stat.folder(), stat.regions(), stat.size() / (1024.0 * 1024.0)));
-        }
-
         ctx.getSource()
                 .sendSuccess(
                         () -> ChatUtils.message(
                                 "mapsyncer.status.cache_detail",
                                 totalDims,
                                 totalRegions,
-                                String.format("%.2f", totalSize / (1024.0 * 1024.0)),
-                                dims.toString()),
+                                String.format("%.2f", totalSize / (1024.0 * 1024.0))),
                         false);
+
+        for (MapCacheStats stat : cacheStats) {
+            ctx.getSource()
+                    .sendSuccess(
+                            () -> ChatUtils.desc(
+                                    "mapsyncer.status.cache_line",
+                                    stat.folder(),
+                                    stat.regions(),
+                                    String.format("%.2f", stat.size() / (1024.0 * 1024.0))),
+                            false);
+        }
 
         return Command.SINGLE_SUCCESS;
     }
