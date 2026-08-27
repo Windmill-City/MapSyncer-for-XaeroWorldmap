@@ -18,10 +18,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Builds the raw {@code region.xaero} payload for one map region and one layer,
- * byte-compatible with Xaero WorldMap's region save format (major 6, minor 8).
- * {@code cave} is {@link RegionRef#SURFACE_CAVE} for the surface layer or an
- * absolute Y for a cave layer; the scan window is derived from it.
+ * 为单个地图区域和单个图层构建原始的 {@code region.xaero} 负载，与 Xaero WorldMap
+ * 的区域保存格式（主版本 6，次版本 8）字节兼容。{@code cave} 为表面图层时是
+ * {@link RegionRef#SURFACE_CAVE}，为洞穴图层时是绝对 Y 坐标；扫描窗口由它推导得出。
  */
 final class RegionBuilder {
 

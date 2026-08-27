@@ -28,7 +28,7 @@ public final class PathUtils {
 
     public static int[] getCoordByZip(Path zipPath) {
         String fileName = zipPath.getFileName().toString();
-        // Remove .zip
+        // 移除 .zip 后缀
         fileName = fileName.substring(0, fileName.length() - 4);
         String[] coords = fileName.split("_");
         return new int[] {Integer.parseInt(coords[0]), Integer.parseInt(coords[1])};
