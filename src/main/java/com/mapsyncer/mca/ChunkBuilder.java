@@ -125,29 +125,17 @@ final class ChunkBuilder {
         boolean cave = caveStart != Integer.MAX_VALUE;
 
         ChunkStatus chunkStatus = readChunkStatus(chunk);
-        if (chunkStatus == null || chunkStatus.getIndex() < ChunkStatus.BIOMES.getIndex()) {
-            return null;
-        }
-        readBiomes(chunk);
-        if (chunkStatus.getIndex() < ChunkStatus.FEATURES.getIndex()) {
+        if (chunkStatus == null || chunkStatus.getIndex() < ChunkStatus.FEATURES.getIndex()) {
             return null;
         }
 
-        int chunkBottomY = chunk.getInt("yPos") * 16;
         resetColumnState();
-
+        readBiomes(chunk);
         Heightmap heightmap = readHeightmap(chunk);
-        ScanBounds bounds = computeScanBounds(cave, caveStart, caveDepth);
+        int chunkBottomY = chunk.getInt("yPos") * 16;
+        ScanBound bounds = getScanBound(cave, caveStart, caveDepth);
         ScanContext context = new ScanContext(
-                chunkX,
-                chunkZ,
-                cave,
-                caveStart,
-                bounds.caveStartSectionHeight,
-                bounds.lowH,
-                heightmap,
-                chunkBottomY,
-                blockLookup);
+                chunkX, chunkZ, cave, caveStart, bounds.topH, bounds.lowH, heightmap, chunkBottomY, blockLookup);
 
         ListTag sectionsList = chunk.getList("sections", 10);
         if (!sectionsList.isEmpty()) {
@@ -169,19 +157,15 @@ final class ChunkBuilder {
         voidBiomeKey = biomeRegistry.get(voidKey).isPresent() ? voidKey : null;
     }
 
-    /** 读取 chunk 的生成状态，兼容 1.18 前带 {@code below_zero_retrogen} 的 chunk。 */
+    /** 读取 chunk 的生成状态。 */
     private static ChunkStatus readChunkStatus(CompoundTag chunk) {
-        boolean oldOptimizedChunk = chunk.contains("below_zero_retrogen");
-        String status = oldOptimizedChunk
-                ? chunk.getCompound("below_zero_retrogen").getString("target_status")
-                : chunk.getString("Status");
-        return ChunkStatus.byName(status);
+        return ChunkStatus.byName(chunk.getString("Status"));
     }
 
     /** 扫描开始前重置全部 256 列的状态数组。 */
     private static void resetColumnState() {
         for (int i = 0; i < HEIGHTMAP_ENTRIES; i++) {
-            overlayBuilders[i].startBuilding();
+            overlayBuilders[i].reset();
             blockFound[i] = false;
             underair[i] = shouldEnterGround[i] = false;
             lightLevels[i] = 0;
@@ -219,15 +203,11 @@ final class ChunkBuilder {
     }
 
     /** 由洞穴参数推导出的纵向扫描边界。 */
-    private record ScanBounds(int caveStartSectionHeight, int lowH) {}
+    private record ScanBound(int topH, int lowH) {}
 
-    private static ScanBounds computeScanBounds(boolean cave, int caveStart, int caveDepth) {
-        int caveStartSectionHeight = caveStart >> 4 << 4;
-        int lowH = worldBottomY;
-        if (cave && (lowH = caveStart + 1 - caveDepth) < worldBottomY) {
-            lowH = worldBottomY;
-        }
-        return new ScanBounds(caveStartSectionHeight, lowH);
+    private static ScanBound getScanBound(boolean cave, int caveStart, int caveDepth) {
+        int lowH = cave ? Math.max(worldBottomY, caveStart + 1 - caveDepth) : worldBottomY;
+        return new ScanBound(caveStart, lowH);
     }
 
     /** 单次 chunk 构建的不可变扫描配置与输出网格。 */
@@ -241,9 +221,9 @@ final class ChunkBuilder {
 
         private final boolean cave;
 
-        private final int caveStart;
+        private final int topH;
 
-        private final int caveStartSectionHeight;
+        private final int caveStart;
 
         private final int lowH;
 
@@ -257,8 +237,8 @@ final class ChunkBuilder {
                 int chunkX,
                 int chunkZ,
                 boolean cave,
+                int topH,
                 int caveStart,
-                int caveStartSectionHeight,
                 int lowH,
                 Heightmap heightmap,
                 int chunkBottomY,
@@ -266,8 +246,8 @@ final class ChunkBuilder {
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.cave = cave;
+            this.topH = topH;
             this.caveStart = caveStart;
-            this.caveStartSectionHeight = caveStartSectionHeight;
             this.lowH = lowH;
             this.heightmap = heightmap;
             this.chunkBottomY = chunkBottomY;
@@ -278,17 +258,17 @@ final class ChunkBuilder {
     /** 可变的分区（section）状态：方块调色板、光照图与懒解码标志。 */
     private static final class SectionData {
 
-        private final CompoundTag sectionCompound;
+        private final CompoundTag section;
 
-        private final int sectionHeight;
+        private final int height;
 
         private final boolean cave;
 
-        private final CompoundTag blockStatesCompound;
+        private final CompoundTag blockStates;
 
         private final boolean hasBlocks;
 
-        private boolean preparedSectionData;
+        private boolean data;
 
         private boolean hasDifferentBlockStates;
 
@@ -296,61 +276,77 @@ final class ChunkBuilder {
 
         private byte[] skyLightMap;
 
-        SectionData(CompoundTag sectionCompound, int lowHSection, boolean cave) {
-            this.sectionCompound = sectionCompound;
-            this.sectionHeight = sectionCompound.getByte("Y") * 16;
+        SectionData(CompoundTag section, int lowHSection, boolean cave) {
+            this.section = section;
+            this.height = section.getByte("Y") * 16;
             this.cave = cave;
-            this.blockStatesCompound =
-                    sectionCompound.contains("block_states", 10) ? sectionCompound.getCompound("block_states") : null;
-            boolean blocks = blockStatesCompound != null && sectionHeight >= lowHSection;
-            if (blocks
-                    && !(blocks = blockStatesCompound.contains("data", 12))
-                    && blockStatesCompound.contains("palette", 9)) {
-                ListTag paletteList = blockStatesCompound.getList("palette", 10);
-                blocks = paletteList.size() == 1
-                        && !((CompoundTag) paletteList.get(0))
-                                .get("Name")
-                                .getAsString()
-                                .equals("minecraft:air");
-            }
-            this.hasBlocks = blocks;
+            this.blockStates =
+                    section.contains("block_states", 10) ? section.getCompound("block_states") : null;
+            this.hasBlocks = hasBlocks(blockStates, height >= lowHSection);
         }
 
-        /** 当该分区既无方块也无值得扫描的光照数据时返回 true。 */
+        /** 分区内是否存在非空气方块：有 data 位数组，或调色板仅含一个非空气方块。 */
+        private static boolean hasBlocks(CompoundTag blockStates, boolean inScanRange) {
+            if (blockStates == null || !inScanRange) {
+                return false;
+            }
+            if (blockStates.contains("data", 12)) {
+                return true;
+            }
+            if (!blockStates.contains("palette", 9)) {
+                return false;
+            }
+            ListTag paletteList = blockStates.getList("palette", 10);
+            return paletteList.size() == 1
+                    && !((CompoundTag) paletteList.get(0))
+                            .get("Name")
+                            .getAsString()
+                            .equals("minecraft:air");
+        }
+
+        /** 无方块也无光照数据的纯空气分区（底部除外）应跳过。 */
         boolean shouldSkip(int sectionIndex) {
             return sectionIndex > 0
                     && !hasBlocks
-                    && !sectionCompound.contains("BlockLight", 7)
-                    && (!cave || !sectionCompound.contains("SkyLight", 7));
+                    && !section.contains("BlockLight", 7)
+                    && (!cave || !section.contains("SkyLight", 7));
         }
     }
 
     /** 自上而下扫描所有分区，直到每列都找到其像素。 */
-    private static void scanSections(ScanContext context, ListTag sectionsList) {
+    private static void scanSections(ScanContext context, ListTag sections) {
         int fillCounter = HEIGHTMAP_ENTRIES;
         int prevSectionHeight = Integer.MAX_VALUE;
-        for (int i = sectionsList.size() - 1; i >= 0 && fillCounter > 0; i--) {
-            SectionData data = new SectionData(sectionsList.getCompound(i), context.lowH >> 4 << 4, context.cave);
+        for (int i = sections.size() - 1; i >= 0 && fillCounter > 0; i--) {
+            SectionData data = new SectionData(sections.getCompound(i), context.lowH >> 4 << 4, context.cave);
             if (data.shouldSkip(i)) {
                 continue;
             }
-            boolean previousSectionExists = prevSectionHeight - data.sectionHeight == 16;
-            boolean underAirByDefault =
-                    context.cave && !previousSectionExists && context.caveStartSectionHeight > data.sectionHeight;
-            int sectionBasedHeight = data.sectionHeight + 15;
-            prevSectionHeight = data.sectionHeight;
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
-                    int pos2d = (z << 4) + x;
-                    if (blockFound[pos2d]) {
-                        continue;
-                    }
-                    if (scanColumn(context, data, x, z, pos2d, i, underAirByDefault, sectionBasedHeight)) {
-                        fillCounter--;
-                    }
+            // 与上一个已扫描分区之间存在空隙（被跳过或缺失的层）时，洞穴模式下视为空气
+            boolean contiguousAbove = prevSectionHeight - data.height == 16;
+            boolean assumeUnderAir = context.cave && !contiguousAbove && context.caveStart > data.height;
+            prevSectionHeight = data.height;
+            fillCounter -= scanSectionColumns(context, data, i, assumeUnderAir);
+        }
+    }
+
+    /** 扫描单个分区内的 16×16 列，返回本分区解析出的列数。 */
+    private static int scanSectionColumns(
+            ScanContext context, SectionData data, int sectionIndex, boolean assumeUnderAir) {
+        int found = 0;
+        int sectionBasedHeight = data.height + 15;
+        for (int z = 0; z < 16; z++) {
+            for (int x = 0; x < 16; x++) {
+                int pos2d = (z << 4) + x;
+                if (blockFound[pos2d]) {
+                    continue;
+                }
+                if (scanColumn(context, data, x, z, pos2d, sectionIndex, assumeUnderAir, sectionBasedHeight)) {
+                    found++;
                 }
             }
         }
+        return found;
     }
 
     /**
@@ -370,18 +366,18 @@ final class ChunkBuilder {
                 context.heightmap == null ? Integer.MIN_VALUE : context.heightmap.value(context.chunkBottomY, pos2d);
         int startHeight;
         if (context.cave) {
-            startHeight = context.caveStart;
+            startHeight = context.topH;
         } else {
             startHeight = heightMapValue < context.chunkBottomY ? sectionBasedHeight : heightMapValue + 3;
         }
         if (startHeight >= worldTopY) {
             startHeight = worldTopY - 1;
         }
-        if (sectionIndex > 0 && ++startHeight < data.sectionHeight) {
+        if (sectionIndex > 0 && ++startHeight < data.height) {
             return false;
         }
         int localStartHeight = 15;
-        if (startHeight >> 4 << 4 == data.sectionHeight) {
+        if (startHeight >> 4 << 4 == data.height) {
             localStartHeight = startHeight & 0xF;
         }
         prepareSectionData(data, context.blockLookup);
@@ -389,7 +385,7 @@ final class ChunkBuilder {
             underair[pos2d] = true;
         }
         for (int y = localStartHeight; y >= 0; y--) {
-            int h = data.sectionHeight | y;
+            int h = data.height | y;
             int pos = y << 8 | pos2d;
             BlockState state = blockStateAt(data, pos);
             mutablePos.set(context.chunkX << 4 | x, h, context.chunkZ << 4 | z);
@@ -419,15 +415,15 @@ final class ChunkBuilder {
 
     /** 读取分区的方块调色板与光照图，每个分区至多执行一次。 */
     private static void prepareSectionData(SectionData data, HolderGetter<Block> blockLookup) {
-        if (data.preparedSectionData) {
+        if (data.data) {
             return;
         }
         if (data.hasBlocks) {
-            ListTag paletteList = data.blockStatesCompound.getList("palette", 10);
-            data.hasDifferentBlockStates = data.blockStatesCompound.contains("data", 12) && paletteList.size() > 1;
+            ListTag paletteList = data.blockStates.getList("palette", 10);
+            data.hasDifferentBlockStates = data.blockStates.contains("data", 12) && paletteList.size() > 1;
             boolean shouldReadPalette = true;
             if (data.hasDifferentBlockStates) {
-                long[] blockStatesArray = data.blockStatesCompound.getLongArray("data");
+                long[] blockStatesArray = data.blockStates.getLongArray("data");
                 int bits = blockStatesArray.length * 64 / 4096;
                 int bitsOther = Math.max(4, Mth.ceillog2(paletteList.size()));
                 if (bitsOther > 8) {
@@ -455,16 +451,16 @@ final class ChunkBuilder {
                 }
             }
         }
-        if (data.sectionCompound.contains("BlockLight", 7)
-                && (data.lightMap = data.sectionCompound.getByteArray("BlockLight")).length != 2048) {
+        if (data.section.contains("BlockLight", 7)
+                && (data.lightMap = data.section.getByteArray("BlockLight")).length != 2048) {
             data.lightMap = null;
         }
         if (data.cave
-                && data.sectionCompound.contains("SkyLight", 7)
-                && (data.skyLightMap = data.sectionCompound.getByteArray("SkyLight")).length != 2048) {
+                && data.section.contains("SkyLight", 7)
+                && (data.skyLightMap = data.section.getByteArray("SkyLight")).length != 2048) {
             data.skyLightMap = null;
         }
-        data.preparedSectionData = true;
+        data.data = true;
     }
 
     /** 从调色板解析分区内部索引处的 {@link BlockState}。 */
@@ -779,7 +775,7 @@ final class ChunkBuilder {
 
         private int currentIndex = -1;
 
-        void startBuilding() {
+        void reset() {
             overlays.clear();
             currentIndex = -1;
         }
