@@ -280,8 +280,7 @@ final class ChunkBuilder {
             this.section = section;
             this.height = section.getByte("Y") * 16;
             this.cave = cave;
-            this.blockStates =
-                    section.contains("block_states", 10) ? section.getCompound("block_states") : null;
+            this.blockStates = section.contains("block_states", 10) ? section.getCompound("block_states") : null;
             this.hasBlocks = hasBlocks(blockStates, height >= lowHSection);
         }
 
